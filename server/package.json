@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "node --test --test-concurrency=1 \"test/*.test.*\"",
+    "test": "node --test --test-concurrency=1",
     "loadtest": "node scripts/loadtest.mjs"
   },
   "dependencies": {
