@@ -1107,13 +1107,41 @@ export const getDashboardAnalytics = async (req, res) => {
   }
 };
 
+// One CSV cell: quotes escaped, and text a spreadsheet would run as a formula
+// (=, +, -, @, tab, CR at the start) is prefixed with ' so it shows as text.
+// Buyers type their own names, so a name like =HYPERLINK(...) must stay inert.
+const csvCell = (v) => {
+  let t = String(v ?? '');
+  if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+  return `"${t.replace(/"/g, '""')}"`;
+};
+const csvRow = (cells) => cells.join(',') + '\n';
+const rupees = (p) => ((p || 0) / 100).toFixed(2);
+
+// Exports mask phones the same way the screens do: 98*****210
+export const maskPhoneForExport = (p) => {
+  const d = String(p || '');
+  if (d.length < 6) return '*'.repeat(d.length);
+  return `${d.slice(0, 2)}${'*'.repeat(d.length - 5)}${d.slice(-3)}`;
+};
+
+const EXPORT_TYPES = ['passes', 'orders', 'ledger', 'scans', 'shifts', 'footfall'];
+const EXPORTS_WITH_PHONES = ['passes', 'orders', 'footfall'];
+
 /**
  * GET /api/v1/admin/export/:type
- * 1-click CSV export
+ * 1-click CSV export. Phone numbers are masked unless ?includeFullPhone=1,
+ * which is written to the audit log.
  */
 export const exportCSV = async (req, res) => {
   try {
     const { type } = req.params;
+    if (!EXPORT_TYPES.includes(type)) {
+      return errorResponse(res, `Invalid export type. Choose ${EXPORT_TYPES.join(', ')}.`, 'INVALID_TYPE', 400);
+    }
+    const fullPhone = EXPORTS_WITH_PHONES.includes(type)
+      && ['1', 'true', 'yes'].includes(String(req.query.includeFullPhone || '').toLowerCase());
+    const phoneOut = fullPhone ? (p) => String(p || '') : maskPhoneForExport;
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
     const targetEventId = isEventAdmin
       ? (req.user.assignedEventId || 'comics-carnival')
@@ -1124,29 +1152,64 @@ export const exportCSV = async (req, res) => {
     let filename = `export_${type}_${Date.now()}.csv`;
     let csvData = '';
 
+    if (fullPhone) {
+      await AuditLog.create({
+        actorId: req.user._id,
+        actorName: req.user.name,
+        action: 'EXPORT_FULL_PHONE',
+        target: `${type} CSV (${targetEventId && targetEventId !== 'ALL' ? targetEventId : 'all events'})`,
+        reason: 'Exported with full phone numbers'
+      });
+    }
+
     if (type === 'passes') {
-      const passes = await Pass.find(eventFilter).sort({ createdAt: -1 });
+      const passes = await Pass.find(eventFilter).sort({ createdAt: -1 }).lean();
       csvData = 'OrderId,EventId,HolderName,Phone,Badge,Status,Presence,ValidDays,CreatedAt\n';
       passes.forEach(p => {
-        csvData += `"${p.orderId}","${p.eventId || 'comics-carnival'}","${p.holderName}","${p.phone}","${p.badge}","${p.status}","${p.presence}","${p.validDays.join('-')}","${p.createdAt.toISOString()}"\n`;
+        csvData += csvRow([
+          csvCell(p.orderId), csvCell(p.eventId || 'comics-carnival'), csvCell(p.holderName), csvCell(phoneOut(p.phone)),
+          csvCell(p.badge), csvCell(p.status), csvCell(p.presence), csvCell((p.validDays || []).join('-')),
+          csvCell(p.createdAt?.toISOString())
+        ]);
+      });
+    } else if (type === 'orders') {
+      // Every order, paid or not, with what was charged and how it was paid
+      const orders = await Order.find(eventFilter).sort({ createdAt: -1 }).lean();
+      csvData = 'OrderId,EventId,Channel,Status,HolderName,Phone,Ticket,Passes,SubtotalRupees,DiscountRupees,Coupon,AddOnsRupees,AmountRupees,OrganizerRupees,PlatformRupees,Gateway,PaymentMethod,PaymentId,CreatedAt,PaidAt\n';
+      orders.forEach(o => {
+        const addOnsPaise = (o.addOns || []).reduce((sum, a) => sum + (a.pricePaise || 0) * (a.quantity || 1), 0);
+        csvData += csvRow([
+          csvCell(o.orderId), csvCell(o.eventId || 'comics-carnival'), csvCell(o.channel), csvCell(o.status),
+          csvCell(o.holderName), csvCell(phoneOut(o.phone)), csvCell(o.tierName),
+          Math.max(1, (o.attendees || []).length), rupees(o.subtotalPaise), rupees(o.discountPaise), csvCell(o.couponCode || ''),
+          rupees(addOnsPaise), rupees(o.amountPaise), rupees(o.organizerSharePaise), rupees(o.platformFeePaise),
+          csvCell(o.gateway?.provider || ''), csvCell(o.gateway?.method || ''), csvCell(o.gateway?.paymentId || ''),
+          csvCell(o.createdAt?.toISOString()), csvCell(o.paidAt?.toISOString() || '')
+        ]);
       });
     } else if (type === 'ledger') {
       const entries = await LedgerEntry.find(eventFilter).sort({ at: -1 });
       csvData = 'OrderId,EventId,Type,Channel,GrossRupees,OrganizerRupees,PlatformRupees,Date\n';
       entries.forEach(e => {
-        csvData += `"${e.orderId}","${e.eventId || 'comics-carnival'}","${e.type}","${e.channel}",${(e.grossPaise/100).toFixed(2)},${(e.organizerPaise/100).toFixed(2)},${(e.platformPaise/100).toFixed(2)},"${e.at.toISOString()}"\n`;
+        csvData += csvRow([
+          csvCell(e.orderId), csvCell(e.eventId || 'comics-carnival'), csvCell(e.type), csvCell(e.channel),
+          rupees(e.grossPaise), rupees(e.organizerPaise), rupees(e.platformPaise), csvCell(e.at?.toISOString())
+        ]);
       });
     } else if (type === 'scans') {
       const scans = await ScanLog.find(eventFilter).sort({ at: -1 }).limit(1000);
       csvData = 'OrderId,EventId,EventDay,Direction,Result,FirstEntry,GateId,Time\n';
       scans.forEach(s => {
-        csvData += `"${s.orderId || ''}","${s.eventId || 'comics-carnival'}",${s.eventDay},"${s.direction}","${s.result}",${s.isFirstEntryOfDay},"${s.gateId}","${s.at.toISOString()}"\n`;
+        csvData += csvRow([
+          csvCell(s.orderId || ''), csvCell(s.eventId || 'comics-carnival'), s.eventDay, csvCell(s.direction),
+          csvCell(s.result), Boolean(s.isFirstEntryOfDay), csvCell(s.gateId), csvCell(s.at?.toISOString())
+        ]);
       });
     } else if (type === 'shifts') {
       // Cash reconciliation per cashier shift (SRS FR-M7-08, BR-F-03)
       const shifts = await Shift.find(await shiftScope(req.user)).sort({ openedAt: -1 }).limit(2000).lean();
-      const r = (p) => ((p || 0) / 100).toFixed(2);
-      const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const r = rupees;
+      const cell = csvCell;
       csvData = 'Cashier,Status,OpenedAt,ClosedAt,Tickets,OpeningFloat,CashSales,ExpectedInDrawer,Counted,Difference,Notes\n';
       shifts.forEach(s => {
         csvData += [
@@ -1160,23 +1223,20 @@ export const exportCSV = async (req, res) => {
       const settings = await AdminSettings.getSettings();
       const days = (settings.eventDays || []).map(d => d.day);
       const passes = await Pass.find({ ...eventFilter, status: PASS_STATUS.ACTIVE }).sort({ createdAt: 1 }).lean();
-      const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-      const maskPhone = (p) => (p && p.length >= 6 ? `${p.slice(0, 2)}******${p.slice(-2)}` : '');
       csvData = ['OrderId', 'EventId', 'HolderName', 'Phone', 'Badge', 'ValidDays', ...days.map(d => `Day${d}`), 'DaysAttended', 'NoShow'].join(',') + '\n';
       passes.forEach(p => {
         const came = new Set(p.firstEntryDays || []);
         csvData += [
-          csvCell(p.orderId), csvCell(p.eventId || 'comics-carnival'), csvCell(p.holderName), csvCell(maskPhone(p.phone)),
+          csvCell(p.orderId), csvCell(p.eventId || 'comics-carnival'), csvCell(p.holderName), csvCell(phoneOut(p.phone)),
           csvCell(p.badge), csvCell((p.validDays || []).join('-')),
           ...days.map(d => (came.has(d) ? 'YES' : (p.validDays || []).includes(d) ? 'NO' : '-')),
           came.size, came.size === 0 ? 'YES' : 'NO'
         ].join(',') + '\n';
       });
-    } else {
-      return errorResponse(res, 'Invalid export type. Choose passes, ledger, scans, or footfall.', 'INVALID_TYPE', 400);
     }
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csvData);
   } catch (error) {

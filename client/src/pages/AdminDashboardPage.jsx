@@ -209,6 +209,7 @@ export default function AdminDashboardPage() {
     env: 'TEST'
   });
   const [showGatewaySalt, setShowGatewaySalt] = useState(false);
+  const [exportFullPhone, setExportFullPhone] = useState(false);
   const [paymentGatewayStatus, setPaymentGatewayStatus] = useState({ ready: true, providerAvailable: true, savedSecrets: {}, platformPayUEnv: 'TEST' });
   const secretPlaceholder = (field, example) => (paymentGatewayStatus.savedSecrets?.[field] ? 'Saved. Leave blank to keep it' : example);
 
@@ -794,9 +795,14 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleExport = (type) => {
-    // The session cookie goes with the request; no token in the URL
-    window.open(`/api/v1/admin/export/${type}`, '_blank');
+  const handleExport = (type, { fullPhone = false } = {}) => {
+    // The session cookie goes with the request; no token in the URL.
+    // Phones are masked unless full numbers are asked for (the server logs that).
+    const params = new URLSearchParams();
+    if (!isEventAdmin && selectedEventScope && selectedEventScope !== 'ALL') params.set('eventId', selectedEventScope);
+    if (fullPhone) params.set('includeFullPhone', '1');
+    const qs = params.toString();
+    window.open(`/api/v1/admin/export/${type}${qs ? `?${qs}` : ''}`, '_blank');
   };
 
   // Inquiry & Partnership Actions
@@ -1548,17 +1554,33 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <button type="button" onClick={() => handleExport('passes')} className="adm-action-tile adm-tone-yellow group rounded-2xl p-4 text-left">
+                    <button type="button" onClick={() => handleExport('passes', { fullPhone: exportFullPhone })} className="adm-action-tile adm-tone-yellow group rounded-2xl p-4 text-left">
                       <span className="adm-icon-tile adm-icon-tile-yellow mb-3 h-9 w-9 rounded-xl"><Ticket className="h-4 w-4" /></span>
                       <strong className="block font-mono text-xs text-white">Passes CSV</strong>
                       <span className="mt-0.5 block font-mono text-[10px] text-text-muted">All attendee tickets</span>
                     </button>
-                    <button type="button" onClick={() => handleExport('ledger')} className="adm-action-tile adm-tone-cyan group rounded-2xl p-4 text-left">
+                    <button type="button" onClick={() => handleExport('orders', { fullPhone: exportFullPhone })} className="adm-action-tile adm-tone-yellow group rounded-2xl p-4 text-left">
+                      <span className="adm-icon-tile adm-icon-tile-yellow mb-3 h-9 w-9 rounded-xl"><ShoppingBag className="h-4 w-4" /></span>
+                      <strong className="block font-mono text-xs text-white">Orders CSV</strong>
+                      <span className="mt-0.5 block font-mono text-[10px] text-text-muted">Every order, paid or not</span>
+                    </button>
+                    <button type="button" onClick={() => handleExport('ledger')} className="adm-action-tile adm-tone-cyan group col-span-2 rounded-2xl p-4 text-left">
                       <span className="adm-icon-tile adm-icon-tile-cyan mb-3 h-9 w-9 rounded-xl"><FileText className="h-4 w-4" /></span>
                       <strong className="block font-mono text-xs text-white">Financial CSV</strong>
                       <span className="mt-0.5 block font-mono text-[10px] text-text-muted">Audited sales ledger</span>
                     </button>
                   </div>
+                  <label className="mt-3 flex items-start gap-2 font-mono text-[11px] text-text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={exportFullPhone}
+                      onChange={(e) => setExportFullPhone(e.target.checked)}
+                    />
+                    <span>
+                      Include full phone numbers in Passes and Orders. Off by default (98*****210); each full export is recorded in the audit log.
+                    </span>
+                  </label>
                 </section>
               </div>
             </div>
