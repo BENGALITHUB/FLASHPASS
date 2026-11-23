@@ -1,0 +1,90 @@
+name: CD (Continuous Deployment)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-cd
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to AWS (EC2 / Lightsail)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔑 Deploy to AWS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USERNAME || 'ubuntu' }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          port: ${{ secrets.AWS_PORT || 22 }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -e
+            echo "=========================================="
+            echo "🚀 Starting FlashPass Deployment on AWS..."
+            echo "=========================================="
+
+            DEPLOY_DIR="/var/www/flashpass"
+            
+            # Ensure target deployment directory exists
+            if [ ! -d "$DEPLOY_DIR" ]; then
+              echo "Creating deployment directory at $DEPLOY_DIR..."
+              sudo mkdir -p "$DEPLOY_DIR"
+              sudo chown -R $USER:$USER "$DEPLOY_DIR"
+              git clone https://github.com/${{ github.repository }}.git "$DEPLOY_DIR"
+            fi
+
+            cd "$DEPLOY_DIR"
+
+            # Pull latest changes from main branch
+            echo "📥 Pulling latest changes from Git..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Install backend production dependencies
+            echo "📦 Installing backend production packages..."
+            cd server
+            npm ci --omit=dev
+            cd ..
+
+            # Install client dependencies & build static bundle
+            echo "🏗️ Building frontend production bundle..."
+            cd client
+            npm ci
+            npm run build
+            cd ..
+
+            # Restart application with PM2 (Zero Downtime)
+            echo "🔄 Reloading process with PM2..."
+            if command -v pm2 >/dev/null 2>&1; then
+              pm2 reload ecosystem.config.cjs --update-env || pm2 start ecosystem.config.cjs
+              pm2 save
+            else
+              echo "⚠️ PM2 not found globally. Installing PM2..."
+              sudo npm install -g pm2
+              pm2 start ecosystem.config.cjs
+              pm2 save
+            fi
+
+            # Health Check Verification
+            echo "🩺 Running API health check on port 5000..."
+            sleep 3
+            if curl -fsSL http://localhost:5000/api/v1/health >/dev/null; then
+              echo "=========================================="
+              echo "✅ Deployment Successful! FlashPass is LIVE!"
+              echo "=========================================="
+            else
+              echo "❌ Health check failed on port 5000. Checking PM2 logs..."
+              pm2 logs flashpass --lines 20 --nostream
+              exit 1
+            fi

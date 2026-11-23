@@ -1,0 +1,202 @@
+/* Gate scanner (staff) — landing palette (yellow / magenta / cyan on #0B0B14), same as the pass pages.
+   The full-screen scan result flashes stay solid colours on purpose: they must read instantly. */
+.gate-scanner-page {
+  --gs-bg: #0b0b14;
+  --gs-line: #2e2e4d;
+  --brand-fill: linear-gradient(135deg, #ffe45c 0%, #ffd60a 45%, #e5c000 100%);
+  --brand-text: linear-gradient(180deg, #ffe45c, #ffd60a 60%, #e5c000);
+  --dots: radial-gradient(#ffffff09 1px, transparent 1px) 0 0 / 14px 14px;
+  background: var(--gs-bg);
+  color-scheme: dark;
+}
+.gs-atmosphere {
+  background:
+    radial-gradient(ellipse 55% 40% at 50% 0%, #ffd60a1c, transparent 70%),
+    radial-gradient(ellipse 40% 35% at 0% 70%, #22d3ee12, transparent 70%),
+    radial-gradient(ellipse 40% 35% at 100% 80%, #ff2e8812, transparent 70%),
+    radial-gradient(#2e2e4d 1px, transparent 1px) 0 0 / 16px 16px;
+  mask-image: linear-gradient(#000, #000c 60%, #0006);
+}
+
+/* ---------- Shared ---------- */
+.gs-foil {
+  background: var(--brand-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 #000);
+}
+.gs-metal-btn {
+  color: #f5f5fa;
+  border: 1.5px solid #3a3a5c;
+  background: var(--dots), linear-gradient(160deg, #23233a, #14141f);
+  box-shadow: 3px 3px 0 #000, inset 0 1px 0 #ffffff14;
+  transition: transform 150ms, box-shadow 150ms, border-color 150ms;
+}
+.gs-torch-on { border-color: #ffd60a; box-shadow: 3px 3px 0 #000, 0 0 18px #ffd60a40; }
+.gs-eyebrow { color: #a3a3c2; border: 1px solid #ffd60a59; background: #ffd60a12; }
+.gs-frame {
+  padding: 2px;
+  border-radius: 28px;
+  background: var(--brand-fill);
+  box-shadow: 0 0 0 1px #000, 7px 8px 0 #000, 0 26px 60px #000b, 0 0 60px #ffd60a26;
+}
+.gs-surface {
+  border-radius: 26px;
+  background:
+    var(--dots),
+    radial-gradient(ellipse 80% 35% at 50% 0%, #2a2a48a6, transparent 70%),
+    linear-gradient(165deg, #1c1c30, #0f0f1a 60%, #161626);
+}
+.gs-title-icon {
+  color: #111111;
+  background: var(--brand-fill);
+  border: 1.5px solid #000;
+  box-shadow: 3px 3px 0 #000, 0 0 24px #ffd60a40;
+  transform: rotate(-4deg);
+}
+
+/* ---------- Steps ---------- */
+.gs-step { color: #a3a3c2; }
+.gs-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 20px;
+  border-radius: 6px;
+  color: #111111;
+  background: var(--brand-fill);
+  box-shadow: 1px 1px 0 #000;
+  font-size: 10px;
+}
+
+/* Gate tiles */
+.gs-gate {
+  color: #f5f5fa;
+  border: 1.5px solid var(--gs-line);
+  background: var(--dots), linear-gradient(160deg, #1b1b2c, #111119);
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 150ms, border-color 150ms, box-shadow 150ms, background 150ms;
+}
+.gs-gate-name { color: #d7d7e8; }
+.gs-zone { color: #a3a3c2; border: 1px solid #3a3a5c; background: #0b0b14; }
+.gs-gate-active {
+  border: 2px solid transparent;
+  background:
+    var(--dots) padding-box,
+    radial-gradient(ellipse 90% 70% at 0% 0%, #ffd60a2e, transparent 70%) padding-box,
+    linear-gradient(160deg, #20203a, #161626) padding-box,
+    var(--brand-fill) border-box;
+  box-shadow: 4px 4px 0 #000, 0 0 26px #ffd60a33;
+  transform: translate(-1px, -1px);
+}
+.gs-gate-active .gs-gate-name {
+  background: var(--brand-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 #000);
+}
+.gs-gate-active .gs-zone { color: #ffd60a; border-color: #ffd60a80; background: #ffd60a14; }
+.gs-gate-check { color: #111111; background: var(--brand-fill); border: 1px solid #000; box-shadow: 0 0 10px #ffd60a80; }
+
+/* Mode tiles — each mode keeps its operational colour (cyan entry / orange exit / magenta merch) */
+.gs-mode,
+.gs-cam,
+.gs-summary-mode { --mode: #22d3ee; }
+[data-mode='EXIT'] { --mode: #fb923c; }
+[data-mode='MERCH'] { --mode: #ff2e88; }
+.gs-mode {
+  color: #a3a3c2;
+  border: 1.5px solid var(--gs-line);
+  background: var(--dots), linear-gradient(160deg, #1b1b2c, #111119);
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 150ms, border-color 150ms, box-shadow 150ms, color 150ms;
+}
+.gs-mode-icon { color: var(--mode); border: 1px solid #3a3a5c; background: #0b0b14; }
+.gs-mode-active {
+  color: #fff;
+  border-color: var(--mode);
+  background:
+    radial-gradient(ellipse 90% 80% at 50% 0%, color-mix(in srgb, var(--mode) 26%, transparent), transparent 75%),
+    var(--dots),
+    linear-gradient(160deg, #1b1b2c, #111119);
+  box-shadow: 4px 4px 0 #000, 0 0 26px color-mix(in srgb, var(--mode) 40%, transparent);
+  transform: translate(-1px, -1px);
+}
+.gs-mode-active .gs-mode-icon { color: #0b0b14; border-color: #000; background: var(--mode); box-shadow: 0 0 14px var(--mode); }
+
+.gs-summary { border: 1px dashed #3a3a5c; background: #ffffff05; }
+.gs-summary-mode { color: var(--mode); }
+
+/* Launch button: brand yellow with a periodic shine */
+.gs-launch {
+  color: #111111;
+  border: 2px solid #000;
+  background: var(--brand-fill);
+  box-shadow: 5px 5px 0 #000, inset 0 1px 0 #fff8, 0 0 30px #ffd60a40;
+  text-shadow: 0 1px 0 #fff6;
+  transition: transform 150ms, box-shadow 150ms, filter 150ms;
+}
+.gs-launch::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 25%, #ffffffb0 45%, transparent 60%);
+  transform: translateX(-120%);
+  animation: gs-shine 4s ease-in-out infinite;
+}
+.gs-launch-sm { position: relative; overflow: hidden; box-shadow: 3px 3px 0 #000, inset 0 1px 0 #fff8; }
+@keyframes gs-shine {
+  0%, 65% { transform: translateX(-120%); }
+  90%, 100% { transform: translateX(120%); }
+}
+
+/* ---------- Live scanner ---------- */
+.gs-cam {
+  padding: 3px;
+  border-radius: 28px;
+  background: var(--brand-fill);
+  box-shadow: 0 0 0 1px #000, 6px 6px 0 #000, 0 0 50px color-mix(in srgb, var(--mode) 30%, transparent);
+}
+.gs-cam-corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 4px solid var(--mode);
+  filter: drop-shadow(0 0 6px var(--mode));
+}
+.gs-tl { top: -12px; left: -12px; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+.gs-tr { top: -12px; right: -12px; border-left: 0; border-bottom: 0; border-top-right-radius: 14px; }
+.gs-bl { bottom: -12px; left: -12px; border-right: 0; border-top: 0; border-bottom-left-radius: 14px; }
+.gs-br { bottom: -12px; right: -12px; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+.gs-cam-line {
+  top: 12%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--mode), transparent);
+  box-shadow: 0 0 12px var(--mode);
+  animation: gs-sweep 2.4s ease-in-out infinite alternate;
+}
+@keyframes gs-sweep { to { top: 88%; } }
+.gs-dock { border-top: 1px solid #ffffff14; background: linear-gradient(180deg, #14141fcc, #0b0b14); }
+.gs-input {
+  border: 2px solid var(--gs-line);
+  background: #0b0b14;
+  box-shadow: inset 0 2px 6px #0007;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.gs-input:focus { border-color: #ffd60a; box-shadow: 0 0 0 4px #ffd60a26, inset 0 2px 6px #0007; }
+
+@media (hover: hover) and (pointer: fine) {
+  .gs-metal-btn:hover { border-color: #ffd60a99; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000, inset 0 1px 0 #ffffff14; }
+  .gs-gate:not(.gs-gate-active):hover,
+  .gs-mode:not(.gs-mode-active):hover { border-color: #5a5a80; transform: translate(-1px, -1px); }
+  .gs-launch:hover { filter: brightness(1.07); transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #000, inset 0 1px 0 #fff8, 0 0 40px #ffd60a55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-launch::before, .gs-cam-line { animation: none; }
+  .gate-scanner-page * { transition: none !important; }
+}

@@ -1,0 +1,219 @@
+/* Digital pass — dark ticket in the landing palette: frame colour follows the tier
+   (general = cyan, VIP = yellow, cosplay = magenta) + brand gradient strip. */
+.pass-page {
+  --pp-bg: #0b0b14;
+  --pp-line: #2e2e4d;
+  --brand-fill: linear-gradient(135deg, #ffe45c 0%, #ffd60a 45%, #e5c000 100%);
+  --brand-text: linear-gradient(180deg, #ffe45c, #ffd60a 60%, #e5c000);
+  --tier-cyan: linear-gradient(135deg, #67e8f9, #22d3ee 45%, #0ea5c6);
+  --tier-magenta: linear-gradient(135deg, #ff7ab6, #ff2e88 45%, #e01e74);
+  --brand-gradient: linear-gradient(100deg, #ff2e88, #ffd60a 35%, #22d3ee 65%, #ff2e88);
+  --dots: radial-gradient(#ffffff09 1px, transparent 1px) 0 0 / 14px 14px;
+  background: var(--pp-bg);
+  color-scheme: dark;
+}
+.pp-atmosphere {
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%, #ffd60a1f, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 0% 60%, #ff2e8814, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 100% 85%, #22d3ee14, transparent 70%),
+    radial-gradient(#2e2e4d 1px, transparent 1px) 0 0 / 16px 16px,
+    var(--pp-bg);
+}
+
+/* ---------- Shared bits ---------- */
+.pp-foil {
+  background: var(--brand-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 #000);
+}
+.pp-foil-icon { color: #ffd60a; fill: #ffd60a; }
+.pp-metal-btn {
+  color: #f5f5fa;
+  border: 1.5px solid #3a3a5c;
+  background: var(--dots), linear-gradient(160deg, #23233a, #14141f);
+  box-shadow: 3px 3px 0 #000, inset 0 1px 0 #ffffff14;
+  transition: transform 150ms, box-shadow 150ms, border-color 150ms;
+}
+.pp-yellow-btn {
+  color: #111111;
+  border: 1.5px solid #000;
+  background: var(--brand-fill);
+  box-shadow: 3px 3px 0 #000, inset 0 1px 0 #fff8, 0 0 22px #ffd60a33;
+  text-shadow: 0 1px 0 #fff6;
+  transition: transform 150ms, box-shadow 150ms, filter 150ms;
+}
+.pp-link { color: #a3a3c2; text-decoration: underline; text-decoration-color: #ffd60a66; text-underline-offset: 4px; }
+.pp-panel {
+  border: 1.5px solid var(--pp-line);
+  background: var(--dots), linear-gradient(160deg, #1a1a2c, #111119);
+  box-shadow: 4px 4px 0 #000, inset 0 1px 0 #ffffff0d;
+}
+
+/* ---------- Notice + status ---------- */
+.pp-notice {
+  background: var(--brand-gradient);
+  box-shadow: 3px 3px 0 #000, 0 0 30px #ff2e8826;
+}
+.pp-notice-inner { background: linear-gradient(160deg, #1b1424f5, #12121cf5); }
+.pp-notice-icon { color: #ff2e88; border: 1px solid #ff2e8880; background: #ff2e881f; }
+.pp-live-tag { color: #fff; background: #ff2e88; box-shadow: 0 0 10px #ff2e88aa; animation: pp-blink 1.6s ease-in-out infinite; }
+@keyframes pp-blink { 50% { opacity: 0.45; } }
+.pp-pill { border: 1px solid; backdrop-filter: blur(6px); }
+.pp-pill-valid { color: #4ade80; border-color: #22c55e59; background: #22c55e14; box-shadow: 0 0 18px #22c55e1f; }
+.pp-pill-sync { color: #22d3ee; border-color: #22d3ee4d; background: #22d3ee12; }
+.pp-pill-offline { color: #f59e0b; border-color: #f59e0b66; background: #f59e0b1a; }
+.pp-hint {
+  color: #a3a3c2;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px dashed #3a3a5c;
+  background: #ffffff05;
+}
+.pp-tab { color: #f5f5fa; border: 1.5px solid var(--pp-line); background: #0b0b14; transition: border-color 150ms; }
+.pp-tab-active { color: #111111; border-color: #000; background: var(--brand-fill); box-shadow: 2px 2px 0 #000; }
+
+/* ---------- Pass card ---------- */
+.pp-card-frame {
+  --frame: var(--tier-cyan);
+  --tier-glow: #22d3ee33;
+  padding: 2px;
+  border-radius: 28px;
+  background: var(--frame);
+  box-shadow: 0 0 0 1px #000, 7px 8px 0 #000, 0 26px 60px #000b, 0 0 60px var(--tier-glow);
+}
+.pp-card-frame[data-tier='vip'] { --frame: var(--brand-fill); --tier-glow: #ffd60a40; }
+.pp-card-frame[data-tier='cosplay'] { --frame: var(--tier-magenta); --tier-glow: #ff2e8840; }
+.pp-card {
+  border-radius: 26px;
+  color: #f5f5fa;
+  background:
+    var(--dots),
+    radial-gradient(ellipse 70% 40% at 50% 0%, #2a2a48aa, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, #2a1530aa, transparent 70%),
+    linear-gradient(165deg, #1c1c30, #0f0f1a 55%, #161626);
+}
+.pp-card-sheen {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, #ffffff17 42%, #ffd60a26 48%, #ff2e8817 53%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 110% 0;
+  mix-blend-mode: screen;
+  animation: pp-sheen 8s ease-in-out infinite;
+}
+@keyframes pp-sheen {
+  0%, 60% { background-position: 110% 0; }
+  88%, 100% { background-position: -30% 0; }
+}
+.pp-card-head { border-bottom: 1px solid #ffffff14; box-shadow: 0 1px 0 #0008; }
+.pp-tier {
+  color: #111111;
+  border: 1px solid #000;
+  background: var(--frame);
+  box-shadow: 2px 2px 0 #000, inset 0 1px 0 #fff9;
+  text-shadow: 0 1px 0 #fff7;
+}
+
+/* QR: stays pure white/black for scanners; tier-colour rim + scanner corner brackets */
+.pp-qr {
+  background: linear-gradient(#fff, #fff) padding-box, var(--frame, var(--brand-fill)) border-box;
+  border: 2px solid transparent;
+  box-shadow: 0 10px 30px #0008, 0 0 0 1px #000;
+  cursor: pointer;
+}
+.pp-qr-zoom { --frame: var(--brand-fill); box-shadow: 0 0 0 1px #000, 8px 8px 0 #000, 0 0 60px #ffd60a40; cursor: default; }
+.pp-qr-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #ffd60a;
+  filter: drop-shadow(0 0 4px #ffd60a99);
+}
+.pp-qr-tl { top: -10px; left: -10px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+.pp-qr-tr { top: -10px; right: -10px; border-left: 0; border-bottom: 0; border-top-right-radius: 8px; }
+.pp-qr-bl { bottom: -10px; left: -10px; border-right: 0; border-top: 0; border-bottom-left-radius: 8px; }
+.pp-qr-br { bottom: -10px; right: -10px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
+
+/* Ticket tear line with punched notches */
+.pp-tear { height: 0; border-top: 2px dashed #ffd60a59; }
+.pp-notch {
+  position: absolute;
+  top: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--pp-bg);
+  box-shadow: inset 0 0 0 2px #00000080;
+}
+.pp-notch-l { left: -32px; }
+.pp-notch-r { right: -32px; }
+
+.pp-photo-ring { background: var(--frame); box-shadow: 3px 3px 0 #000; }
+.pp-verified { color: #052e16; border: 1px solid #000; background: linear-gradient(180deg, #86efac, #22c55e); box-shadow: 1px 1px 0 #000; }
+.pp-name { color: #fff; text-shadow: 3px 3px 0 #000, 0 0 24px #ffffff1a; }
+.pp-zone { color: #22d3ee; border: 1px solid #22d3ee4d; background: #22d3ee12; }
+.pp-day { border: 1.5px solid; }
+.pp-day-valid {
+  color: #22d3ee;
+  border-color: #22d3ee80;
+  background: linear-gradient(180deg, #22d3ee24, #22d3ee0a);
+  box-shadow: inset 0 1px 0 #ffffff1a, 0 0 14px #22d3ee1f;
+}
+.pp-day-off { color: #a3a3c266; border-color: var(--pp-line); background: #0b0b14; text-decoration: line-through; }
+
+.pp-strip {
+  position: relative;
+  color: #fff;
+  border-top: 1px solid #ffffff59;
+  background: var(--dots), var(--brand-gradient);
+  background-size: 14px 14px, 220% 100%;
+  text-shadow: 0 1px 0 #0008;
+  animation: pp-holo 10s linear infinite;
+}
+@keyframes pp-holo { to { background-position: 0 0, 220% 0; } }
+.pp-copy { color: #fff; border: 1px solid #ffffff80; background: #0000004d; backdrop-filter: blur(4px); transition: background 150ms; }
+
+/* ---------- Vouchers, nudge, actions ---------- */
+.pp-voucher { border: 1px solid #ffd60a40; background: #0b0b14b3; }
+.pp-nudge { color: #fbbf24; border: 1px solid #f59e0b4d; background: linear-gradient(100deg, #f59e0b1a, #f59e0b08); }
+.pp-share::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 25%, #ffffffaa 45%, transparent 60%);
+  transform: translateX(-120%);
+  animation: pp-share-shine 4.5s ease-in-out infinite;
+}
+@keyframes pp-share-shine {
+  0%, 65% { transform: translateX(-120%); }
+  90%, 100% { transform: translateX(120%); }
+}
+
+.pp-modal { background: radial-gradient(ellipse at center, #1a1626f2, #000000f7 70%); backdrop-filter: blur(6px); }
+.pp-loader {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: conic-gradient(#ffd60a, #ff2e88, #22d3ee, #ffd60a);
+  mask: radial-gradient(circle, transparent 55%, #000 57%);
+  animation: pp-spin 1s linear infinite;
+}
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+
+@media (hover: hover) and (pointer: fine) {
+  .pp-metal-btn:hover { border-color: #ffd60a99; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000, inset 0 1px 0 #ffffff14; }
+  .pp-yellow-btn:hover { filter: brightness(1.08); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000, inset 0 1px 0 #fff8, 0 0 30px #ffd60a55; }
+  .pp-tab:not(.pp-tab-active):hover { border-color: #ffd60a99; }
+  .pp-copy:hover { background: #00000080; }
+  .pp-link:hover { color: #ffd60a; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-card-sheen, .pp-strip, .pp-live-tag, .pp-share::before, .pp-loader { animation: none; }
+  .pass-page * { transition: none !important; }
+}

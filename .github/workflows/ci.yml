@@ -1,0 +1,59 @@
+name: CI (Continuous Integration)
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: 🧪 Test & Build Fullstack App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Server Dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: 🧪 Run Server Unit & Integration Tests
+        run: |
+          cd server
+          npm test
+        env:
+          NODE_ENV: test
+          QR_HMAC_SECRET: test_hmac_secret_32_characters_minimum_len
+          JWT_SECRET: test_jwt_secret_32_characters_minimum_length
+
+      - name: 📦 Install Client Dependencies
+        run: |
+          cd client
+          npm ci
+
+      - name: 🏗️ Build Frontend (Vite)
+        run: |
+          cd client
+          npm run build
+
+      - name: 🔍 Verify Client Build Output
+        run: |
+          if [ ! -f "client/dist/index.html" ]; then
+            echo "❌ Error: client/dist/index.html was not generated!"
+            exit 1
+          fi
+          echo "✅ Client build verified successfully!"

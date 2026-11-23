@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Bold Comic Style Yellow Background with Dark Border -->
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="#FFD60A" stroke="#000000" stroke-width="4"/>
+  <!-- High Voltage Flash Bolt in Solid Black -->
+  <path d="M36 8L16 34H32L28 56L48 28H32L36 8Z" fill="#000000" stroke="#000000" stroke-width="2" stroke-linejoin="round"/>
+</svg>
+

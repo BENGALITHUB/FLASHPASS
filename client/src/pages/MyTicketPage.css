@@ -1,0 +1,422 @@
+/* Pass Vault — landing hero palette (yellow / magenta / cyan on #0B0B14), comic ink + halftone. */
+.pass-vault-page {
+  --vault-yellow: #ffd60a;
+  --vault-magenta: #ff2e88;
+  --vault-cyan: #22d3ee;
+  --vault-ink: #000;
+  --vault-bg: #0b0b14;
+  --vault-surface: #141424;
+  --vault-line: #2e2e4d;
+  color-scheme: dark;
+  background: var(--vault-bg);
+}
+
+/* ---------- Atmosphere ---------- */
+#pass-recovery { background: var(--vault-bg); }
+.recovery-atmosphere {
+  background:
+    radial-gradient(ellipse 55% 45% at 8% 30%, #ffd60a1f, transparent 70%),
+    radial-gradient(ellipse 45% 40% at 95% 20%, #ff2e8822, transparent 70%),
+    radial-gradient(ellipse 50% 45% at 85% 95%, #22d3ee18, transparent 70%);
+}
+.recovery-grid {
+  background-image: radial-gradient(#2e2e4d 1.2px, transparent 1.2px);
+  background-size: 16px 16px;
+  mask-image: linear-gradient(black, #0008 55%, transparent 95%);
+}
+.recovery-edition { border-color: #ffffff12; }
+
+/* ---------- Headline ---------- */
+.recovery-eyebrow {
+  color: var(--vault-yellow);
+  background: #ffd60a14;
+  border: 1.5px solid #ffd60a66;
+  box-shadow: 2px 2px 0 #000, 0 0 18px #ffd60a1f;
+}
+.recovery-headline {
+  font-size: clamp(2.7rem, 6.4vw, 5.6rem);
+  line-height: 0.93;
+  letter-spacing: 0.02em;
+}
+.recovery-headline-ink {
+  color: #f5f5fa;
+  text-shadow: 4px 4px 0 #000;
+}
+.recovery-headline-yellow {
+  color: var(--vault-yellow);
+  text-shadow: 4px 4px 0 #000, 0 0 28px #ffd60a40;
+}
+.recovery-headline-magenta {
+  background: linear-gradient(100deg, #ff2e88 10%, #ff7ab6 60%, #ffb3d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(4px 4px 0 #000) drop-shadow(0 0 22px #ff2e8840);
+}
+
+/* ---------- Ticket illustration ---------- */
+.vault-art {
+  position: relative;
+  margin-top: 30px;
+  padding: 26px 26px 0;
+  perspective: 1100px;
+}
+.vault-rays {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 150%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  background: repeating-conic-gradient(from 0deg, #ffd60a14 0deg 6deg, transparent 6deg 15deg);
+  mask-image: radial-gradient(circle, #000 0%, #000 22%, transparent 60%);
+  animation: vault-rays-spin 50s linear infinite;
+}
+@keyframes vault-rays-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.vault-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  pointer-events: none;
+}
+.vault-glow-yellow { inset: 10% 30% 25% 5%; background: #ffd60a33; }
+.vault-glow-magenta { inset: 35% 0 5% 45%; background: #ff2e8826; }
+
+/* Dark ticket in the landing palette — fills shared by the ticket, seal and chips */
+.vault-art {
+  --brand-fill: linear-gradient(135deg, #ffe45c 0%, #ffd60a 45%, #e5c000 100%);
+  --brand-text: linear-gradient(180deg, #ffe45c, #ffd60a 60%, #e5c000);
+  --brand-gradient: linear-gradient(100deg, #ff2e88, #ffd60a 35%, #22d3ee 65%, #ff2e88);
+  --dots: radial-gradient(#ffffff09 1px, transparent 1px) 0 0 / 14px 14px;
+}
+.vault-card-back {
+  position: absolute;
+  inset: 34px 40px 62px;
+  border-radius: 22px;
+  border: 1.5px solid transparent;
+}
+.vault-card-back-cyan {
+  background:
+    var(--dots) padding-box,
+    linear-gradient(140deg, #0f3a44, #0b1d2a 55%, #10303a) padding-box,
+    linear-gradient(135deg, #22d3ee, #0ea5c6) border-box;
+  box-shadow: 0 18px 40px #0009, 0 0 30px #22d3ee14;
+  transform: rotate(-9deg) translate(-16px, 4px);
+}
+.vault-card-back-magenta {
+  background:
+    var(--dots) padding-box,
+    linear-gradient(140deg, #3a1028, #200a18 55%, #33102a) padding-box,
+    linear-gradient(135deg, #ff2e88, #e01e74) border-box;
+  box-shadow: 0 18px 40px #0009;
+  transform: rotate(6deg) translate(14px, 6px);
+}
+.vault-ticket {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  color: #f5f5fa;
+  border: 2px solid transparent;
+  border-radius: 22px;
+  background:
+    var(--dots) padding-box,
+    radial-gradient(ellipse 60% 70% at 15% 0%, #2a2a48cc, transparent 70%) padding-box,
+    radial-gradient(ellipse 50% 60% at 90% 100%, #2a1530cc, transparent 70%) padding-box,
+    linear-gradient(150deg, #1c1c30, #0f0f1a 55%, #161626) padding-box,
+    var(--brand-fill) border-box;
+  box-shadow: 0 0 0 1px #000, 8px 10px 0 #000, 0 24px 60px #000b, 0 0 60px #ffd60a2e;
+  transform: rotate(-3deg) rotateY(-8deg);
+  transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 600ms;
+}
+/* Light sweep with a faint iridescent edge, like tilting a foil card */
+.vault-ticket-sheen {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, #ffffff1f 42%, #ffd60a38 48%, #ff2e881f 53%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 90% 0;
+  mix-blend-mode: screen;
+  animation: vault-sheen 7s ease-in-out infinite;
+}
+@keyframes vault-sheen {
+  0%, 55% { background-position: 90% 0; }
+  85%, 100% { background-position: -20% 0; }
+}
+.vault-foil,
+.vault-ticket-head .font-comic,
+.vault-ticket-heading {
+  background: var(--brand-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.vault-ticket-head {
+  padding-right: 88px;
+  border-bottom: 1px solid #ffd60a4d;
+  box-shadow: 0 1px 0 #0008;
+}
+.vault-ticket-head .font-comic { filter: drop-shadow(0 1px 0 #000); }
+.vault-ticket-head .font-comic svg { color: #ffd60a; fill: #ffd60a; }
+.vault-ticket-head .font-mono { color: #a3a3c299; }
+.vault-ticket-heading {
+  letter-spacing: 0.025em;
+  filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 18px #ffd60a33);
+}
+.vault-ink-soft { color: #a3a3c2b3; }
+.vault-ticket .bg-black { background: #ffd60a; box-shadow: 0 0 6px #ffd60a; }
+.vault-ticket-stub {
+  border-left: 2px dashed #ffd60a80;
+  background:
+    var(--dots),
+    #f5f5fa;
+}
+.vault-ticket-stub .vault-ink-soft { color: #3a3a48; }
+.vault-ticket-notch {
+  position: absolute;
+  left: -12px;
+  height: 22px;
+  width: 22px;
+  border: 2px solid #ffd60a;
+  border-radius: 50%;
+  background: var(--vault-bg);
+}
+.vault-qr {
+  padding: 9px;
+  color: #0f0f1a;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: linear-gradient(#fff, #fff) padding-box, var(--brand-fill) border-box;
+  box-shadow: 0 4px 12px #0005, inset 0 0 0 1px #0000000d;
+}
+.vault-ticket-strip {
+  position: relative;
+  color: #fff;
+  border-top: 1px solid #ffffff59;
+  background: var(--dots), var(--brand-gradient);
+  background-size: 14px 14px, 220% 100%;
+  text-shadow: 0 1px 0 #0007, 0 0 12px #0004;
+  animation: vault-holo 9s linear infinite;
+}
+@keyframes vault-holo {
+  to { background-position: 0 0, 220% 0; }
+}
+.vault-barcode {
+  background: repeating-linear-gradient(90deg, #fff 0 1px, transparent 1px 3px, #fff 3px 5px, transparent 5px 7px, #fff 7px 8px, transparent 8px 12px);
+  opacity: 0.85;
+}
+/* Holographic foil seal in the corner (clear of the header text) */
+.vault-sticker {
+  position: absolute;
+  z-index: 3;
+  right: 4px;
+  top: 4px;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  color: #111111;
+  font-size: 18px;
+  line-height: 0.95;
+  text-align: center;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, #ffffffcc, transparent 38%) padding-box,
+    conic-gradient(from 20deg, #ffd60a, #ff2e88, #ff2e88, #22d3ee, #22d3ee, #ffd60a) padding-box,
+    var(--brand-fill) border-box;
+  box-shadow: 0 0 0 1px #000, 4px 5px 0 #000, 0 0 24px #ff2e884d;
+  text-shadow: 0 1px 0 #fff8;
+  transform: rotate(12deg);
+  animation: vault-sticker 4s ease-in-out infinite;
+}
+@keyframes vault-sticker {
+  0%, 100% { transform: rotate(12deg) scale(1); filter: hue-rotate(0deg); }
+  50% { transform: rotate(4deg) scale(1.05); filter: hue-rotate(40deg); }
+}
+.vault-chip {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font: 700 11px/1 'JetBrains Mono', monospace;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  background:
+    linear-gradient(150deg, #1c1c30f2, #0f0f1af2) padding-box,
+    var(--brand-fill) border-box;
+  backdrop-filter: blur(8px);
+  box-shadow: 4px 4px 0 #000, 0 10px 24px #0007;
+}
+.vault-chip .text-primary { color: #ffd60a; }
+.vault-chip-top { left: -6px; top: 6px; }
+.vault-chip-bottom { left: -6px; bottom: 50px; }
+.vault-art-caption { position: relative; margin: 40px -12px 0; }
+
+/* ---------- Form panel ---------- */
+.recovery-frame {
+  border-radius: 28px;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--vault-yellow), var(--vault-magenta) 50%, var(--vault-cyan));
+  box-shadow: 8px 8px 0 #000, 0 0 60px #ff2e8826, 0 0 40px #ffd60a14;
+}
+.recovery-form-surface {
+  position: relative;
+  border-radius: 26px;
+  background:
+    radial-gradient(#ffffff08 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(160deg, #1a1a2e, #11111d 60%);
+}
+.recovery-form-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 70% 40% at 100% 0%, #ff2e881c, transparent 70%);
+}
+.recovery-form-topline {
+  position: relative;
+  border-bottom: 1.5px solid #ffffff14;
+  background: #0000004d;
+}
+.pass-vault-page .recovery-form-topline .text-text-muted { color: var(--vault-yellow); }
+.pass-vault-page .recovery-form-topline .bg-info {
+  box-shadow: 0 0 8px var(--vault-cyan);
+  animation: vault-live 1.6s ease-in-out infinite;
+}
+@keyframes vault-live {
+  50% { opacity: 0.35; }
+}
+.recovery-search-icon {
+  color: #000;
+  border: 2.5px solid #000;
+  background: var(--vault-yellow);
+  box-shadow: 3px 3px 0 #000, 0 0 20px #ffd60a40;
+  transform: rotate(-4deg);
+}
+#lookup-title { text-shadow: 3px 3px 0 #000; }
+
+#pass-recovery .saved-device-pass {
+  position: relative;
+  border: 2px solid #ffd60a80;
+  background: linear-gradient(110deg, #ffd60a1f, #ffd60a08 60%);
+  box-shadow: 4px 4px 0 #000;
+}
+.pass-vault-page .saved-device-pass .text-white { color: #fff; }
+.recovery-open {
+  color: #000;
+  border: 2.5px solid #000;
+  background: var(--vault-yellow);
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 150ms, box-shadow 150ms;
+}
+
+.recovery-phone-shell,
+.recovery-order-input {
+  border: 2px solid var(--vault-line) !important;
+  background: #0b0b14;
+  box-shadow: inset 0 2px 6px #0007;
+  transition: border-color 200ms, box-shadow 200ms;
+}
+.recovery-phone-shell > span:first-child {
+  color: var(--vault-yellow);
+  background: #ffd60a0f;
+  border-right: 2px solid var(--vault-line);
+}
+.recovery-phone-shell:focus-within,
+.recovery-order-input:focus {
+  border-color: var(--vault-yellow) !important;
+  box-shadow: 0 0 0 4px #ffd60a26, inset 0 2px 6px #0007;
+}
+
+#pass-recovery .recovery-submit {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  border: 3px solid #000;
+  background: linear-gradient(100deg, #ff2e88, #ff4f9e);
+  box-shadow: 5px 5px 0 #000, 0 0 30px #ff2e8840;
+  text-shadow: 2px 2px 0 #000;
+  transition: box-shadow 150ms, transform 150ms;
+}
+.recovery-submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 25%, #ffffff55 45%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform 650ms;
+}
+
+/* ---------- 3-step progress ---------- */
+.recovery-step {
+  min-width: 0;
+  border-top: 3px solid #2e2e4d;
+  padding: 10px 4px 0;
+  color: #a3a3c2;
+}
+.recovery-step-current {
+  border-top-color: var(--vault-yellow);
+  color: var(--vault-yellow);
+  background: linear-gradient(#ffd60a1c, transparent 80%);
+  box-shadow: 0 -6px 14px -8px #ffd60a;
+}
+
+/* ---------- Multiple pass results ---------- */
+.recovered-pass {
+  border: 2px solid var(--vault-line);
+  background: #0b0b14b3;
+  box-shadow: 4px 4px 0 #000;
+  transition: border-color 200ms, box-shadow 200ms, transform 200ms;
+}
+
+/* ---------- Support cards ---------- */
+.recovery-support {
+  border: 2px solid var(--vault-line);
+  background:
+    radial-gradient(#ffffff07 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(150deg, #1a1a2e, #12121e);
+  box-shadow: 5px 5px 0 #000;
+  transition: transform 200ms, box-shadow 200ms, border-color 200ms;
+}
+.recovery-support-gold { border-left: 5px solid var(--vault-yellow); }
+.recovery-support-cyan { border-left: 5px solid var(--vault-cyan); }
+.recovery-support-gold > div:first-of-type { box-shadow: 0 0 18px #ffd60a33; }
+.recovery-support-cyan > div:first-of-type { box-shadow: 0 0 18px #22d3ee33; }
+.recovery-support h2 { text-shadow: 2px 2px 0 #000; }
+
+@media (hover: hover) and (pointer: fine) {
+  .vault-art:hover .vault-ticket { transform: rotate(-1deg) rotateY(0) translateY(-6px); box-shadow: 0 0 0 1px #000, 10px 12px 0 #000, 0 30px 70px #000c, 0 0 80px #ffd60a40; }
+  .vault-art:hover .vault-ticket-sheen { animation-duration: 2.4s; }
+  .recovery-submit:hover::before { transform: translateX(100%); }
+  #pass-recovery .recovery-submit:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #000, 0 0 40px #ff2e8866; }
+  .recovery-open:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000; }
+  .recovered-pass:hover { border-color: var(--vault-yellow); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000, 0 0 24px #ffd60a26; }
+  .recovery-support:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #000; }
+  .recovery-support-gold:hover { border-color: #ffd60a99; }
+  .recovery-support-cyan:hover { border-color: #22d3ee99; }
+}
+@media (max-width: 1023px) {
+  .recovery-layout { max-width: 660px; margin-inline: auto; }
+}
+@media (max-width: 639px) {
+  .recovery-frame { border-radius: 24px; box-shadow: 5px 5px 0 #000, 0 0 40px #ff2e881f; }
+  .recovery-form-surface { border-radius: 22px; }
+  .recovery-headline { letter-spacing: 0.01em; line-height: 0.98; }
+  .recovery-headline-ink, .recovery-headline-yellow { text-shadow: 3px 3px 0 #000; }
+  .recovery-headline-magenta { filter: drop-shadow(3px 3px 0 #000); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pass-recovery *, #pass-recovery *::before { transition: none; }
+  .vault-rays, .vault-ticket-sheen, .vault-sticker, .vault-ticket-strip, .recovery-form-topline .bg-info { animation: none; }
+  .vault-art:hover .vault-ticket { transform: rotate(-3deg) rotateY(-8deg); }
+  .recovery-submit::before { display: none; }
+}
