@@ -216,5 +216,17 @@ const eventSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Gateway secrets sign payment callbacks: they must never reach a browser,
+// whichever route sends an event document out as JSON.
+const GATEWAY_SECRET_FIELDS = ['merchantSalt', 'razorpayKeySecret', 'cashfreeSecretKey', 'phonepeSaltKey', 'stripeSecretKey'];
+eventSchema.set('toJSON', {
+  transform(doc, ret) {
+    if (ret.paymentGateway) {
+      for (const f of GATEWAY_SECRET_FIELDS) delete ret.paymentGateway[f];
+    }
+    return ret;
+  }
+});
+
 export const Event = mongoose.model('Event', eventSchema);
 

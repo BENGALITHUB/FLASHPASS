@@ -13,6 +13,7 @@ import { pinProblem } from './staff.controller.js';
 import { getCurrentEventDay, getISTNow } from '../utils/date.utils.js';
 import { emitEmergencyEvacuation, emitLiveAnnouncement } from '../services/socket.service.js';
 import { clearConfigCache } from '../services/configCache.js';
+import { gatewaySettingsForAdmin, mergeGatewaySettings } from '../services/gateway.service.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
 import { PRESENCE, PASS_STATUS, ORDER_STATUS, ORDER_CHANNELS, SCAN_RESULTS, LEDGER_TYPES, ROLES } from '../constants/index.js';
 
@@ -254,23 +255,7 @@ export const getDashboardMetrics = async (req, res) => {
         zones: cfgEvent?.zones || [],
         liveAnnouncements: cfgEvent?.liveAnnouncements || [],
         emergencyEvacuation: cfgEvent?.emergencyEvacuation || { active: false },
-        paymentGateway: cfgEvent?.paymentGateway || {
-          enabled: true,
-          provider: 'PAYU',
-          usePlatformDefault: true,
-          merchantKey: '',
-          merchantSalt: '',
-          razorpayKeyId: '',
-          razorpayKeySecret: '',
-          cashfreeAppId: '',
-          cashfreeSecretKey: '',
-          phonepeMerchantId: '',
-          phonepeSaltKey: '',
-          phonepeSaltIndex: '1',
-          stripePublishableKey: '',
-          stripeSecretKey: '',
-          env: 'TEST'
-        }
+        paymentGateway: gatewaySettingsForAdmin(cfgEvent)
       }
     });
   } catch (error) {
@@ -526,23 +511,9 @@ export const updateSettings = async (req, res) => {
 
         // Multi-Tenant Payment Gateway Configuration (Top 5 Gateways)
         if (paymentGateway && typeof paymentGateway === 'object') {
-          event.paymentGateway = {
-            enabled: paymentGateway.enabled !== false,
-            provider: (paymentGateway.provider || 'PAYU').toUpperCase(),
-            usePlatformDefault: paymentGateway.usePlatformDefault !== false,
-            env: (paymentGateway.env || 'TEST').toUpperCase(),
-            merchantKey: paymentGateway.merchantKey !== undefined ? String(paymentGateway.merchantKey).trim() : (event.paymentGateway?.merchantKey || ''),
-            merchantSalt: paymentGateway.merchantSalt !== undefined ? String(paymentGateway.merchantSalt).trim() : (event.paymentGateway?.merchantSalt || ''),
-            razorpayKeyId: paymentGateway.razorpayKeyId !== undefined ? String(paymentGateway.razorpayKeyId).trim() : (event.paymentGateway?.razorpayKeyId || ''),
-            razorpayKeySecret: paymentGateway.razorpayKeySecret !== undefined ? String(paymentGateway.razorpayKeySecret).trim() : (event.paymentGateway?.razorpayKeySecret || ''),
-            cashfreeAppId: paymentGateway.cashfreeAppId !== undefined ? String(paymentGateway.cashfreeAppId).trim() : (event.paymentGateway?.cashfreeAppId || ''),
-            cashfreeSecretKey: paymentGateway.cashfreeSecretKey !== undefined ? String(paymentGateway.cashfreeSecretKey).trim() : (event.paymentGateway?.cashfreeSecretKey || ''),
-            phonepeMerchantId: paymentGateway.phonepeMerchantId !== undefined ? String(paymentGateway.phonepeMerchantId).trim() : (event.paymentGateway?.phonepeMerchantId || ''),
-            phonepeSaltKey: paymentGateway.phonepeSaltKey !== undefined ? String(paymentGateway.phonepeSaltKey).trim() : (event.paymentGateway?.phonepeSaltKey || ''),
-            phonepeSaltIndex: paymentGateway.phonepeSaltIndex !== undefined ? String(paymentGateway.phonepeSaltIndex).trim() : (event.paymentGateway?.phonepeSaltIndex || '1'),
-            stripePublishableKey: paymentGateway.stripePublishableKey !== undefined ? String(paymentGateway.stripePublishableKey).trim() : (event.paymentGateway?.stripePublishableKey || ''),
-            stripeSecretKey: paymentGateway.stripeSecretKey !== undefined ? String(paymentGateway.stripeSecretKey).trim() : (event.paymentGateway?.stripeSecretKey || '')
-          };
+          const merged = mergeGatewaySettings(paymentGateway, event.paymentGateway || {});
+          if (merged.error) return errorResponse(res, merged.error, 'INVALID_GATEWAY', 400);
+          event.paymentGateway = merged.value;
         }
 
         await event.save();
@@ -575,7 +546,7 @@ export const updateSettings = async (req, res) => {
             addOns: event.addOns,
             affiliates: event.affiliates,
             zones: event.zones,
-            paymentGateway: event.paymentGateway
+            paymentGateway: gatewaySettingsForAdmin(event)
           }
         });
       }

@@ -6,20 +6,49 @@ import crypto from 'crypto';
  * and reverse response hash verification.
  */
 
-export const getPayUConfig = (event = null) => {
-  let key = process.env.PAYU_MERCHANT_KEY || 'Se8qmO';
-  let salt = process.env.PAYU_MERCHANT_SALT || '0R5yPuaFXfEicsHhpU3tLxc5QoIeciyW';
-  let env = (process.env.PAYU_ENV || 'TEST').toUpperCase();
+// PayU's public sandbox credentials. Anyone can read them in PayU's docs, so
+// anyone could sign a fake "success" callback with them. They are only ever
+// used for local development, never when NODE_ENV=production.
+const PAYU_PUBLIC_TEST_KEY = 'Se8qmO';
+const PAYU_PUBLIC_TEST_SALT = '0R5yPuaFXfEicsHhpU3tLxc5QoIeciyW';
 
-  // Multi-Tenant Isolation: If event has custom gateway configured, use the event's merchant credentials
+export class PaymentNotConfiguredError extends Error {
+  constructor(message = 'Online payment is not set up yet. Please buy at the venue Cash Desk.') {
+    super(message);
+    this.code = 'PAYMENT_NOT_CONFIGURED';
+  }
+}
+
+export const getPayUConfig = (event = null) => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const gw = event?.paymentGateway;
+  let key;
+  let salt;
+  let env;
+  let source;
+
+  // An organizer's own PayU account, if one is saved for this event
   if (gw && gw.usePlatformDefault === false && gw.merchantKey && gw.merchantSalt) {
     key = gw.merchantKey.trim();
     salt = gw.merchantSalt.trim();
-    if (gw.env) {
-      env = gw.env.toUpperCase();
+    env = (gw.env || 'TEST').toUpperCase();
+    source = 'EVENT';
+  } else {
+    // The platform's PayU account, from server/.env
+    key = (process.env.PAYU_MERCHANT_KEY || '').trim();
+    salt = (process.env.PAYU_MERCHANT_SALT || '').trim();
+    env = (process.env.PAYU_ENV || 'TEST').toUpperCase();
+    source = 'PLATFORM';
+    if ((!key || !salt) && !isProduction) {
+      key = PAYU_PUBLIC_TEST_KEY;
+      salt = PAYU_PUBLIC_TEST_SALT;
+      env = 'TEST';
+      source = 'PUBLIC_TEST';
     }
   }
+
+  const usesPublicSalt = salt === PAYU_PUBLIC_TEST_SALT;
+  const configured = Boolean(key && salt) && !(isProduction && usesPublicSalt);
 
   const actionUrl = env === 'PRODUCTION'
     ? 'https://secure.payu.in/_payment'
@@ -28,7 +57,19 @@ export const getPayUConfig = (event = null) => {
   const serverUrl = process.env.SERVER_URL || 'http://localhost:5000';
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
-  return { key, salt, env, actionUrl, serverUrl, clientUrl };
+  return { key, salt, env, source, configured, actionUrl, serverUrl, clientUrl };
+};
+
+/**
+ * Why the platform PayU account cannot take payments, or null when it can.
+ * Used for the startup warning.
+ */
+export const platformPayUProblem = () => {
+  const key = (process.env.PAYU_MERCHANT_KEY || '').trim();
+  const salt = (process.env.PAYU_MERCHANT_SALT || '').trim();
+  if (!key || !salt) return 'PAYU_MERCHANT_KEY / PAYU_MERCHANT_SALT are not set';
+  if (salt === PAYU_PUBLIC_TEST_SALT) return 'PAYU_MERCHANT_SALT is PayU\'s public test salt';
+  return null;
 };
 
 /**
@@ -51,6 +92,9 @@ export const generatePayUParams = ({
   event = null
 }) => {
   const config = getPayUConfig(event);
+  if (!config.configured) {
+    throw new PaymentNotConfiguredError();
+  }
   const txnid = String(orderId).trim();
   const amount = (amountPaise / 100).toFixed(2);
   const cleanFirstName = (firstName || 'Attendee').trim().replace(/[^a-zA-Z0-9 ]/g, '').split(' ')[0] || 'Attendee';
@@ -131,6 +175,12 @@ export const verifyPayUResponseHash = (body, event = null) => {
 
   const config = getPayUConfig(event);
 
+  // Without a secret salt of our own the hash proves nothing, and the callback
+  // must come from the merchant account this order was created on.
+  if (!config.configured || (key && key !== config.key)) {
+    return { isValid: false, calculatedHash: null, receivedHash: hash };
+  }
+
   const resElements = [
     config.salt,
     status || '',
@@ -145,7 +195,7 @@ export const verifyPayUResponseHash = (body, event = null) => {
     productinfo || '',
     amount || '',
     txnid || '',
-    key || config.key
+    config.key
   ];
 
   const hashString = additionalCharges
@@ -171,7 +221,10 @@ export const verifyPayUResponseHash = (body, event = null) => {
  * Returns { found, status: 'success'|'failure'|'pending'|..., mihpayid, amountPaise, mode }
  */
 export const verifyPayUTransaction = async (txnid, event = null) => {
-  const { key, salt, env } = getPayUConfig(event);
+  const { key, salt, env, configured } = getPayUConfig(event);
+  if (!configured) {
+    throw new PaymentNotConfiguredError();
+  }
   const command = 'verify_payment';
   const hash = crypto.createHash('sha512').update(`${key}|${command}|${txnid}|${salt}`).digest('hex');
   const url = env === 'PRODUCTION'

@@ -7,12 +7,13 @@ import { completeOrderAndIssuePass } from '../services/ledger.service.js';
 import { reconcileIfDue } from '../services/reconcile.service.js';
 import { generateQRToken } from '../services/qr.service.js';
 import { emitOrderPaid } from '../services/socket.service.js';
-import { generatePayUParams, verifyPayUResponseHash } from '../services/payu.service.js';
+import { generatePayUParams, verifyPayUResponseHash, getPayUConfig, PaymentNotConfiguredError } from '../services/payu.service.js';
 import {
   generateGatewaySession,
   verifyRazorpaySignature,
   verifyPhonePeChecksum,
   getGatewayConfig,
+  isGatewayAvailable,
   isMockPaymentAllowed
 } from '../services/gateway.service.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
@@ -112,6 +113,22 @@ export const createOrder = async (req, res) => {
     const validity = calculatePassValidity(eventDays, settings.salesCutoffDay3);
     if (!validity.salesOpen) {
       return errorResponse(res, validity.reason || 'Ticket sales are closed', 'SALES_CLOSED', 400);
+    }
+
+    // Online sales switched off by the admin, or no working way to take the money
+    const onlineSalesOn = event ? event.onlineSalesEnabled !== false : settings.onlineSalesEnabled !== false;
+    if (!onlineSalesOn || event?.emergencyLockdown || event?.paymentGateway?.enabled === false) {
+      return errorResponse(res, 'Online ticket sales are closed right now. Passes are available at the venue Cash Desk.', 'ONLINE_SALES_CLOSED', 400);
+    }
+    const gatewayProvider = (event?.paymentGateway?.provider || 'PAYU').toUpperCase();
+    if (!isMockPaymentAllowed()) {
+      const gatewayReady = isGatewayAvailable(gatewayProvider)
+        && (gatewayProvider !== 'PAYU' || getPayUConfig(event).configured);
+      if (!gatewayReady) {
+        console.error(`[PAYMENT] Online order refused for ${targetEventId}: ${gatewayProvider} is not available or not configured`);
+        const notReady = new PaymentNotConfiguredError();
+        return errorResponse(res, notReady.message, notReady.code, 503);
+      }
     }
 
     // Check one pass per phone rule (if single booking and enabled)
@@ -298,10 +315,12 @@ export const createOrder = async (req, res) => {
       phone: newOrder.phone,
       status: newOrder.status,
       gateway: gatewaySession,
-      payu: gatewaySession.payu || (gatewaySession.provider === 'PAYU' ? gatewaySession : null),
-      upiIntentUri: `upi://pay?pa=comicscarnival@icici&pn=Comics%20Carnival&am=${(newOrder.amountPaise / 100).toFixed(2)}&cu=INR&tn=${newOrder.orderId}`
+      payu: gatewaySession.payu || (gatewaySession.provider === 'PAYU' ? gatewaySession : null)
     }, 201);
   } catch (error) {
+    if (error instanceof PaymentNotConfiguredError) {
+      return errorResponse(res, error.message, error.code, 503);
+    }
     return errorResponse(res, error.message, 'ORDER_CREATION_FAILED', 500);
   }
 };
@@ -489,7 +508,11 @@ export const verifyGatewayPayment = async (req, res) => {
     const hasRealRazorpayKey = Boolean(
       config.keySecret && !config.keySecret.includes('mock') && !config.keySecret.includes('secret_comicscarnival')
     );
-    const verifiedByGateway = targetProvider === 'RAZORPAY' && hasRealRazorpayKey && Boolean(razorpay_signature);
+    // Razorpay stays off until orders are created on Razorpay's side: the
+    // signature only binds a Razorpay order id the browser sends, not our order
+    // or its amount.
+    const verifiedByGateway = targetProvider === 'RAZORPAY' && isGatewayAvailable('RAZORPAY')
+      && hasRealRazorpayKey && Boolean(razorpay_signature);
 
     if (verifiedByGateway) {
       const { valid } = verifyRazorpaySignature({
@@ -587,6 +610,9 @@ export const getOrderPayUParams = async (req, res) => {
 
     return successResponse(res, payuData);
   } catch (error) {
+    if (error instanceof PaymentNotConfiguredError) {
+      return errorResponse(res, error.message, error.code, 503);
+    }
     return errorResponse(res, error.message, 'PAYU_PARAMS_ERROR', 500);
   }
 };
@@ -613,18 +639,29 @@ export const handlePayUCallback = async (req, res) => {
   try {
     // 1. Fetch Order and Event to use the exact Merchant Salt configured for this event
     const existingOrder = await Order.findOne({ orderId: txnid });
-    const event = existingOrder ? await Event.findOne({ eventId: existingOrder.eventId || 'comics-carnival' }) : null;
+    if (!existingOrder) {
+      console.error(`[PAYU] Callback for unknown order ${txnid}`);
+      return res.redirect(`${clientUrl}/?error=invalid_payu_callback`);
+    }
+    const event = await Event.findOne({ eventId: existingOrder.eventId || 'comics-carnival' });
 
     // 2. Verify Hash
-    const { isValid, calculatedHash, receivedHash } = verifyPayUResponseHash(data, event);
+    const { isValid, receivedHash } = verifyPayUResponseHash(data, event);
 
     if (!isValid) {
-      console.error(`[PAYU] Hash verification failed for order ${txnid}. Received: ${receivedHash}, Calculated: ${calculatedHash}`);
+      console.error(`[PAYU] Hash verification failed for order ${txnid}. Received: ${receivedHash}`);
       return res.redirect(`${clientUrl}/order/${txnid}?payu=tampered&msg=${encodeURIComponent('Security signature verification failed')}`);
     }
 
-    // 2. Check Payment Status
+    // 3. Check Payment Status
     if (status === 'success') {
+      // The signed amount must be what this order costs
+      const paidPaise = Math.round(Number.parseFloat(data.amount) * 100);
+      if (!Number.isFinite(paidPaise) || paidPaise !== existingOrder.amountPaise) {
+        console.error(`[PAYU] Amount mismatch for order ${txnid}: paid ${data.amount}, order is ${existingOrder.amountPaise} paise`);
+        return res.redirect(`${clientUrl}/order/${txnid}?payu=error&msg=${encodeURIComponent('Payment amount did not match. Please contact the Help Desk with your Order ID.')}`);
+      }
+
       const { order, pass, passes, qrToken } = await completeOrderAndIssuePass({
         orderId: txnid,
         paymentId: mihpayid || `payu_${Date.now()}`

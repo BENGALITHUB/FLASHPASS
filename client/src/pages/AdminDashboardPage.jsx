@@ -209,6 +209,8 @@ export default function AdminDashboardPage() {
     env: 'TEST'
   });
   const [showGatewaySalt, setShowGatewaySalt] = useState(false);
+  const [paymentGatewayStatus, setPaymentGatewayStatus] = useState({ ready: true, providerAvailable: true, savedSecrets: {}, platformPayUEnv: 'TEST' });
+  const secretPlaceholder = (field, example) => (paymentGatewayStatus.savedSecrets?.[field] ? 'Saved. Leave blank to keep it' : example);
 
   // Settings Sub-tab state
   const [settingsSubTab, setSettingsSubTab] = useState('CMS'); // 'CMS' | 'TIERS' | 'COUPONS' | 'MERCH' | 'AFFILIATES' | 'ANNOUNCEMENTS' | 'PAYMENT' | 'EVACUATION'
@@ -353,24 +355,34 @@ export default function AdminDashboardPage() {
         if (Array.isArray(data.settings.zones)) setZones(data.settings.zones);
         if (Array.isArray(data.settings.liveAnnouncements)) setLiveAnnouncements(data.settings.liveAnnouncements);
         if (data.settings.emergencyEvacuation) setEmergencyEvacuation(data.settings.emergencyEvacuation);
-        if (data.settings.paymentGateway && !keepForms) {
-          setPaymentGatewayForm({
-            enabled: data.settings.paymentGateway.enabled !== false,
-            provider: data.settings.paymentGateway.provider || 'PAYU',
-            usePlatformDefault: data.settings.paymentGateway.usePlatformDefault !== false,
-            merchantKey: data.settings.paymentGateway.merchantKey || '',
-            merchantSalt: data.settings.paymentGateway.merchantSalt || '',
-            razorpayKeyId: data.settings.paymentGateway.razorpayKeyId || '',
-            razorpayKeySecret: data.settings.paymentGateway.razorpayKeySecret || '',
-            cashfreeAppId: data.settings.paymentGateway.cashfreeAppId || '',
-            cashfreeSecretKey: data.settings.paymentGateway.cashfreeSecretKey || '',
-            phonepeMerchantId: data.settings.paymentGateway.phonepeMerchantId || '',
-            phonepeSaltKey: data.settings.paymentGateway.phonepeSaltKey || '',
-            phonepeSaltIndex: data.settings.paymentGateway.phonepeSaltIndex || '1',
-            stripePublishableKey: data.settings.paymentGateway.stripePublishableKey || '',
-            stripeSecretKey: data.settings.paymentGateway.stripeSecretKey || '',
-            env: data.settings.paymentGateway.env || 'TEST'
+        if (data.settings.paymentGateway) {
+          const pg = data.settings.paymentGateway;
+          // Status always refreshes; the server never sends secrets, only whether one is saved
+          setPaymentGatewayStatus({
+            ready: pg.ready !== false,
+            providerAvailable: pg.providerAvailable !== false,
+            savedSecrets: pg.savedSecrets || {},
+            platformPayUEnv: pg.platformPayUEnv || 'TEST'
           });
+          if (!keepForms) {
+            setPaymentGatewayForm({
+              enabled: pg.enabled !== false,
+              provider: pg.provider || 'PAYU',
+              usePlatformDefault: pg.usePlatformDefault !== false,
+              merchantKey: pg.merchantKey || '',
+              merchantSalt: '',
+              razorpayKeyId: pg.razorpayKeyId || '',
+              razorpayKeySecret: '',
+              cashfreeAppId: pg.cashfreeAppId || '',
+              cashfreeSecretKey: '',
+              phonepeMerchantId: pg.phonepeMerchantId || '',
+              phonepeSaltKey: '',
+              phonepeSaltIndex: pg.phonepeSaltIndex || '1',
+              stripePublishableKey: pg.stripePublishableKey || '',
+              stripeSecretKey: '',
+              env: pg.env || 'TEST'
+            });
+          }
         }
       }
 
@@ -510,7 +522,7 @@ export default function AdminDashboardPage() {
         paymentGateway: paymentGatewayForm,
         eventId: effectiveScope
       }, adminPin);
-      alert(`Payment Gateway configuration saved for event "${effectiveScope}"! Changes are now active for checkout.`);
+      alert(`Payment gateway settings saved for event "${effectiveScope}".`);
       setAdminPin('');
       loadAllData();
     } catch (err) {
@@ -3482,8 +3494,23 @@ export default function AdminDashboardPage() {
                         </span>
                       </div>
                       <p className="text-xs font-mono text-text-muted">
-                        Configure dynamic PayU checkout credentials for this event. Ticket revenues will be routed and settled directly into this merchant account.
+                        Choose which PayU account collects online ticket payments for this event.
                       </p>
+                      {paymentGatewayStatus.ready ? (
+                        <p className="mt-2 text-xs font-mono text-success font-bold">
+                          ✓ Online payments are working for this event.
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-xs font-mono text-accent font-bold">
+                          ⚠ Online payments are OFF for this event: {
+                            !paymentGatewayStatus.providerAvailable
+                              ? `${paymentGatewayForm.provider} is not available yet. Select PayU and save.`
+                              : paymentGatewayForm.usePlatformDefault
+                                ? 'the platform PayU account is not set up on the server (PAYU_MERCHANT_KEY / PAYU_MERCHANT_SALT).'
+                                : 'enter the organizer\'s PayU Merchant Key and Salt below.'
+                          } Buyers can still pay at the Cash Desk.
+                        </p>
+                      )}
                     </div>
 
                     <div className="px-3.5 py-2 rounded-2xl bg-surface-2 border border-border text-right">
@@ -3551,22 +3578,27 @@ export default function AdminDashboardPage() {
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {[
-                          { id: 'RAZORPAY', name: 'Razorpay', tag: '🇮🇳 India #1', desc: 'Instant UPI Intent, Dynamic QR, NetBanking, Credit/Debit Cards' },
-                          { id: 'PAYU', name: 'PayU Hosted', tag: '🇮🇳 India', desc: 'Hosted Checkout, UPI, NetBanking, Credit/Debit Cards, Wallets' },
-                          { id: 'PHONEPE', name: 'PhonePe PG', tag: '🇮🇳 India', desc: 'Direct PhonePe UPI Intent, QR, Seamless Mobile Ingress Checkout' },
-                          { id: 'CASHFREE', name: 'Cashfree', tag: '🇮🇳 India', desc: 'Instant UPI, Drop Checkout, NetBanking, Low Transaction Fees' },
-                          { id: 'STRIPE', name: 'Stripe', tag: '🌍 Global', desc: 'International & Domestic Cards, Apple Pay, Google Pay, Global Fans' }
+                          // Only PayU has a complete, verified payment flow. The rest stay listed but cannot be chosen yet.
+                          { id: 'PAYU', name: 'PayU Hosted', tag: '🇮🇳 India', desc: 'Hosted Checkout, UPI, NetBanking, Credit/Debit Cards, Wallets', available: true },
+                          { id: 'RAZORPAY', name: 'Razorpay', tag: 'Coming soon', desc: 'Instant UPI Intent, Dynamic QR, NetBanking, Credit/Debit Cards', available: false },
+                          { id: 'PHONEPE', name: 'PhonePe PG', tag: 'Coming soon', desc: 'Direct PhonePe UPI Intent, QR, Seamless Mobile Ingress Checkout', available: false },
+                          { id: 'CASHFREE', name: 'Cashfree', tag: 'Coming soon', desc: 'Instant UPI, Drop Checkout, NetBanking, Low Transaction Fees', available: false },
+                          { id: 'STRIPE', name: 'Stripe', tag: 'Coming soon', desc: 'International & Domestic Cards, Apple Pay, Google Pay, Global Fans', available: false }
                         ].map((gw) => {
                           const isSelected = (paymentGatewayForm.provider || 'PAYU') === gw.id;
                           return (
                             <button
                               key={gw.id}
                               type="button"
-                              onClick={() => setPaymentGatewayForm(prev => ({ ...prev, provider: gw.id }))}
-                              className={`p-3.5 rounded-2xl border-2 text-left transition-all cursor-pointer relative ${
-                                isSelected
-                                  ? 'bg-primary/10 border-primary shadow-[2px_2px_0_#000]'
-                                  : 'bg-surface-2 border-border opacity-70 hover:opacity-100'
+                              disabled={!gw.available}
+                              title={gw.available ? undefined : 'Not available yet'}
+                              onClick={() => gw.available && setPaymentGatewayForm(prev => ({ ...prev, provider: gw.id }))}
+                              className={`p-3.5 rounded-2xl border-2 text-left transition-all relative ${
+                                !gw.available
+                                  ? 'bg-surface-2 border-border opacity-40 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'bg-primary/10 border-primary shadow-[2px_2px_0_#000] cursor-pointer'
+                                    : 'bg-surface-2 border-border opacity-70 hover:opacity-100 cursor-pointer'
                               }`}
                             >
                               <div className="flex items-center justify-between mb-1">
@@ -3589,28 +3621,34 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Environment Selection */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-mono text-text-muted block mb-1">
-                          Gateway Execution Environment
-                        </label>
-                        <select
-                          value={paymentGatewayForm.env || 'TEST'}
-                          onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, env: e.target.value }))}
-                          className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
-                        >
-                          <option value="TEST">TEST / SANDBOX (Developer Testing & Simulations)</option>
-                          <option value="PRODUCTION">PRODUCTION (Live Production Ingress & Real Money)</option>
-                        </select>
+                    {/* Environment Selection: only the organizer's own keys have a per-event mode */}
+                    {paymentGatewayForm.usePlatformDefault ? (
+                      <div className="p-3 rounded-xl bg-surface-2/60 border border-border text-[11px] font-mono text-text-muted">
+                        ℹ️ The platform PayU account runs in <strong>{paymentGatewayStatus.platformPayUEnv === 'PRODUCTION' ? 'PRODUCTION (real money)' : 'TEST (PayU sandbox, no real money)'}</strong> mode. This is set on the server (PAYU_ENV), not here.
                       </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-mono text-text-muted block mb-1">
+                            Organizer PayU Account Mode
+                          </label>
+                          <select
+                            value={paymentGatewayForm.env || 'TEST'}
+                            onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, env: e.target.value }))}
+                            className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
+                          >
+                            <option value="TEST">TEST (PayU sandbox, no real money)</option>
+                            <option value="PRODUCTION">PRODUCTION (live payments, real money)</option>
+                          </select>
+                        </div>
 
-                      <div className="flex items-center">
-                        <div className="p-3 rounded-xl bg-surface-2/60 border border-border text-[11px] font-mono text-text-muted">
-                          ℹ️ In <strong>TEST</strong> mode, instant sandbox mock approval is available so tickets and QR passes can be verified immediately.
+                        <div className="flex items-center">
+                          <div className="p-3 rounded-xl bg-surface-2/60 border border-border text-[11px] font-mono text-text-muted">
+                            ℹ️ Must match the keys: PayU test keys only work in <strong>TEST</strong>, live keys only in <strong>PRODUCTION</strong>.
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Dedicated Credentials (Only shown if custom gateway enabled) */}
                     {!paymentGatewayForm.usePlatformDefault && (
@@ -3631,7 +3669,7 @@ export default function AdminDashboardPage() {
                               </label>
                               <input
                                 type="text"
-                                placeholder="e.g. Se8qmO"
+                                placeholder="Your PayU Merchant Key"
                                 value={paymentGatewayForm.merchantKey}
                                 onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, merchantKey: e.target.value }))}
                                 className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
@@ -3656,7 +3694,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <input
                                 type={showGatewaySalt ? 'text' : 'password'}
-                                placeholder="e.g. 0R5yPuaFXfEicsHhpU3tLxc5QoIeciyW"
+                                placeholder={secretPlaceholder('merchantSalt', 'Your PayU Merchant Salt')}
                                 value={paymentGatewayForm.merchantSalt}
                                 onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, merchantSalt: e.target.value }))}
                                 className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
@@ -3702,7 +3740,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <input
                                 type={showGatewaySalt ? 'text' : 'password'}
-                                placeholder="e.g. c395V1c2x...secret"
+                                placeholder={secretPlaceholder('razorpayKeySecret', 'e.g. c395V1c2x...secret')}
                                 value={paymentGatewayForm.razorpayKeySecret}
                                 onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, razorpayKeySecret: e.target.value }))}
                                 className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
@@ -3748,7 +3786,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <input
                                 type={showGatewaySalt ? 'text' : 'password'}
-                                placeholder="e.g. cfsk_ma_test_..."
+                                placeholder={secretPlaceholder('cashfreeSecretKey', 'e.g. cfsk_ma_test_...')}
                                 value={paymentGatewayForm.cashfreeSecretKey}
                                 onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, cashfreeSecretKey: e.target.value }))}
                                 className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
@@ -3794,7 +3832,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <input
                                 type={showGatewaySalt ? 'text' : 'password'}
-                                placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399"
+                                placeholder={secretPlaceholder('phonepeSaltKey', 'Your PhonePe Salt Key')}
                                 value={paymentGatewayForm.phonepeSaltKey}
                                 onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, phonepeSaltKey: e.target.value }))}
                                 className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
@@ -3856,7 +3894,7 @@ export default function AdminDashboardPage() {
                               </div>
                               <input
                                 type={showGatewaySalt ? 'text' : 'password'}
-                                placeholder="e.g. sk_test_51Mz..."
+                                placeholder={secretPlaceholder('stripeSecretKey', 'e.g. sk_test_51Mz...')}
                                 value={paymentGatewayForm.stripeSecretKey}
                                 onChange={(e) => setPaymentGatewayForm(prev => ({ ...prev, stripeSecretKey: e.target.value }))}
                                 className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"

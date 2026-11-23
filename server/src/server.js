@@ -14,6 +14,7 @@ import { setSocketInstance } from './services/socket.service.js';
 import { startReconciliationJob } from './services/reconcile.service.js';
 import { warnIfDemoPins } from './controllers/staff.controller.js';
 import { configureSocketAuth } from './services/socketAuth.js';
+import { platformPayUProblem } from './services/payu.service.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -66,8 +67,21 @@ function checkSecrets() {
   console.warn(`[SECURITY] ${problems.join('; ')}. Fine for local testing, NOT for the live server. ${how}`);
 }
 
+// Online sales need the platform's own PayU account (or an organizer's own
+// keys on the event). Cash sales and gates keep working without it.
+function checkPayment() {
+  const problem = platformPayUProblem();
+  if (!problem) return;
+  if (process.env.NODE_ENV === 'production') {
+    console.error(`[PAYMENT] ${problem}. Online sales are OFF for every event without its own PayU keys. Set them in server/.env and restart.`);
+  } else {
+    console.warn(`[PAYMENT] ${problem}. Using PayU's public sandbox keys for local testing.`);
+  }
+}
+
 const startServer = async () => {
   checkSecrets();
+  checkPayment();
   await connectDB();
   await seedDatabase();
   startReconciliationJob();
