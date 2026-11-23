@@ -48,7 +48,7 @@ export default function BoxOfficePOSPage() {
     noticeTimer.current = setTimeout(() => setNotice(null), 6500);
   };
   const logout = () => {
-    localStorage.removeItem('cc_staff_token');
+    api.staffLogout().catch(() => {});
     localStorage.removeItem('cc_staff_user');
     navigate('/staff', { replace: true });
   };
@@ -78,7 +78,7 @@ export default function BoxOfficePOSPage() {
 
   useEffect(() => {
     document.title = 'Box Office POS — FlashPass';
-    if (!localStorage.getItem('cc_staff_token')) { navigate('/staff', { replace: true }); return; }
+    if (!localStorage.getItem('cc_staff_user')) { navigate('/staff', { replace: true }); return; }
     let mounted = true;
     api.getMe().then(staff => {
       if (!mounted) return;

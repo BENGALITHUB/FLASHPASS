@@ -1,11 +1,14 @@
 const BASE_URL = '/api/v1';
 
-const getHeaders = (token = null, adminPin = null) => {
+// Staff are identified by an HttpOnly session cookie the browser sends on its
+// own (same origin). No login token is kept where page scripts can read it.
+// Older builds kept one in localStorage; remove it.
+try { localStorage.removeItem('cc_staff_token'); } catch { /* storage blocked */ }
+
+const STAFF_PAGES = /^\/(admin|gate|pos)(\/|$)/;
+
+const getHeaders = (_unused = null, adminPin = null) => {
   const headers = { 'Content-Type': 'application/json' };
-  const authToken = token || localStorage.getItem('cc_staff_token');
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
-  }
   if (adminPin) {
     headers['x-admin-pin'] = adminPin;
   }
@@ -14,6 +17,11 @@ const getHeaders = (token = null, adminPin = null) => {
 
 const handleResponse = async (res) => {
   const data = await res.json();
+  // Session ended (logged out elsewhere, PIN changed, timed out): back to login
+  if (res.status === 401 && data.error?.code === 'UNAUTHORIZED' && STAFF_PAGES.test(window.location.pathname)) {
+    try { localStorage.removeItem('cc_staff_user'); } catch { /* ignore */ }
+    window.location.assign('/staff?expired=1');
+  }
   if (!res.ok) {
     const error = new Error(data.error?.message || 'Something went wrong');
     error.code = data.error?.code;
@@ -24,6 +32,27 @@ const handleResponse = async (res) => {
 };
 
 export const api = {
+  staffLogout: async () => {
+    const res = await fetch(`${BASE_URL}/auth/logout`, { method: 'POST', headers: getHeaders() });
+    try { localStorage.removeItem('cc_staff_user'); } catch { /* ignore */ }
+    return res.ok;
+  },
+
+  adminUserSessions: async (userId) => {
+    const res = await fetch(`${BASE_URL}/admin/users/${encodeURIComponent(userId)}/sessions`, { headers: getHeaders() });
+    return handleResponse(res);
+  },
+
+  adminEndSession: async (sessionId) => {
+    const res = await fetch(`${BASE_URL}/admin/sessions/${encodeURIComponent(sessionId)}/end`, { method: 'POST', headers: getHeaders() });
+    return handleResponse(res);
+  },
+
+  adminEndAllSessions: async (userId) => {
+    const res = await fetch(`${BASE_URL}/admin/users/${encodeURIComponent(userId)}/sessions/end-all`, { method: 'POST', headers: getHeaders() });
+    return handleResponse(res);
+  },
+
   // Public
   getEventInfo: async (eventId = null, ref = null) => {
     let url = `${BASE_URL}/event`;

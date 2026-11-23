@@ -56,7 +56,6 @@ export const getPassByOrderId = async (req, res) => {
       validDays: p.validDays,
       status: p.status,
       presence: p.presence,
-      photoUrl: p.photoUrl || null,
       addOns: p.addOns || [],
       qrToken: generateQRToken(p._id.toString(), p.qrNonce),
       isGroupPass: p.isGroupPass,
@@ -76,7 +75,6 @@ export const getPassByOrderId = async (req, res) => {
       validDays: pass.validDays,
       status: pass.status,
       presence: pass.presence,
-      photoUrl: pass.photoUrl || null,
       lastScan: pass.lastScan,
       firstEntryDays: pass.firstEntryDays,
       addOns: pass.addOns || [],
@@ -145,7 +143,6 @@ export const myTicketLookup = async (req, res) => {
         validDays: pass.validDays,
         status: pass.status,
         presence: pass.presence,
-        photoUrl: pass.photoUrl || null,
         qrToken
       });
     }
@@ -176,7 +173,6 @@ export const myTicketLookup = async (req, res) => {
         validDays: p.validDays,
         status: p.status,
         presence: p.presence,
-        photoUrl: p.photoUrl || null,
         createdAt: p.createdAt
       }))
     });

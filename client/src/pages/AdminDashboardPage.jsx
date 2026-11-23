@@ -175,7 +175,6 @@ export default function AdminDashboardPage() {
     maxReentriesPerDay: 2,
     reentryMode: 'WRISTBAND',
     emergencyLockdown: false,
-    requireSelfie: true,
     onlineSalesEnabled: true,
     cashSalesEnabled: true,
     gateOpenTime: '00:00',
@@ -268,9 +267,10 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     document.title = 'Admin Dashboard — FlashPass';
-    const token = localStorage.getItem('cc_staff_token');
+    // The session itself lives in an HttpOnly cookie; the API sends us back to
+    // /staff if it has ended. This only stops the wrong role opening the page.
     const user = JSON.parse(localStorage.getItem('cc_staff_user') || '{}');
-    if (!token || (user.role !== 'SUPER_ADMIN' && user.role !== 'EVENT_ADMIN')) {
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'EVENT_ADMIN') {
       navigate('/staff');
       return;
     }
@@ -340,7 +340,6 @@ export default function AdminDashboardPage() {
           maxReentriesPerDay: data.settings.maxReentriesPerDay ?? 2,
           reentryMode: data.settings.reentryMode || 'WRISTBAND',
           emergencyLockdown: Boolean(data.settings.emergencyLockdown),
-          requireSelfie: data.settings.requireSelfie !== false,
           onlineSalesEnabled: data.settings.onlineSalesEnabled !== false,
           cashSalesEnabled: data.settings.cashSalesEnabled !== false,
           gateOpenTime: data.settings.gateOpenTime || '00:00',
@@ -478,7 +477,6 @@ export default function AdminDashboardPage() {
         maxReentriesPerDay: Number(settingsForm.maxReentriesPerDay),
         reentryMode: settingsForm.reentryMode,
         emergencyLockdown: Boolean(settingsForm.emergencyLockdown),
-        requireSelfie: Boolean(settingsForm.requireSelfie),
         onlineSalesEnabled: Boolean(settingsForm.onlineSalesEnabled),
         cashSalesEnabled: Boolean(settingsForm.cashSalesEnabled),
         gateOpenTime: settingsForm.gateOpenTime,
@@ -785,8 +783,8 @@ export default function AdminDashboardPage() {
   };
 
   const handleExport = (type) => {
-    const token = localStorage.getItem('cc_staff_token');
-    window.open(`/api/v1/admin/export/${type}?token=${token}`, '_blank');
+    // The session cookie goes with the request; no token in the URL
+    window.open(`/api/v1/admin/export/${type}`, '_blank');
   };
 
   // Inquiry & Partnership Actions
@@ -1080,7 +1078,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <button
-            onClick={() => { localStorage.removeItem('cc_staff_token'); navigate('/staff'); }}
+            onClick={async () => { await api.staffLogout().catch(() => {}); navigate('/staff'); }}
             className="adm-btn adm-btn-danger w-full justify-center group"
           >
             <LogOut className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
@@ -2888,26 +2886,6 @@ export default function AdminDashboardPage() {
                         )}
                       </div>
                       )}
-
-                      <div className="p-3 rounded-2xl bg-surface-2 border border-border">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="font-mono text-xs font-bold text-text block">Require Attendee Photo</span>
-                            <span className="font-mono text-[10px] text-text-muted block">Enables face matching & anti-screenshot</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setSettingsForm({ ...settingsForm, requireSelfie: !settingsForm.requireSelfie })}
-                            className={`px-3 py-1 rounded-lg font-mono text-xs font-bold ${
-                              settingsForm.requireSelfie
-                                ? 'bg-accent text-white border border-black shadow-[1px_1px_0_#000]'
-                                : 'bg-surface text-text-muted border border-border'
-                            }`}
-                          >
-                            {settingsForm.requireSelfie ? '✓ REQUIRED' : '✕ OPTIONAL'}
-                          </button>
-                        </div>
-                      </div>
 
                       <div className="grid grid-cols-2 gap-2 font-mono text-xs">
                         <div>

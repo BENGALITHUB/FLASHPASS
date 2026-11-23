@@ -1,32 +1,30 @@
-import jwt from 'jsonwebtoken';
+import { findSession, readSessionToken, endSession } from '../services/session.service.js';
 import { User } from '../models/User.js';
 import { errorResponse } from '../utils/response.utils.js';
 
+/**
+ * Staff authentication by server-side session (HttpOnly cookie, or a Bearer
+ * session token for scripts). Tokens in the URL are not accepted: they end up
+ * in browser history and server logs.
+ */
 export const authenticateStaff = async (req, res, next) => {
   try {
-    let token = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.query && req.query.token) {
-      token = req.query.token;
+    const session = await findSession(readSessionToken(req));
+    if (!session) {
+      return errorResponse(res, 'Please log in again', 'UNAUTHORIZED', 401);
     }
 
-    if (!token) {
-      return errorResponse(res, 'Authentication token required', 'UNAUTHORIZED', 401);
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(session.userId);
     if (!user || !user.active) {
-      return errorResponse(res, 'Invalid or deactivated user', 'UNAUTHORIZED', 401);
+      await endSession(session._id, 'Account switched off');
+      return errorResponse(res, 'This account is switched off', 'UNAUTHORIZED', 401);
     }
 
     req.user = user;
+    req.authSession = session;
     next();
   } catch (err) {
-    return errorResponse(res, 'Invalid or expired token', 'UNAUTHORIZED', 401);
+    return errorResponse(res, 'Please log in again', 'UNAUTHORIZED', 401);
   }
 };
 

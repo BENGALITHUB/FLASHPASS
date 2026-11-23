@@ -75,7 +75,6 @@ export const completeOrderAndIssuePass = async ({ orderId, paymentId = null, cas
           tierName: tier.name,
           allowedZones: tier.allowedZones || ['MAIN_HALL', 'EXHIBIT_ZONE'],
           validDays: validity.validDays,
-          photoUrl: att.photoUrl || order.photoUrl || null,
           addOns: order.addOns || [],
           isGroupPass: true,
           groupIndex: idx + 1
@@ -92,7 +91,6 @@ export const completeOrderAndIssuePass = async ({ orderId, paymentId = null, cas
         tierName: tier.name,
         allowedZones: tier.allowedZones || ['MAIN_HALL', 'EXHIBIT_ZONE'],
         validDays: validity.validDays,
-        photoUrl: order.photoUrl || null,
         addOns: order.addOns || [],
         isGroupPass: false,
         groupIndex: 1

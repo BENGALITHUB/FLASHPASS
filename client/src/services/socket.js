@@ -5,7 +5,8 @@ let socket = null;
 export const initSocket = () => {
   if (!socket) {
     socket = io(window.location.origin, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      withCredentials: true // staff session cookie decides which live updates this screen gets
     });
 
     socket.on('connect', () => {

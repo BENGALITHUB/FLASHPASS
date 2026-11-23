@@ -3,6 +3,8 @@ import { User } from '../models/User.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
 import { ROLES } from '../constants/index.js';
+import { Session } from '../models/Session.js';
+import { endUserSessions, endSession, activeSessionsOf } from '../services/session.service.js';
 
 /*
  * Staff account security (SRS FR-M7-07, NFR-SC-03).
@@ -58,6 +60,9 @@ export const resetStaffPin = async (req, res) => {
     target.lockUntil = undefined;
     await target.save();
     demoCache = null;
+    // Anyone logged in with the old PIN is logged out (except the device making a change to its own PIN)
+    const self = String(req.user._id) === String(target._id);
+    await endUserSessions(target._id, 'PIN changed', self ? req.authSession?._id : null);
 
     await AuditLog.create({
       actorId: req.user._id, actorName: req.user.name || req.user.username, action: 'RESET_STAFF_PIN',
@@ -81,6 +86,7 @@ export const setStaffActive = async (req, res) => {
 
     target.active = Boolean(req.body.active);
     await target.save();
+    if (!target.active) await endUserSessions(target._id, 'Account switched off');
     await AuditLog.create({
       actorId: req.user._id, actorName: req.user.name || req.user.username, action: target.active ? 'ENABLE_STAFF' : 'DISABLE_STAFF',
       target: `User ${target.username}`, reason: target.active ? 'Account switched on' : 'Account switched off'
@@ -132,3 +138,62 @@ export async function warnIfDemoPins() {
     }
   }
 }
+
+/**
+ * GET /api/v1/admin/users/:id/sessions
+ * Devices this staff member is logged in on.
+ */
+export const listUserSessions = async (req, res) => {
+  try {
+    const target = await User.findById(req.params.id);
+    if (!target) return errorResponse(res, 'Staff account not found', 'NOT_FOUND', 404);
+    if (!canManage(req.user, target)) return errorResponse(res, 'You cannot see this account', 'FORBIDDEN', 403);
+    const sessions = await activeSessionsOf([target._id]);
+    return successResponse(res, {
+      sessions: sessions.map(s => ({
+        id: s._id, device: s.device, ip: s.ip, loggedInAt: s.createdAt, lastSeenAt: s.lastSeenAt, expiresAt: s.expiresAt,
+        current: String(s._id) === String(req.authSession?._id)
+      }))
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 'SESSIONS_ERROR', 500);
+  }
+};
+
+/**
+ * POST /api/v1/admin/sessions/:sessionId/end      log one device out
+ * POST /api/v1/admin/users/:id/sessions/end-all   log a person out everywhere
+ */
+export const endOneSession = async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.sessionId);
+    if (!session || session.revokedAt) return errorResponse(res, 'Session not found or already ended', 'NOT_FOUND', 404);
+    const target = await User.findById(session.userId);
+    if (!target || !canManage(req.user, target)) return errorResponse(res, 'You cannot change this account', 'FORBIDDEN', 403);
+    await endSession(session._id, `Logged out by @${req.user.username}`);
+    await AuditLog.create({
+      actorId: req.user._id, actorName: req.user.name || req.user.username, action: 'FORCE_LOGOUT_DEVICE',
+      target: `User ${target.username}`, reason: session.device
+    });
+    return successResponse(res, { message: `Logged @${target.username} out of ${session.device}` });
+  } catch (error) {
+    return errorResponse(res, error.message, 'END_SESSION_ERROR', 500);
+  }
+};
+
+export const endAllUserSessions = async (req, res) => {
+  try {
+    const target = await User.findById(req.params.id);
+    if (!target) return errorResponse(res, 'Staff account not found', 'NOT_FOUND', 404);
+    if (!canManage(req.user, target)) return errorResponse(res, 'You cannot change this account', 'FORBIDDEN', 403);
+    const self = String(req.user._id) === String(target._id);
+    const count = await endUserSessions(target._id, `Logged out everywhere by @${req.user.username}`, self ? req.authSession?._id : null);
+    await AuditLog.create({
+      actorId: req.user._id, actorName: req.user.name || req.user.username, action: 'FORCE_LOGOUT_ALL',
+      target: `User ${target.username}`, reason: `${count} session(s) ended`
+    });
+    return successResponse(res, { message: `${count} device${count === 1 ? '' : 's'} logged out`, count });
+  } catch (error) {
+    return errorResponse(res, error.message, 'END_SESSIONS_ERROR', 500);
+  }
+};

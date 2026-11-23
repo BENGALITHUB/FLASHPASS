@@ -28,13 +28,13 @@ export const emitOrderPaid = (orderId, pass) => {
 
 export const emitGateStats = (stats) => {
   if (ioInstance) {
-    ioInstance.emit('gate:stats', stats);
+    ioInstance.to('staff:gate').emit('gate:stats', stats); // gate staff and admins only
   }
 };
 
 export const emitAdminMetrics = (metrics) => {
   if (ioInstance) {
-    ioInstance.emit('admin:metrics', metrics);
+    ioInstance.to('staff:admin').emit('admin:metrics', metrics); // revenue: admins only
   }
 };
 
@@ -52,7 +52,7 @@ export const emitLiveAnnouncement = (payload) => {
 
 export const emitNewInquiry = (inquiry) => {
   if (ioInstance) {
-    ioInstance.emit('admin:new_inquiry', inquiry);
+    ioInstance.to('staff:admin').emit('admin:new_inquiry', inquiry); // has contact details: admins only
   }
 };
 

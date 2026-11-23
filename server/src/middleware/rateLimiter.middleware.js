@@ -55,3 +55,9 @@ export const cashTokenLimiter = [
   limiter({ windowMs: 10 * 60 * 1000, max: 500, message: 'Too many token requests from this network.' }),
   limiter({ windowMs: 10 * 60 * 1000, max: 5, byPhone: true, message: 'Too many tokens for this mobile number.' })
 ];
+
+// Staff login: on top of the 5-wrong-PINs account lock, stop one network from
+// trying PINs across many accounts
+export const staffLoginLimiter = limiter({
+  windowMs: 15 * 60 * 1000, max: 60, message: 'Too many login attempts from this network.'
+});

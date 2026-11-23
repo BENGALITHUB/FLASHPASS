@@ -8,6 +8,7 @@ import { AuditLog } from '../models/AuditLog.js';
 import { User } from '../models/User.js';
 import { Event } from '../models/Event.js';
 import { Shift } from '../models/Shift.js';
+import { Session } from '../models/Session.js';
 import { pinProblem } from './staff.controller.js';
 import { getCurrentEventDay, getISTNow } from '../utils/date.utils.js';
 import { emitEmergencyEvacuation, emitLiveAnnouncement } from '../services/socket.service.js';
@@ -239,7 +240,6 @@ export const getDashboardMetrics = async (req, res) => {
         maxReentriesPerDay: cfgEvent ? (cfgEvent.maxReentriesPerDay ?? 2) : (settings.maxReentriesPerDay ?? 2),
         reentryMode,
         emergencyLockdown: cfgEvent ? Boolean(cfgEvent.emergencyLockdown) : Boolean(settings.emergencyLockdown),
-        requireSelfie: cfgEvent ? (cfgEvent.requireSelfie !== false) : (settings.requireSelfie !== false),
         cashSalesEnabled: cfgEvent ? (cfgEvent.cashSalesEnabled !== false) : (settings.cashSalesEnabled !== false),
         onlineSalesEnabled: cfgEvent ? (cfgEvent.onlineSalesEnabled !== false) : (settings.onlineSalesEnabled !== false),
         gateOpenTime: settings.gateOpenTime || '00:00',
@@ -484,7 +484,7 @@ export const updateSettings = async (req, res) => {
       eventName, venue, announcementText,
       basePricePaise, platformFeePaise, capacityLimit,
       onePassPerPhone, cashPriceMode, allowReentry, maxReentriesPerDay,
-      emergencyLockdown, requireSelfie, cashSalesEnabled, onlineSalesEnabled,
+      emergencyLockdown, cashSalesEnabled, onlineSalesEnabled,
       reentryMode, gateOpenTime, gateCloseTime, eventId,
       ticketTiers, coupons, addOns, affiliates, zones, paymentGateway
     } = req.body;
@@ -507,7 +507,6 @@ export const updateSettings = async (req, res) => {
         if (maxReentriesPerDay !== undefined) event.maxReentriesPerDay = Number(maxReentriesPerDay);
         if (reentryMode === 'IN_OUT' || reentryMode === 'WRISTBAND') event.reentryMode = reentryMode;
         if (emergencyLockdown !== undefined) event.emergencyLockdown = Boolean(emergencyLockdown);
-        if (requireSelfie !== undefined) event.requireSelfie = Boolean(requireSelfie);
         if (onlineSalesEnabled !== undefined) event.onlineSalesEnabled = Boolean(onlineSalesEnabled);
 
         // Advanced Features configuration
@@ -570,7 +569,6 @@ export const updateSettings = async (req, res) => {
             maxReentriesPerDay: event.maxReentriesPerDay,
             reentryMode: event.reentryMode,
             emergencyLockdown: event.emergencyLockdown,
-            requireSelfie: event.requireSelfie,
             onlineSalesEnabled: event.onlineSalesEnabled,
             ticketTiers: event.ticketTiers,
             coupons: event.coupons,
@@ -604,7 +602,6 @@ export const updateSettings = async (req, res) => {
     if (allowReentry !== undefined) settings.allowReentry = Boolean(allowReentry);
     if (maxReentriesPerDay !== undefined) settings.maxReentriesPerDay = Number(maxReentriesPerDay);
     if (emergencyLockdown !== undefined) settings.emergencyLockdown = Boolean(emergencyLockdown);
-    if (requireSelfie !== undefined) settings.requireSelfie = Boolean(requireSelfie);
     if (cashSalesEnabled !== undefined) settings.cashSalesEnabled = Boolean(cashSalesEnabled);
     if (onlineSalesEnabled !== undefined) settings.onlineSalesEnabled = Boolean(onlineSalesEnabled);
     if (cashPriceMode !== undefined) settings.cashPriceMode = cashPriceMode;
@@ -644,8 +641,14 @@ export const getStaffUsers = async (req, res) => {
     if (req.user.role === ROLES.EVENT_ADMIN && req.user.assignedEventId) {
       filter.assignedEventId = req.user.assignedEventId;
     }
-    const users = await User.find(filter).select('-pinHash').sort({ createdAt: -1 });
-    return successResponse(res, users);
+    const users = await User.find(filter).select('-pinHash').sort({ createdAt: -1 }).lean();
+    // How many devices each person is logged in on right now
+    const counts = await Session.aggregate([
+      { $match: { userId: { $in: users.map(u => u._id) }, revokedAt: null, expiresAt: { $gt: new Date() } } },
+      { $group: { _id: '$userId', n: { $sum: 1 } } }
+    ]);
+    const byUser = Object.fromEntries(counts.map(c => [String(c._id), c.n]));
+    return successResponse(res, users.map(u => ({ ...u, activeSessions: byUser[String(u._id)] || 0 })));
   } catch (error) {
     return errorResponse(res, error.message, 'USERS_FETCH_ERROR', 500);
   }
@@ -1058,14 +1061,13 @@ export const getDashboardAnalytics = async (req, res) => {
     const rawScans = await ScanLog.find(eventMatch)
       .sort({ at: -1 })
       .limit(15)
-      .populate('passId', 'holderName photoUrl badge phone')
+      .populate('passId', 'holderName badge phone')
       .lean();
 
     const liveScanTicker = rawScans.map(s => ({
       _id: s._id,
       orderId: s.orderId,
       holderName: s.passId?.holderName || 'Attendee',
-      photoUrl: s.passId?.photoUrl || null,
       badge: s.passId?.badge || 'PASS',
       gateId: s.gateId,
       direction: s.direction,
@@ -1081,14 +1083,13 @@ export const getDashboardAnalytics = async (req, res) => {
     })
       .sort({ at: -1 })
       .limit(10)
-      .populate('passId', 'holderName photoUrl phone')
+      .populate('passId', 'holderName phone')
       .lean();
 
     const formattedIncidents = fraudIncidents.map(inc => ({
       _id: inc._id,
       orderId: inc.orderId,
       holderName: inc.passId?.holderName || 'Unknown',
-      photoUrl: inc.passId?.photoUrl || null,
       gateId: inc.gateId,
       result: inc.result,
       time: new Date(inc.at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' })

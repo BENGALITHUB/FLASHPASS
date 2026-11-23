@@ -12,12 +12,18 @@
  * cache and live updates all live in this one process; several copies would
  * each keep their own and disagree.
  */
+const path = require('path');
+
+// On the EC2 server the CI deploy sets FLASHPASS_HOME=/var/www/flashpass/current
+// (a symlink to the live release), so pm2 always restarts whatever release is live.
+const home = process.env.FLASHPASS_HOME || __dirname;
+
 module.exports = {
   apps: [
     {
       name: 'flashpass',
-      script: 'server/src/server.js',
-      cwd: __dirname,
+      script: path.join(home, 'server/src/server.js'),
+      cwd: home,
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,

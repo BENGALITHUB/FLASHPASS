@@ -83,8 +83,7 @@ export default function GateScannerPage() {
 
   useEffect(() => {
     document.title = 'Gate Ingress Scanner — FlashPass';
-    const token = localStorage.getItem('cc_staff_token');
-    if (!token) {
+    if (!localStorage.getItem('cc_staff_user')) {
       navigate('/staff');
       return;
     }
@@ -211,7 +210,6 @@ export default function GateScannerPage() {
         result: 'MERCH_CLAIMED',
         holderName: res.holderName || orderId,
         message: `CLAIM CONFIRMED: ${res.item?.name || 'Voucher Item'} (Qty: ${res.item?.quantity || 1}) marked as claimed! Hand item over now.`,
-        photoUrl: res.photoUrl || null
       });
       playSuccessChime();
       setTimeout(() => setScanResult(null), 3000);
@@ -229,7 +227,7 @@ export default function GateScannerPage() {
 
     if (res.result === 'ENTRY_OK') {
       playSuccessChime();
-      setTimeout(() => setScanResult(null), res.photoUrl ? 2600 : 1200);
+      setTimeout(() => setScanResult(null), 1200);
     } else if (res.result === 'EXIT_OK' || res.result === 'EVACUATION_EXIT') {
       playExitChime();
       setTimeout(() => setScanResult(null), 1400);
@@ -603,22 +601,6 @@ export default function GateScannerPage() {
             <p className="font-comic text-2xl sm:text-3xl uppercase tracking-wider mb-2 opacity-95">
               {scanResult.holderName}
             </p>
-          )}
-
-          {/* Attendee Live Photo Badge for Fast Face Verification */}
-          {scanResult.photoUrl && (
-            <div className="my-3 flex flex-col items-center animate-in zoom-in-75 duration-150">
-              <div className="relative">
-                <img
-                  src={scanResult.photoUrl}
-                  alt={scanResult.holderName || 'Attendee'}
-                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover border-4 border-black shadow-[4px_4px_0_#000] bg-black"
-                />
-                <span className="absolute -bottom-2 inset-x-0 mx-auto w-max px-2.5 py-0.5 rounded-full bg-black text-yellow-400 font-mono text-[10px] font-bold uppercase tracking-wider border border-yellow-400 shadow-[1px_1px_0_#000]">
-                  MATCH FACE
-                </span>
-              </div>
-            </div>
           )}
 
           <p className="font-mono text-sm max-w-sm mx-auto font-bold opacity-90 leading-relaxed mb-6">

@@ -61,10 +61,6 @@ const eventSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  requireSelfie: {
-    type: Boolean,
-    default: true
-  },
   onlineSalesEnabled: {
     type: Boolean,
     default: true

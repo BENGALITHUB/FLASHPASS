@@ -37,10 +37,6 @@ const orderSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
-  photoUrl: {
-    type: String,
-    default: null
-  },
   // Ticket Tier
   tierId: {
     type: String,
@@ -59,7 +55,6 @@ const orderSchema = new mongoose.Schema({
     {
       name: { type: String, required: true },
       phone: { type: String, required: true },
-      photoUrl: { type: String, default: null },
       tierId: { type: String, default: 'general' },
       badge: { type: String, default: 'PASS' },
       passId: { type: mongoose.Schema.Types.ObjectId, ref: 'Pass' }
@@ -142,6 +137,15 @@ const orderSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// The selfie feature was removed; never send out photos stored on older orders
+const dropPhotos = (_doc, ret) => {
+  delete ret.photoUrl;
+  (ret.attendees || []).forEach(a => { delete a.photoUrl; });
+  return ret;
+};
+orderSchema.set('toJSON', { transform: dropPhotos });
+orderSchema.set('toObject', { transform: dropPhotos });
 
 export const Order = mongoose.model('Order', orderSchema);
 

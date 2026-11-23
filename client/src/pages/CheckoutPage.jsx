@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { IconTile } from '../components/landing/Premium';
 import Header from '../components/common/Header';
 import { stockInfo } from '../utils/stock';
 import {
-  ArrowLeft, ArrowRight, Lock, AlertCircle, CheckCircle, Camera, RefreshCw, Upload, ShieldCheck, Sparkles,
+  ArrowLeft, ArrowRight, Lock, AlertCircle, CheckCircle, RefreshCw, ShieldCheck,
   X, Users, User, Tag, ShoppingBag, Check, Zap, HeartHandshake, Ticket, MapPin, Mail, Smartphone,
   Shirt, Coffee, Car, Crown, ChevronDown
 } from 'lucide-react';
@@ -35,7 +35,7 @@ export default function CheckoutPage() {
 
   // Attendees array: [leadAttendee, friend1, friend2, ...]
   const [attendees, setAttendees] = useState([
-    { name: '', phone: '', email: '', photoUrl: null }
+    { name: '', phone: '', email: '' }
   ]);
 
   // Add-ons selected: { [addonId]: { quantity: 1, variant: 'M' } }
@@ -50,16 +50,10 @@ export default function CheckoutPage() {
   // Affiliate state
   const [affiliateCode, setAffiliateCode] = useState(paramRef || '');
 
-  // Active Camera capture state
-  const [activeCameraIndex, setActiveCameraIndex] = useState(null);
-  const [cameraError, setCameraError] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [existingOrder, setExistingOrder] = useState(null);
 
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const fileInputRef = useRef(null);
   const [uploadIndexTarget, setUploadIndexTarget] = useState(0);
 
   // Load Event Info
@@ -89,9 +83,6 @@ export default function CheckoutPage() {
       })
       .catch(err => console.error('Failed to load event data:', err));
 
-    return () => {
-      stopCameraStream();
-    };
   }, [eventId]);
 
   // Load All Active Events for Multi-Event Switching
@@ -106,12 +97,12 @@ export default function CheckoutPage() {
   // Adjust attendees array when group size or group booking toggle changes
   useEffect(() => {
     if (!isGroupBooking) {
-      setAttendees(prev => [prev[0] || { name: '', phone: '', email: '', photoUrl: null }]);
+      setAttendees(prev => [prev[0] || { name: '', phone: '', email: '' }]);
     } else {
       setAttendees(prev => {
         const next = [...prev];
         while (next.length < groupSize) {
-          next.push({ name: '', phone: '', email: '', photoUrl: null });
+          next.push({ name: '', phone: '', email: '' });
         }
         return next.slice(0, groupSize);
       });
@@ -130,114 +121,6 @@ export default function CheckoutPage() {
     perks: ['Event entry']
   };
   const currentTier = eventData?.ticketTiers?.find(t => t.tierId === selectedTierId) || generalPass;
-
-  // Camera Management
-  const stopCameraStream = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setActiveCameraIndex(null);
-  };
-
-  const startCameraForAttendee = async (index) => {
-    stopCameraStream();
-    setCameraError('');
-    setActiveCameraIndex(index);
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera not supported in this browser. Please upload a photo.');
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } },
-        audio: false
-      });
-      streamRef.current = stream;
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-      }, 150);
-    } catch (err) {
-      console.warn('Camera access error:', err);
-      setCameraError(err.message || 'Could not access webcam. Upload a photo instead.');
-      setActiveCameraIndex(null);
-    }
-  };
-
-  const capturePhoto = (index) => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
-    const size = 320;
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    const vWidth = video.videoWidth || 480;
-    const vHeight = video.videoHeight || 480;
-    const minDim = Math.min(vWidth, vHeight);
-    const startX = (vWidth - minDim) / 2;
-    const startY = (vHeight - minDim) / 2;
-
-    ctx.drawImage(video, startX, startY, minDim, minDim, 0, 0, size, size);
-    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-
-    setAttendees(prev => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], photoUrl: compressedDataUrl };
-      return copy;
-    });
-
-    stopCameraStream();
-  };
-
-  const triggerFileUpload = (index) => {
-    setUploadIndexTarget(index);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const size = 320;
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-
-        const minDim = Math.min(img.width, img.height);
-        const startX = (img.width - minDim) / 2;
-        const startY = (img.height - minDim) / 2;
-
-        ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-
-        setAttendees(prev => {
-          const copy = [...prev];
-          copy[uploadIndexTarget] = { ...copy[uploadIndexTarget], photoUrl: compressedDataUrl };
-          return copy;
-        });
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const removePhoto = (index) => {
-    setAttendees(prev => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], photoUrl: null };
-      return copy;
-    });
-  };
 
   // Attendee Form field change
   const handleAttendeeChange = (index, field, value) => {
@@ -427,14 +310,12 @@ export default function CheckoutPage() {
         name: lead.name,
         phone: lead.phone,
         email: lead.email || undefined,
-        photoUrl: lead.photoUrl || undefined,
         tierId: currentTier.tierId,
         isGroupBooking: isGroupBooking && attendees.length > 1,
         attendees: attendees.map((a, i) => ({
           name: a.name,
           phone: a.phone,
           email: a.email,
-          photoUrl: a.photoUrl,
           groupIndex: i + 1
         })),
         couponCode: appliedCoupon ? appliedCoupon.code : undefined,
@@ -757,7 +638,6 @@ export default function CheckoutPage() {
                 <div className="space-y-4">
                   {attendees.map((att, idx) => {
                     const isLead = idx === 0;
-                    const isCameraOpen = activeCameraIndex === idx;
                     const a = isLead ? '#FFD60A' : '#FF2E88';
 
                     return (
@@ -871,96 +751,6 @@ export default function CheckoutPage() {
                               )}
                             </div>
 
-                            {/* Selfie booth */}
-                            <div className="rounded-2xl bg-black/30 border-2 border-dashed border-accent/40 p-3.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <Sparkles className="w-4 h-4 text-accent" />
-                                  <span className="text-[11px] font-mono font-bold uppercase text-accent tracking-wide">
-                                    Face badge <span className="text-text-muted normal-case font-normal">— optional</span>
-                                  </span>
-                                </div>
-                                <span className="text-[9px] font-mono text-success font-bold bg-success/15 px-1.5 py-0.5 rounded border border-success/30">
-                                  1-sec re-entry
-                                </span>
-                              </div>
-
-                              {isCameraOpen && (
-                                <div className="space-y-2 mt-3">
-                                  <div className="relative rounded-2xl overflow-hidden border-2 border-accent bg-black aspect-square max-w-[220px] mx-auto shadow-[3px_3px_0_#000]">
-                                    <video
-                                      ref={videoRef}
-                                      autoPlay
-                                      playsInline
-                                      muted
-                                      className="w-full h-full object-cover scale-x-[-1]"
-                                    />
-                                    <div className="absolute inset-3 border-2 border-dashed border-accent/70 rounded-full pointer-events-none flex items-center justify-center">
-                                      <span className="text-[9px] font-mono text-white/80 bg-black/50 px-1.5 py-0.5 rounded">Center face</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2 max-w-[220px] mx-auto">
-                                    <button
-                                      type="button"
-                                      onClick={() => capturePhoto(idx)}
-                                      className="flex-1 py-2 rounded-xl bg-accent text-white font-comic text-lg tracking-wide border-2 border-black shadow-[2px_2px_0_#000] flex items-center justify-center gap-1.5 cursor-pointer"
-                                    >
-                                      <Camera className="w-4 h-4" /> Snap
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={stopCameraStream}
-                                      aria-label="Close camera"
-                                      className="px-3 rounded-xl bg-white/5 border border-white/15 text-text hover:text-danger cursor-pointer"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {!isCameraOpen && att.photoUrl && (
-                                <div className="flex items-center gap-3 mt-3">
-                                  <div className="relative">
-                                    <img src={att.photoUrl} alt="Selfie" className="w-14 h-14 rounded-xl object-cover border-2 border-black shadow-[2px_2px_0_#000]" />
-                                    <div className="absolute -bottom-1 -right-1 bg-success text-black rounded-full p-0.5 border border-black">
-                                      <ShieldCheck className="w-3 h-3" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <span className="text-xs font-bold text-success font-mono flex items-center gap-1">
-                                      <CheckCircle className="w-3.5 h-3.5" /> Photo attached
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => removePhoto(idx)}
-                                      className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-mono text-primary hover:underline font-bold cursor-pointer"
-                                    >
-                                      <RefreshCw className="w-3 h-3" /> Retake
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {!isCameraOpen && !att.photoUrl && (
-                                <div className="grid grid-cols-2 gap-2 mt-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => startCameraForAttendee(idx)}
-                                    className="py-2 rounded-xl bg-accent text-white font-comic text-lg tracking-wide border-2 border-black shadow-[2px_2px_0_#000] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                  >
-                                    <Camera className="w-4 h-4" /> Selfie
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => triggerFileUpload(idx)}
-                                    className="py-2 rounded-xl bg-white/5 border-2 border-white/15 text-text font-comic text-lg tracking-wide hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                  >
-                                    <Upload className="w-4 h-4" /> Upload
-                                  </button>
-                                </div>
-                              )}
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -968,21 +758,6 @@ export default function CheckoutPage() {
                   })}
                 </div>
 
-                {cameraError && (
-                  <p className="mt-3 p-3 rounded-xl bg-danger/10 border border-danger/40 text-xs text-danger font-mono flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" /> {cameraError}
-                  </p>
-                )}
-
-                {/* Hidden file input for image upload */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
               </section>
 
               {/* ===== 4. Add-ons (only when the admin has set some up) ===== */}

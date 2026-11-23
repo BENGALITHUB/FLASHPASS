@@ -71,10 +71,6 @@ const passSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  photoUrl: {
-    type: String,
-    default: null
-  },
   validDays: {
     type: [Number],
     required: true,
@@ -116,6 +112,12 @@ const passSchema = new mongoose.Schema({
 });
 
 passSchema.index({ status: 1, phone: 1 });
+
+// The selfie feature was removed. Passes bought earlier may still have a stored
+// photo; never send it out (run scripts/remove-selfies.mjs to delete them).
+const dropPhoto = (_doc, ret) => { delete ret.photoUrl; return ret; };
+passSchema.set('toJSON', { transform: dropPhoto });
+passSchema.set('toObject', { transform: dropPhoto });
 
 export const Pass = mongoose.model('Pass', passSchema);
 

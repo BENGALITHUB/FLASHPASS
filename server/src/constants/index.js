@@ -94,7 +94,6 @@ export const DEFAULT_ADMIN_SETTINGS = {
   allowReentry: true,
   maxReentriesPerDay: 2,      // 0 = unlimited, or 1, 2, 3
   emergencyLockdown: false,
-  requireSelfie: true,
   cashSalesEnabled: true,
   onlineSalesEnabled: true,
   reentryMode: 'WRISTBAND',         // hand stamp (scan once a day); or 'IN_OUT' to scan in and out

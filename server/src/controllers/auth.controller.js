@@ -1,7 +1,22 @@
-import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
+import {
+  createSession, endSession, findSession, readSessionToken, setSessionCookie, clearSessionCookie
+} from '../services/session.service.js';
 
+const publicUser = (user) => ({
+  id: user._id,
+  username: user.username,
+  name: user.name,
+  role: user.role,
+  assignedEventId: user.assignedEventId || null
+});
+
+/**
+ * POST /api/v1/auth/staff-login  { username, pin }
+ * Starts a session and sets it as an HttpOnly cookie. The token is never
+ * given to page scripts.
+ */
 export const staffLogin = async (req, res) => {
   try {
     const { username, pin } = req.body;
@@ -10,7 +25,7 @@ export const staffLogin = async (req, res) => {
       return errorResponse(res, 'Please enter username and 6-digit PIN', 'MISSING_CREDENTIALS', 400);
     }
 
-    const user = await User.findOne({ username: username.toLowerCase().trim() });
+    const user = await User.findOne({ username: String(username).toLowerCase().trim() });
     if (!user || !user.active) {
       return errorResponse(res, 'Invalid credentials or inactive account', 'AUTH_FAILED', 401);
     }
@@ -38,44 +53,35 @@ export const staffLogin = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        username: user.username,
-        role: user.role,
-        name: user.name,
-        assignedEventId: user.assignedEventId || null
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-    );
+    const { token, session } = await createSession(user, req);
+    setSessionCookie(res, token, session);
 
-    return successResponse(res, {
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        name: user.name,
-        role: user.role,
-        assignedEventId: user.assignedEventId || null
-      }
-    });
+    return successResponse(res, { user: publicUser(user), expiresAt: session.expiresAt });
   } catch (error) {
     return errorResponse(res, error.message, 'LOGIN_ERROR', 500);
   }
 };
 
+/**
+ * POST /api/v1/auth/logout
+ * Ends this device's session on the server and clears the cookie.
+ */
+export const staffLogout = async (req, res) => {
+  try {
+    const session = await findSession(readSessionToken(req));
+    if (session) await endSession(session._id, 'Logged out');
+    clearSessionCookie(res);
+    return successResponse(res, { message: 'Logged out' });
+  } catch (error) {
+    clearSessionCookie(res);
+    return errorResponse(res, error.message, 'LOGOUT_ERROR', 500);
+  }
+};
+
 export const getMe = async (req, res) => {
   try {
-    return successResponse(res, {
-      id: req.user._id,
-      username: req.user.username,
-      name: req.user.name,
-      role: req.user.role,
-      assignedEventId: req.user.assignedEventId || null
-    });
+    return successResponse(res, { ...publicUser(req.user), sessionExpiresAt: req.authSession?.expiresAt || null });
   } catch (error) {
     return errorResponse(res, error.message, 'ME_ERROR', 500);
   }
 };
-

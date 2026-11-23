@@ -85,7 +85,7 @@ export const validateCoupon = async (req, res) => {
 export const createOrder = async (req, res) => {
   try {
     const {
-      name, phone, email, eventId, photoUrl,
+      name, phone, email, eventId,
       tierId = 'general',
       isGroupBooking = false,
       attendees = [],
@@ -240,7 +240,6 @@ export const createOrder = async (req, res) => {
       finalizedAttendees = attendees.map(a => ({
         name: a.name.trim(),
         phone: String(a.phone).replace(/\D/g, '').slice(-10),
-        photoUrl: a.photoUrl || null,
         tierId: matchedTier.tierId,
         badge: matchedTier.badge
       }));
@@ -248,7 +247,6 @@ export const createOrder = async (req, res) => {
       finalizedAttendees = [{
         name: name.trim(),
         phone: cleanPhone,
-        photoUrl: photoUrl || null,
         tierId: matchedTier.tierId,
         badge: matchedTier.badge
       }];
@@ -263,7 +261,6 @@ export const createOrder = async (req, res) => {
       holderName: name.trim(),
       phone: cleanPhone,
       email: email ? email.trim() : '',
-      photoUrl: photoUrl || null,
       tierId: matchedTier.tierId,
       tierName: matchedTier.name,
       isGroupBooking: Boolean(isGroupBooking && passesCount > 1),
@@ -353,7 +350,6 @@ export const getOrderStatus = async (req, res) => {
           validDays: p.validDays,
           status: p.status,
           presence: p.presence,
-          photoUrl: p.photoUrl || null,
           addOns: p.addOns || [],
           qrToken: generateQRToken(p._id.toString(), p.qrNonce),
           isGroupPass: p.isGroupPass,

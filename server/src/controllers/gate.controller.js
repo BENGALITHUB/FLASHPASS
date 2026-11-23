@@ -118,7 +118,6 @@ export const scanPass = async (req, res) => {
         result: SCAN_RESULTS.VOIDED,
         message: 'PASS CANCELLED ✕ This ticket was voided or refunded. Send to Help Desk.',
         holderName: pass.holderName,
-        photoUrl: pass.photoUrl || null,
         latencyMs: Date.now() - startTime
       });
     }
@@ -143,7 +142,6 @@ export const scanPass = async (req, res) => {
         badge: pass.badge,
         validDays: pass.validDays,
         holderName: pass.holderName,
-        photoUrl: pass.photoUrl || null,
         latencyMs: Date.now() - startTime
       });
     }
@@ -201,7 +199,6 @@ export const scanPass = async (req, res) => {
         result: 'EVACUATION_EXIT',
         message: '🚨 EMERGENCY EVACUATION ACTIVE - FREE EXIT CONFIRMED',
         holderName: pass.holderName,
-        photoUrl: pass.photoUrl || null,
         latencyMs: Date.now() - startTime
       });
     }
@@ -230,7 +227,6 @@ export const scanPass = async (req, res) => {
             result: 'ZONE_ACCESS_DENIED',
             message: `ZONE ACCESS DENIED ✕ ${targetZone.name} is restricted to [${targetZone.requiredTiers.join(', ').toUpperCase()}] passes only.`,
             holderName: pass.holderName,
-            photoUrl: pass.photoUrl || null,
             tierName: pass.tierName,
             badge: pass.badge,
             latencyMs: Date.now() - startTime
@@ -317,7 +313,6 @@ export const scanPass = async (req, res) => {
           result: SCAN_RESULTS.ALREADY_USED_TODAY,
           message: `This pass already entered today at ${firstAt} via ${firstGate}. CHECK HAND STAMP — no stamp, no entry.`,
           holderName: pass.holderName,
-          photoUrl: pass.photoUrl || null,
           firstEntryAt: firstAt,
           firstEntryGate: firstGate,
           latencyMs: Date.now() - startTime
@@ -339,7 +334,6 @@ export const scanPass = async (req, res) => {
         message: `WELCOME! ✓ Day ${eventDay} — stamp the hand`,
         holderName: pass.holderName,
         badge: pass.badge,
-        photoUrl: pass.photoUrl || null,
         entriesToday: 1,
         latencyMs: Date.now() - startTime
       });
@@ -365,7 +359,6 @@ export const scanPass = async (req, res) => {
           result: SCAN_RESULTS.REENTRY_DISABLED,
           message: 'RE-ENTRY NOT ALLOWED ✕ This event has a Single-Entry policy.',
           holderName: pass.holderName,
-          photoUrl: pass.photoUrl || null,
           latencyMs: Date.now() - startTime
         });
       }
@@ -387,7 +380,6 @@ export const scanPass = async (req, res) => {
           result: SCAN_RESULTS.MAX_REENTRIES_EXCEEDED,
           message: `MAX RE-ENTRIES REACHED ✕ Daily limit of ${maxReentriesPerDay} entries reached for today.`,
           holderName: pass.holderName,
-          photoUrl: pass.photoUrl || null,
           latencyMs: Date.now() - startTime
         });
       }
@@ -441,7 +433,6 @@ export const scanPass = async (req, res) => {
           result: SCAN_RESULTS.ALREADY_INSIDE,
           message: `ALREADY INSIDE ✕ Entered at ${lastTime} via ${lastGate}. Ask for original pass holder.`,
           holderName: pass.holderName,
-          photoUrl: pass.photoUrl || null,
           lastScan: freshPass.lastScan,
           latencyMs: Date.now() - startTime
         });
@@ -480,7 +471,6 @@ export const scanPass = async (req, res) => {
         message: isFirst ? `WELCOME! ✓ Day ${eventDay}` : `WELCOME BACK ✓ Entry #${totalToday} today`,
         holderName: pass.holderName,
         badge: pass.badge,
-        photoUrl: pass.photoUrl || null,
         entriesToday: totalToday,
         latencyMs: Date.now() - startTime
       });
@@ -542,7 +532,6 @@ export const scanPass = async (req, res) => {
         result: SCAN_RESULTS.EXIT_OK,
         message: 'SEE YOU SOON ↗ Re-entry allowed',
         holderName: pass.holderName,
-        photoUrl: pass.photoUrl || null,
         latencyMs: Date.now() - startTime
       });
     }
@@ -645,7 +634,7 @@ export const helpdeskSearchPasses = async (req, res) => {
       filter.eventId = eventId;
     }
 
-    const passes = await Pass.find(filter).sort({ createdAt: -1 }).limit(10).lean();
+    const passes = await Pass.find(filter).select('-photoUrl').sort({ createdAt: -1 }).limit(10).lean();
     const enriched = passes.map(p => ({
       ...p,
       passId: p._id.toString(),
@@ -693,7 +682,6 @@ export const helpdeskReissuePass = async (req, res) => {
         badge: pass.badge,
         tierName: pass.tierName,
         presence: pass.presence,
-        photoUrl: pass.photoUrl,
         newQrToken
       }
     });

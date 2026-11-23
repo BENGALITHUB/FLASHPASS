@@ -55,9 +55,12 @@ try {
   })));
   const tokens = docs.map(p => generateQRToken(p._id.toString(), p.qrNonce));
 
-  const login = await (await fetch(`${BASE}/auth/staff-login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'gate1', pin: '222222' }) })).json();
+  // Log in like the gate phone does: the session comes back as a cookie
+  const loginRes = await fetch(`${BASE}/auth/staff-login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'gate1', pin: '222222' }) });
+  const login = await loginRes.json();
   if (!login.ok) throw new Error(`gate login failed: ${JSON.stringify(login.error)}`);
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${login.data.token}` };
+  const sessionCookie = (loginRes.headers.get('set-cookie') || '').split(';')[0];
+  const headers = { 'Content-Type': 'application/json', Cookie: sessionCookie };
 
   let next = 0;
   const scanned = [];

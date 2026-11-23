@@ -55,10 +55,6 @@ const adminSettingsSchema = new mongoose.Schema({
     type: Boolean,
     default: DEFAULT_ADMIN_SETTINGS.emergencyLockdown
   },
-  requireSelfie: {
-    type: Boolean,
-    default: true
-  },
   cashSalesEnabled: {
     type: Boolean,
     default: DEFAULT_ADMIN_SETTINGS.cashSalesEnabled

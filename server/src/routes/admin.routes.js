@@ -27,7 +27,7 @@ import {
   closePayoutRequest,
   downloadStatement
 } from '../controllers/settlement.controller.js';
-import { resetStaffPin, setStaffActive, listDemoPinAccounts } from '../controllers/staff.controller.js';
+import { resetStaffPin, setStaffActive, listDemoPinAccounts, listUserSessions, endOneSession, endAllUserSessions } from '../controllers/staff.controller.js';
 import { authenticateStaff, requireRole, verifyAdminPin } from '../middleware/auth.middleware.js';
 import { ROLES } from '../constants/index.js';
 
@@ -59,6 +59,9 @@ router.post('/users', createStaffUser);
 router.post('/users/:id/pin', verifyAdminPin, resetStaffPin);
 router.post('/users/:id/active', verifyAdminPin, setStaffActive);
 router.get('/security/demo-pins', listDemoPinAccounts);
+router.get('/users/:id/sessions', listUserSessions);
+router.post('/users/:id/sessions/end-all', endAllUserSessions);
+router.post('/sessions/:sessionId/end', endOneSession);
 router.get('/export/:type', exportCSV);
 router.get('/shifts', listShifts);
 router.get('/events', listEvents);

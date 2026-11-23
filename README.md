@@ -66,9 +66,9 @@ Run the load test again in the week before the event (SRS runbook, T-7).
 
 ## 🚀 Running Live
 
-1. **Secrets** in `server/.env`: generate `JWT_SECRET` and `QR_HMAC_SECRET` (48 random characters each, see `server/.env.example`). In production the server will not start with missing, short or public secrets.
-   To change the QR secret after passes are sold, move the old values to `QR_KEY_VERSION_PREVIOUS` / `QR_HMAC_SECRET_PREVIOUS` and use a new version (e.g. `CC2`), so sold passes keep working.
-2. **HTTPS** is required for the offline pass (service worker) on phones.
+1. **Secret** in `server/.env`: generate `QR_HMAC_SECRET` (`node server/scripts/rotate-secrets.mjs` does it safely). In production the server will not start with a missing, short or public secret.
+   Rotating it after passes are sold keeps old QRs working (`QR_KEY_VERSION_PREVIOUS` / `QR_HMAC_SECRET_PREVIOUS`).
+2. **HTTPS is required.** Phones only open the gate camera and keep the offline pass on HTTPS, and the staff session cookie is marked `Secure` on HTTPS (it still works on plain http, but use HTTPS live).
 3. Behind nginx / cPanel / a load balancer, set `TRUST_PROXY=1` so rate limits see real visitor IPs.
 4. **Never** set `ALLOW_MOCK_PAYMENTS` on the live server.
 5. Build and start with pm2 (restarts on crash, survives reboots):
@@ -116,3 +116,15 @@ npm run dev
 * **Gate Scanner App:** `http://localhost:3000/gate`
 * **Super Admin Dashboard:** `http://localhost:3000/admin`
 
+
+---
+
+## 🔐 Staff Sign-in
+
+- Username + 6-digit PIN. 5 wrong PINs lock the account for 15 minutes; one network can try at most 60 logins per 15 minutes.
+- The session lives on the server and in an **HttpOnly, SameSite=Strict cookie** (page scripts cannot read it).
+- Admins / organizers: 12 h, logged out after 2 h idle. Cashier / gate: 16 h, 4 h idle.
+- Logging out, changing a PIN or switching an account off **ends its sessions on every device at once**, including live gate/admin screens.
+- **Admin → Staff → Devices** shows where each person is logged in, with *Log out* per device and *Log out everywhere* (lost phone).
+- Live updates: revenue and sponsor inquiries go to admins only; gate counts to gate staff and admins.
+- Demo logins on the sign-in page appear only on the local dev server, never in a production build.

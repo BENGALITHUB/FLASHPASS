@@ -31,6 +31,13 @@ jobs:
           cd server
           npm ci
 
+      # Before the server tests: some tests use client code (POS money helpers,
+      # the Socket.IO client for the live-update access checks)
+      - name: 📦 Install Client Dependencies
+        run: |
+          cd client
+          npm ci
+
       - name: 🧪 Run Server Unit & Integration Tests
         run: |
           cd server
@@ -38,12 +45,6 @@ jobs:
         env:
           NODE_ENV: test
           QR_HMAC_SECRET: test_hmac_secret_32_characters_minimum_len
-          JWT_SECRET: test_jwt_secret_32_characters_minimum_length
-
-      - name: 📦 Install Client Dependencies
-        run: |
-          cd client
-          npm ci
 
       - name: 🏗️ Build Frontend (Vite)
         run: |

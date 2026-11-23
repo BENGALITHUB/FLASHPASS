@@ -46,10 +46,26 @@ jobs:
 
             cd "$DEPLOY_DIR"
 
-            # Pull latest changes from main branch
-            echo "📥 Pulling latest changes from Git..."
-            git fetch origin main
-            git reset --hard origin/main
+            # Deploy the branch that was pushed (this workflow runs on "sourav";
+            # it used to reset to main, so pushes to sourav never reached the server)
+            BRANCH="${{ github.ref_name }}"
+            echo "📥 Pulling latest changes from Git ($BRANCH)..."
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            # Secrets live only on the server, in server/.env (never in git)
+            ENV_FILE="$DEPLOY_DIR/server/.env"
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "❌ $ENV_FILE is missing. Create it on the server (see server/.env.example)."
+              exit 1
+            fi
+            # The server refuses to start in production with a missing or public QR secret.
+            # Create a strong one here if needed; the old one is kept so sold passes still scan.
+            QR="$(grep -E '^QR_HMAC_SECRET=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d '\r"')"
+            if [ "${#QR}" -lt 32 ] || [ "$QR" = 'super_secret_comic_con_hmac_key_2026_xyz123!' ]; then
+              echo "🔐 Replacing missing/public QR_HMAC_SECRET with a new random one..."
+              node server/scripts/rotate-secrets.mjs
+            fi
 
             # Install backend production dependencies
             echo "📦 Installing backend production packages..."

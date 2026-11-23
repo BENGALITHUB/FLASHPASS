@@ -7,12 +7,17 @@ import {
   KeyRound, Zap, ShieldCheck
 } from 'lucide-react';
 
-// Staff roles + demo credentials (tap a role tab to auto-fill)
+// Demo logins (tap a role tab to auto-fill) exist only on the local dev server.
+// In a production build DEMO is false, so the PINs are not even in the file.
+const DEMO = import.meta.env.DEV;
+const demoPin = (pin) => (DEMO ? pin : undefined);
+
+// Staff roles (colours / icons for the sign-in card)
 const ROLES = [
-  { username: 'admin', pin: '123456', title: 'Super Admin', access: 'All zones • All events', icon: Crown, color: '#FFD60A', ink: '#111' },
-  { username: 'carnival_admin', pin: '333333', title: 'Event Admin', access: 'Event HQ • Reports', icon: Briefcase, color: '#FF2E88', ink: '#fff' },
-  { username: 'cashier1', pin: '111111', title: 'Cashier', access: 'Box office • Cash desk', icon: Banknote, color: '#F59E0B', ink: '#111' },
-  { username: 'gate1', pin: '222222', title: 'Gate Crew', access: 'Gate entry • Exit', icon: ScanLine, color: '#22D3EE', ink: '#111' }
+  { username: 'admin', pin: demoPin('123456'), title: 'Super Admin', access: 'All zones • All events', icon: Crown, color: '#FFD60A', ink: '#111' },
+  { username: 'carnival_admin', pin: demoPin('333333'), title: 'Event Admin', access: 'Event HQ • Reports', icon: Briefcase, color: '#FF2E88', ink: '#fff' },
+  { username: 'cashier1', pin: demoPin('111111'), title: 'Cashier', access: 'Box office • Cash desk', icon: Banknote, color: '#F59E0B', ink: '#111' },
+  { username: 'gate1', pin: demoPin('222222'), title: 'Gate Crew', access: 'Gate entry • Exit', icon: ScanLine, color: '#22D3EE', ink: '#111' }
 ];
 const GUEST = { title: 'Crew Member', access: 'Awaiting verification', icon: User, color: '#A3A3C2', ink: '#111' };
 
@@ -22,7 +27,10 @@ export default function StaffLoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
+  // Sent here because the session ended (logged out elsewhere, PIN changed, idle too long)
+  const [error, setError] = useState(() =>
+    new URLSearchParams(window.location.search).has('expired') ? 'Your session ended. Please log in again.' : ''
+  );
   const [loading, setLoading] = useState(false);
   const [swingKey, setSwingKey] = useState(0);
 
@@ -60,7 +68,6 @@ export default function StaffLoginPage() {
     setLoading(true);
     try {
       const data = await api.staffLogin({ username, pin });
-      localStorage.setItem('cc_staff_token', data.token);
       localStorage.setItem('cc_staff_user', JSON.stringify(data.user));
 
       // Role-based redirect (SRS §5.6.1)
@@ -207,7 +214,8 @@ export default function StaffLoginPage() {
                 <ShieldCheck className="w-9 h-9 text-white/15" />
               </div>
 
-              {/* Role tabs (demo fill) */}
+              {/* Role tabs (demo fill): local development only */}
+              {DEMO && (
               <div className="mb-5">
                 <div className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-text-muted">Select role · demo login</div>
                 <div className="grid grid-cols-4 gap-2">
@@ -234,6 +242,7 @@ export default function StaffLoginPage() {
                   })}
                 </div>
               </div>
+              )}
 
               <form onSubmit={handleLogin} className="space-y-4">
                 <label className="block">

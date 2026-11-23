@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { KeyRound, Power, ShieldAlert } from 'lucide-react';
+import { KeyRound, Power, ShieldAlert, MonitorSmartphone, LogOut } from 'lucide-react';
 import { api } from '../../services/api';
 import { Field, SettlementModal, FormError } from '../analytics/settlementUi';
 
@@ -41,7 +41,11 @@ export function StaffActions({ user, currentUserId, onChanged }) {
             <Power className="h-3.5 w-3.5" /> {active ? 'Switch off' : 'Switch on'}
           </button>
         )}
+        <button type="button" onClick={() => setModal('devices')} className="adm-btn adm-btn-ghost adm-btn-sm">
+          <MonitorSmartphone className="h-3.5 w-3.5" /> Devices ({user.activeSessions || 0})
+        </button>
       </div>
+      {modal === 'devices' && <DevicesModal user={user} onClose={async () => { setModal(null); await onChanged(); }} />}
       {modal === 'pin' && <PinModal user={user} self={self} onClose={() => setModal(null)} onDone={async () => { setModal(null); await onChanged(); }} />}
       {modal === 'active' && <ActiveModal user={user} active={active} onClose={() => setModal(null)} onDone={async () => { setModal(null); await onChanged(); }} />}
     </>
@@ -117,6 +121,62 @@ function ActiveModal({ user, active, onClose, onDone }) {
           <button type="submit" disabled={busy} className={`adm-btn ${active ? 'adm-btn-danger' : 'adm-btn-primary'}`}>{busy ? 'Saving…' : active ? 'Switch off' : 'Switch on'}</button>
         </div>
       </form>
+    </SettlementModal>
+  );
+}
+
+const seen = (d) => new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+/**
+ * Devices a staff member is logged in on, with "log out this device" and
+ * "log out everywhere" (lost phone, someone left the team).
+ */
+function DevicesModal({ user, onClose }) {
+  const [sessions, setSessions] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [note, setNote] = useState('');
+
+  const load = () => api.adminUserSessions(user._id).then(d => setSessions(d.sessions || [])).catch(e => setError(e.message));
+  useEffect(() => { load(); }, []);
+
+  const run = async (fn) => {
+    setBusy(true); setError(''); setNote('');
+    try { const r = await fn(); setNote(r?.message || 'Done'); await load(); }
+    catch (e) { setError(e.message || 'Could not log out'); }
+    finally { setBusy(false); }
+  };
+
+  const others = (sessions || []).filter(s => !s.current);
+  return (
+    <SettlementModal title={`Devices: @${user.username}`} subtitle="Logging a device out takes effect immediately." onClose={onClose} busy={busy}>
+      <div className="space-y-3">
+        {!sessions && !error && <p className="font-mono text-xs text-text-muted">Loading…</p>}
+        {sessions && sessions.length === 0 && <p className="font-mono text-xs text-text-muted">Not logged in anywhere.</p>}
+        <ul className="space-y-2">
+          {(sessions || []).map(s => (
+            <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 border border-border px-3 py-2 font-mono text-[11px]">
+              <span className="min-w-0">
+                <strong className="block text-white">{s.device}{s.current ? ' (this device)' : ''}</strong>
+                <span className="text-text-muted">Logged in {seen(s.loggedInAt)} • last active {seen(s.lastSeenAt)}{s.ip ? ` • ${s.ip}` : ''}</span>
+              </span>
+              {!s.current && (
+                <button type="button" disabled={busy} onClick={() => run(() => api.adminEndSession(s.id))} className="adm-btn adm-btn-ghost adm-btn-sm shrink-0">
+                  <LogOut className="h-3.5 w-3.5" /> Log out
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+        <FormError message={error} />
+        {note && <p role="status" className="font-mono text-xs text-success">{note}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={busy} className="adm-btn adm-btn-ghost">Close</button>
+          <button type="button" disabled={busy || others.length === 0} onClick={() => run(() => api.adminEndAllSessions(user._id))} className="adm-btn adm-btn-danger">
+            Log out everywhere
+          </button>
+        </div>
+      </div>
     </SettlementModal>
   );
 }

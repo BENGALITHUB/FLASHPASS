@@ -24,7 +24,7 @@ const otherGate = await mk('gate9', 'GATE_VOLUNTEER', '482915', { assignedEventI
 
 const call = async (fn, user, { params = {}, body = {} } = {}) => {
   let out, code = 200;
-  const res = { status(c) { code = c; return this; }, json(b) { out = b; return this; } };
+  const res = { status(c) { code = c; return this; }, json(b) { out = b; return this; }, cookie() { return this; }, clearCookie() { return this; } };
   await fn({ user, params, body, query: {}, headers: {} }, res);
   return { code, data: out?.data, err: out?.error };
 };
