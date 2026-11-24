@@ -25,6 +25,20 @@ import { PRESENCE, PASS_STATUS, ORDER_STATUS, ORDER_CHANNELS, SCAN_RESULTS, LEDG
 const NO_EVENT = '__no-event__';
 const ownEvent = user => user?.assignedEventId || NO_EVENT;
 
+// ['2026-12-24', '2026-12-25', …] -> [{ day: 1, date, label }, …], in date order, 1 to 7 days.
+const MAX_EVENT_DAYS = 7;
+export const toEventDays = (dates) => {
+  if (!Array.isArray(dates) || dates.length < 1 || dates.length > MAX_EVENT_DAYS) {
+    return { error: `Give the event 1 to ${MAX_EVENT_DAYS} dates.` };
+  }
+  const valid = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(new Date(`${d}T00:00:00Z`).getTime())
+    && new Date(`${d}T00:00:00Z`).toISOString().slice(0, 10) === d;
+  if (!dates.every(valid)) return { error: 'Each date must be a real date like 2026-12-24.' };
+  const sorted = [...new Set(dates)].sort();
+  if (sorted.length !== dates.length) return { error: 'The same date is given twice.' };
+  return { value: sorted.map((date, i) => ({ day: i + 1, date, label: `Day ${i + 1}` })) };
+};
+
 /**
  * GET /api/v1/admin/metrics
  * Live revenue, attendance, and safety metrics
@@ -37,12 +51,14 @@ export const getDashboardMetrics = async (req, res) => {
       : (req.query.eventId || 'ALL');
 
     const settings = await AdminSettings.getSettings();
-    const eventDay = getCurrentEventDay(settings.eventDays) || 1;
 
     let selectedEvent = null;
     if (requestedEventId && requestedEventId !== 'ALL') {
       selectedEvent = await Event.findOne({ eventId: String(requestedEventId).trim().toLowerCase() });
     }
+    // "Today" is a day of the chosen event's own dates.
+    const eventDays = selectedEvent?.eventDays?.length ? selectedEvent.eventDays : settings.eventDays;
+    const eventDay = getCurrentEventDay(eventDays) || 1;
 
     // Ledger query filter
     const ledgerFilter = (selectedEvent && selectedEvent.eventId) ? { eventId: selectedEvent.eventId } : {};
@@ -107,7 +123,7 @@ export const getDashboardMetrics = async (req, res) => {
     // firstEntryDays holds each day a pass was first scanned in, so a person
     // counts once per day they came and once in the unique total.
     const footfallByDay = await Promise.all(
-      (settings.eventDays || []).map(async (d) => ({
+      (eventDays || []).map(async (d) => ({
         day: d.day,
         date: d.date,
         label: d.label,
@@ -251,8 +267,9 @@ export const getDashboardMetrics = async (req, res) => {
         emergencyLockdown: cfgEvent ? Boolean(cfgEvent.emergencyLockdown) : Boolean(settings.emergencyLockdown),
         cashSalesEnabled: cfgEvent ? (cfgEvent.cashSalesEnabled !== false) : (settings.cashSalesEnabled !== false),
         onlineSalesEnabled: cfgEvent ? (cfgEvent.onlineSalesEnabled !== false) : (settings.onlineSalesEnabled !== false),
-        gateOpenTime: settings.gateOpenTime || '00:00',
-        gateCloseTime: settings.gateCloseTime || '23:59',
+        gateOpenTime: (cfgEvent ? cfgEvent.gateOpenTime : settings.gateOpenTime) || '00:00',
+        gateCloseTime: (cfgEvent ? cfgEvent.gateCloseTime : settings.gateCloseTime) || '23:59',
+        eventDays: cfgEvent?.eventDays || [],
         basePricePaise: cfgEvent ? cfgEvent.basePricePaise : settings.basePricePaise,
         platformFeePaise: cfgEvent ? cfgEvent.platformFeePaise : settings.platformFeePaise,
         capacityLimit,
@@ -481,7 +498,7 @@ export const updateSettings = async (req, res) => {
       onePassPerPhone, cashPriceMode, allowReentry, maxReentriesPerDay,
       emergencyLockdown, cashSalesEnabled, onlineSalesEnabled,
       reentryMode, gateOpenTime, gateCloseTime, eventId,
-      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway
+      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates
     } = req.body;
 
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
@@ -505,6 +522,24 @@ export const updateSettings = async (req, res) => {
         if (onlineSalesEnabled !== undefined) event.onlineSalesEnabled = Boolean(onlineSalesEnabled);
         // The box office and cash tokens stop or start for this event alone.
         if (cashSalesEnabled !== undefined) event.cashSalesEnabled = Boolean(cashSalesEnabled);
+        // The event's own dates. Passes hold day numbers (Day 1, 2, 3), so moving the dates keeps
+        // sold passes valid for the same days at the new dates.
+        if (eventDates !== undefined) {
+          const days = toEventDays(eventDates);
+          if (days.error) return errorResponse(res, days.error, 'INVALID_DATES', 400);
+          event.eventDays = days.value;
+        }
+        // The event's own gate hours, in 24-hour IST (e.g. 11:00 to 20:00).
+        if (gateOpenTime !== undefined || gateCloseTime !== undefined) {
+          const open = gateOpenTime ?? event.gateOpenTime;
+          const close = gateCloseTime ?? event.gateCloseTime;
+          const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+          if (!hhmm.test(open) || !hhmm.test(close) || open >= close) {
+            return errorResponse(res, 'Gate hours need an opening time before the closing time, like 11:00 and 20:00.', 'INVALID_GATE_HOURS', 400);
+          }
+          event.gateOpenTime = open;
+          event.gateCloseTime = close;
+        }
 
         // Advanced Features configuration
         if (Array.isArray(ticketTiers)) {
@@ -733,11 +768,22 @@ export const createEvent = async (req, res) => {
       adminName,
       adminPin = '123456',
       adminEmail,
-      adminPhone
+      adminPhone,
+      eventDates
     } = req.body;
 
     if (!name || !venue || !adminUsername) {
       return errorResponse(res, 'Event Name, Venue, and Admin Username are required', 'MISSING_FIELDS', 400);
+    }
+    let newEventDays = [
+      { day: 1, date: '2026-12-12', label: 'Day 1' },
+      { day: 2, date: '2026-12-13', label: 'Day 2' },
+      { day: 3, date: '2026-12-14', label: 'Day 3' }
+    ];
+    if (eventDates !== undefined) {
+      const days = toEventDays(eventDates);
+      if (days.error) return errorResponse(res, days.error, 'INVALID_DATES', 400);
+      newEventDays = days.value;
     }
 
     const slug = (eventId || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
@@ -776,11 +822,8 @@ export const createEvent = async (req, res) => {
       capacityLimit: Number(capacity),
       allowReentry: true,
       maxReentriesPerDay: 2,
-      eventDays: [
-        { day: 1, date: '2026-12-12', label: 'Day 1' },
-        { day: 2, date: '2026-12-13', label: 'Day 2' },
-        { day: 3, date: '2026-12-14', label: 'Day 3' }
-      ],
+      // The dates given in the form; old clients that send none get placeholder dates to edit later.
+      eventDays: newEventDays,
       ticketTiers: [
         {
           tierId: 'general',
@@ -1039,12 +1082,14 @@ export const getDashboardAnalytics = async (req, res) => {
       : (req.query.eventId || 'ALL');
 
     const settings = await AdminSettings.getSettings();
-    const eventDay = getCurrentEventDay(settings.eventDays) || 1;
 
     let selectedEvent = null;
     if (requestedEventId && requestedEventId !== 'ALL') {
       selectedEvent = await Event.findOne({ eventId: String(requestedEventId).trim().toLowerCase() });
     }
+    // "Today" is a day of the chosen event's own dates.
+    const eventDays = selectedEvent?.eventDays?.length ? selectedEvent.eventDays : settings.eventDays;
+    const eventDay = getCurrentEventDay(eventDays) || 1;
 
     const eventMatch = (selectedEvent && selectedEvent.eventId) ? { eventId: selectedEvent.eventId } : {};
 

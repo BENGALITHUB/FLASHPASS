@@ -97,7 +97,14 @@ function SectionTitle({ icon: Icon, title, hint, action }) {
   );
 }
 
-const PICK_EVENT = 'Choose an event in "Event scope" first (or press "Manage this event" on its card), then save again.';
+// '2026-12-24', 3 -> ['2026-12-24', '2026-12-25', '2026-12-26'] (calendar days, no time zone shift)
+const eventDatesFrom = (start, count) => Array.from({ length: count }, (_, i) => {
+  const d = new Date(`${start}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + i);
+  return d.toISOString().slice(0, 10);
+});
+
+const PICK_EVENT ='Choose an event in "Event scope" first (or press "Manage this event" on its card), then save again.';
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -156,6 +163,8 @@ export default function AdminDashboardPage() {
     basePriceRupees: 50,
     platformFeeRupees: 2,
     capacity: 3000,
+    startDate: '',
+    dayCount: 3,
     adminUsername: '',
     adminName: '',
     adminPin: '',
@@ -348,6 +357,8 @@ export default function AdminDashboardPage() {
         if (!keepForms) setSettingsForm({
           eventName: data.settings.eventName || '',
           venue: data.settings.venue || '',
+          startDate: data.settings.eventDays?.[0]?.date || '',
+          dayCount: data.settings.eventDays?.length || 3,
           announcementText: data.settings.announcementText || '',
           baseRupees: (data.settings.basePricePaise || 5000) / 100,
           feeRupees: (data.settings.platformFeePaise || 200) / 100,
@@ -495,6 +506,7 @@ export default function AdminDashboardPage() {
         eventId: effectiveScope,
         eventName: settingsForm.eventName,
         venue: settingsForm.venue,
+        ...(settingsForm.startDate ? { eventDates: eventDatesFrom(settingsForm.startDate, settingsForm.dayCount || 3) } : {}),
         announcementText: settingsForm.announcementText,
         basePricePaise: Math.round(settingsForm.baseRupees * 100),
         platformFeePaise: Math.round(settingsForm.feeRupees * 100),
@@ -776,7 +788,8 @@ export default function AdminDashboardPage() {
 
     setNewEventStatus({ state: 'saving' });
     try {
-      const res = await api.adminCreateEvent(newEventForm);
+      const { startDate, dayCount, ...eventFields } = newEventForm;
+      const res = await api.adminCreateEvent({ ...eventFields, ...(startDate ? { eventDates: eventDatesFrom(startDate, dayCount || 3) } : {}) });
       // Show the credentials once inside the modal so they can be handed to the client
       setNewEventStatus({
         state: 'done',
@@ -2834,6 +2847,35 @@ export default function AdminDashboardPage() {
                           className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
                         />
                       </div>
+                      {/* The event's days. Sold passes keep their day numbers, so they move with the dates. */}
+                      <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+                        <div>
+                          <label htmlFor="set-start-date" className="text-xs font-mono text-text-muted block mb-1">First day of the event</label>
+                          <input
+                            id="set-start-date"
+                            type="date"
+                            value={settingsForm.startDate || ''}
+                            onChange={(e) => setSettingsForm({ ...settingsForm, startDate: e.target.value })}
+                            className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text [color-scheme:dark]"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="set-day-count" className="text-xs font-mono text-text-muted block mb-1">Days</label>
+                          <select
+                            id="set-day-count"
+                            value={settingsForm.dayCount || 3}
+                            onChange={(e) => setSettingsForm({ ...settingsForm, dayCount: Number(e.target.value) })}
+                            className="w-full bg-surface-2 border border-border rounded-xl p-2.5 font-mono text-xs text-text"
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'}</option>)}
+                          </select>
+                        </div>
+                        {settingsForm.startDate && (
+                          <p className="col-span-2 -mt-1 font-mono text-[10px] text-info">
+                            {eventDatesFrom(settingsForm.startDate, settingsForm.dayCount || 3).map((d, i) => `Day ${i + 1}: ${new Date(`${d}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`).join(' • ')}
+                          </p>
+                        )}
+                      </div>
                       <div>
                         <label className="text-xs font-mono text-text-muted block mb-1">Announcement Notice</label>
                         <textarea
@@ -4209,6 +4251,24 @@ export default function AdminDashboardPage() {
                             value={newEventForm.venue}
                             onChange={(e) => setNewEventForm({ ...newEventForm, venue: e.target.value })}
                             className="adm-input" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
+                        <div>
+                          <label htmlFor="ne-start" className="adm-label">First day</label>
+                          <input id="ne-start" type="date"
+                            value={newEventForm.startDate}
+                            onChange={(e) => setNewEventForm({ ...newEventForm, startDate: e.target.value })}
+                            className="adm-input [color-scheme:dark]" />
+                        </div>
+                        <div>
+                          <label htmlFor="ne-days" className="adm-label">Days</label>
+                          <select id="ne-days" value={newEventForm.dayCount}
+                            onChange={(e) => setNewEventForm({ ...newEventForm, dayCount: Number(e.target.value) })}
+                            className="adm-input">
+                            {[1, 2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} {n === 1 ? 'day' : 'days'}</option>)}
+                          </select>
                         </div>
                       </div>
 

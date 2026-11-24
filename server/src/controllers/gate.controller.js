@@ -22,7 +22,8 @@ export const scanPass = async (req, res) => {
 
   try {
     const settings = await getCachedSettings();
-    const eventDay = getCurrentEventDay(settings.eventDays) || 1;
+    // Until the pass is known, the global dates give the day; after that, its own event's dates do.
+    let eventDay = getCurrentEventDay(settings.eventDays) || 1;
 
     let targetPassId = null;
     let tokenNonce = null;
@@ -48,7 +49,7 @@ export const scanPass = async (req, res) => {
 
         return successResponse(res, {
           result: SCAN_RESULTS.INVALID_QR,
-          message: 'INVALID PASS ✕ Not a Comics Carnival pass. Send to Help Desk.',
+          message: 'INVALID PASS ✕ Not a valid FlashPass ticket. Send to Help Desk.',
           latencyMs: Date.now() - startTime
         });
       }
@@ -82,6 +83,10 @@ export const scanPass = async (req, res) => {
         latencyMs: Date.now() - startTime
       });
     }
+
+    // Each event runs on its own dates, so "today is Day 2" is worked out from the pass's event.
+    const event = await getCachedEvent(pass.eventId);
+    if (event?.eventDays?.length) eventDay = getCurrentEventDay(event.eventDays) || 1;
 
     // 2b. The QR must carry the pass's current nonce. A pass reissued at the help
     // desk gets a new nonce, so the old QR / screenshot stops working, and a QR
@@ -149,8 +154,11 @@ export const scanPass = async (req, res) => {
     // 5. Gate Hours Check
     const istNow = getISTNow();
     const currentTimeStr = `${String(istNow.getHours()).padStart(2, '0')}:${String(istNow.getMinutes()).padStart(2, '0')}`;
-    if (settings.gateOpenTime && settings.gateCloseTime) {
-      if (currentTimeStr < settings.gateOpenTime || currentTimeStr > settings.gateCloseTime) {
+    // Each event keeps its own gate hours; the global ones only cover a pass with no event.
+    const gateOpenTime = event ? event.gateOpenTime : settings.gateOpenTime;
+    const gateCloseTime = event ? event.gateCloseTime : settings.gateCloseTime;
+    if (gateOpenTime && gateCloseTime) {
+      if (currentTimeStr < gateOpenTime || currentTimeStr > gateCloseTime) {
         await log({
           passId: pass._id,
           orderId: pass.orderId,
@@ -165,14 +173,13 @@ export const scanPass = async (req, res) => {
 
         return successResponse(res, {
           result: SCAN_RESULTS.OUTSIDE_GATE_HOURS,
-          message: `GATES CLOSED ✕ Gate hours are ${settings.gateOpenTime} to ${settings.gateCloseTime}.`,
+          message: `GATES CLOSED ✕ Gate hours are ${gateOpenTime} to ${gateCloseTime}.`,
           latencyMs: Date.now() - startTime
         });
       }
     }
 
     // 5b. Emergency Evacuation Broadcast Check
-    const event = await getCachedEvent(pass.eventId);
     // The admin dashboard saves gate rules on the event; fall back to global settings
     const reentryMode = event?.reentryMode || settings.reentryMode || REENTRY_MODES.IN_OUT;
     const stampMode = reentryMode === REENTRY_MODES.WRISTBAND;
@@ -590,10 +597,10 @@ async function sendStats(eventDay) {
 export const getGateStats = async (req, res) => {
   try {
     const settings = await AdminSettings.getSettings();
-    const eventDay = getCurrentEventDay(settings.eventDays) || 1;
     // Gate staff see their own event; the admin passes ?eventId=.
     const eventId = String(req.user?.assignedEventId || req.query.eventId || '').trim().toLowerCase();
-    const event = await Event.findOne({ eventId }).select('reentryMode'); // not lean: schema default applies to older events
+    const event = await Event.findOne({ eventId }).select('reentryMode eventDays'); // not lean: schema default applies to older events
+    const eventDay = getCurrentEventDay(event?.eventDays?.length ? event.eventDays : settings.eventDays) || 1;
 
     const insideNow = await Pass.countDocuments({ presence: PRESENCE.INSIDE });
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
