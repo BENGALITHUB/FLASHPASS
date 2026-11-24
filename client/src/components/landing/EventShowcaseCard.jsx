@@ -207,6 +207,22 @@ const RIPPLES = [
   [230, 208, 40], [372, 211, 28], [600, 210, 58], [735, 214, 34], [310, 216, 50], [520, 196, 24]
 ];
 
+// Current lines across the river: gentle S-curves at height y.
+const currentPath = (y, amp, len) => {
+  let d = `M-40 ${y}`;
+  for (let x = -40; x < 1040; x += len) d += ` q${len / 4} ${-amp} ${len / 2} 0 t${len / 2} 0`;
+  return d;
+};
+const FLOWS = [
+  { y: 181, amp: 1.6, len: 70, dash: 46, gap: 70, dur: 5, op: 0.45, w: 1.3 },
+  { y: 186, amp: 2.2, len: 90, dash: 70, gap: 110, dur: 7, op: 0.3, w: 1.1 },
+  { y: 192, amp: 2.6, len: 80, dash: 38, gap: 90, dur: 6, op: 0.38, w: 1.2 },
+  { y: 198, amp: 3, len: 110, dash: 90, gap: 130, dur: 9, op: 0.24, w: 1 },
+  { y: 204, amp: 3.2, len: 95, dash: 52, gap: 100, dur: 8, op: 0.3, w: 1.1 },
+  { y: 211, amp: 3.6, len: 120, dash: 80, gap: 150, dur: 11, op: 0.2, w: 1 },
+  { y: 216, amp: 3.8, len: 130, dash: 60, gap: 120, dur: 10, op: 0.16, w: 0.9 }
+];
+
 function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit = 'xMidYMax slice' }) {
   const ink = '#0A0A0A';
   // Unique ids: the skyline can be on the page twice (phone strip and panel backdrop).
@@ -264,9 +280,9 @@ function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit
         {/* Moving water bends what it mirrors: horizontal noise displaces the reflections */}
         <filter id={id('ripple')} x="-5%" y="-20%" width="110%" height="140%">
           <feTurbulence type="fractalNoise" baseFrequency="0.004 0.16" numOctaves="2" seed="7" result="noise">
-            {animate && <animate attributeName="baseFrequency" dur="9s" values="0.004 0.16;0.005 0.2;0.004 0.16" repeatCount="indefinite" />}
+            {animate && <animate attributeName="baseFrequency" dur="9s" values="0.004 0.16;0.006 0.22;0.004 0.16" repeatCount="indefinite" />}
           </feTurbulence>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" />
         </filter>
 
         {/* The city once, drawn again upside down in the river */}
@@ -316,6 +332,20 @@ function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit
         <g filter={`url(#${id('ripple')})`} mask={`url(#${id('fadeMask')})`}>
           <use href={`#${id('city')}`} transform={`translate(0 ${WATER * 2}) scale(1 -1)`} />
         </g>
+        {/* Winding current lines: light caught on the water, flowing downstream */}
+        {FLOWS.map(({ y, amp, len, dash, gap, dur, op, w }, i) => (
+          <path
+            key={`flow-${i}`}
+            d={currentPath(y, amp, len)}
+            fill="none"
+            stroke={i % 2 ? '#FFD9A0' : '#FFB56B'}
+            strokeOpacity={op}
+            strokeWidth={w}
+            strokeLinecap="round"
+            className={animate ? 'kck-flow' : undefined}
+            style={{ strokeDasharray: `${dash} ${gap}`, '--flow': `-${dash + gap}`, animationDuration: `${dur}s` }}
+          />
+        ))}
         {/* Fine ripple lines catching the light, drifting gently */}
         <g className={animate ? 'kck-drift' : undefined}>
           {RIPPLES.map(([x, y, len], i) => (
