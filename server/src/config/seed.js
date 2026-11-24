@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { AdminSettings } from '../models/AdminSettings.js';
 import { Event } from '../models/Event.js';
+import { Order } from '../models/Order.js';
 import { ROLES, DEFAULT_ADMIN_SETTINGS } from '../constants/index.js';
 
 export const seedDatabase = async () => {
@@ -13,9 +14,10 @@ export const seedDatabase = async () => {
       console.log('[Seed] Default AdminSettings created.');
     }
 
-    // 1b. Seed default Event ('comics-carnival')
-    const existingCarnival = await Event.findOne({ eventId: 'comics-carnival' });
-    if (!existingCarnival) {
+    // 1b. A brand-new database gets a demo event ('comics-carnival') with demo staff. Once any
+    // event exists, nothing is added back: a deleted event, the demo one included, stays deleted.
+    const freshInstall = (await Event.countDocuments()) === 0 && !(await Order.exists({}));
+    if (freshInstall) {
       await Event.create({
         eventId: 'comics-carnival',
         name: DEFAULT_ADMIN_SETTINGS.eventName,
@@ -51,7 +53,8 @@ export const seedDatabase = async () => {
       await adminUser.save();
     }
 
-    // 2b. Seed Event Admin (Carnival Organizer)
+    // 2b. Demo staff for the demo event, on a brand-new database only.
+    if (!freshInstall) return;
     const eventAdminUser = await User.findOne({ username: 'carnival_admin' });
     if (!eventAdminUser) {
       const eventAdminPinHash = await bcrypt.hash('333333', 12);

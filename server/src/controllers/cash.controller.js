@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import { CashToken } from '../models/CashToken.js';
 import { AdminSettings } from '../models/AdminSettings.js';
 import { Pass } from '../models/Pass.js';
+import { Event } from '../models/Event.js';
+import { cashSettings } from '../utils/pos.utils.js';
 import { getCurrentEventDay } from '../utils/date.utils.js';
 import { generateQRToken } from '../services/qr.service.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
@@ -13,7 +15,7 @@ import { CASH_TOKEN_STATUS, PASS_STATUS } from '../constants/index.js';
  */
 export const createCashToken = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, eventId } = req.body;
 
     if (!name || name.trim().length < 2) {
       return errorResponse(res, 'Please enter a valid name', 'INVALID_NAME', 400);
@@ -24,12 +26,25 @@ export const createCashToken = async (req, res) => {
       return errorResponse(res, 'Enter a valid 10-digit mobile number', 'INVALID_PHONE', 400);
     }
 
-    const settings = await AdminSettings.getSettings();
+    // The token is for the event the guest picked (the ?eventId= link from its event card), or
+    // for the only event on sale. With several on sale and none picked, ask rather than guess.
+    const requestedId = typeof eventId === 'string' ? eventId.trim().toLowerCase() : '';
+    const candidates = requestedId
+      ? await Event.find({ eventId: requestedId, status: 'ACTIVE' }).limit(1)
+      : await Event.find({ status: 'ACTIVE' }).limit(2);
+    if (candidates.length !== 1) {
+      return errorResponse(res, requestedId ? 'This event is not on sale.' : candidates.length ? 'Choose the event you are buying for from the home page.' : 'No event is on sale right now.', 'NO_EVENT', 400);
+    }
+    const event = candidates[0];
+    if (event.cashSalesEnabled === false || event.emergencyLockdown) {
+      return errorResponse(res, 'Cash sales are paused for this event.', 'SALES_CLOSED', 400);
+    }
+    const settings = cashSettings(await AdminSettings.getSettings(), event);
     const eventDay = getCurrentEventDay(settings.eventDays) || 1;
 
     // Check one pass per phone rule
     if (settings.onePassPerPhone) {
-      const existingPass = await Pass.findOne({ phone: cleanPhone, status: PASS_STATUS.ACTIVE });
+      const existingPass = await Pass.findOne({ phone: cleanPhone, eventId: event.eventId, status: PASS_STATUS.ACTIVE });
       if (existingPass) {
         return successResponse(res, {
           existingPass: true,
@@ -42,6 +57,7 @@ export const createCashToken = async (req, res) => {
     // Check if user already has an OPEN token
     const existingToken = await CashToken.findOne({
       phone: cleanPhone,
+      eventId: event.eventId,
       status: CASH_TOKEN_STATUS.OPEN,
       expiresAt: { $gt: new Date() }
     });
@@ -70,6 +86,7 @@ export const createCashToken = async (req, res) => {
       tokenNo: nextTokenNo,
       display: displayToken,
       checkCode,
+      eventId: event.eventId,
       eventDay,
       holderName: name.trim(),
       phone: cleanPhone,

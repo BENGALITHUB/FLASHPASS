@@ -2,6 +2,20 @@ import { calculatePassValidity, getISTDateString } from './date.utils.js';
 
 export const posError = (message, code, status = 400) => Object.assign(new Error(message), { code, status });
 
+// Cash sales follow the event being sold: its name, price, fee and days, the same ones online
+// checkout uses. Platform-wide rules (cash price mode, token expiry, sales cut-off) stay global.
+export function cashSettings(settings, event = null) {
+  if (!event) return settings;
+  const plain = typeof settings?.toObject === 'function' ? settings.toObject() : { ...settings };
+  return {
+    ...plain,
+    eventName: event.name || plain.eventName,
+    basePricePaise: Number.isSafeInteger(event.basePricePaise) ? event.basePricePaise : plain.basePricePaise,
+    platformFeePaise: Number.isSafeInteger(event.platformFeePaise) ? event.platformFeePaise : plain.platformFeePaise,
+    eventDays: event.eventDays?.length ? event.eventDays : plain.eventDays
+  };
+}
+
 export function getCashPricing(settings) {
   const base = settings.basePricePaise;
   const fee = settings.platformFeePaise;

@@ -151,7 +151,7 @@ export default function SiteFooter() {
           <div>© 2026 FlashPass Inc. All rights reserved. • Powered by MERN Stack</div>
           <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-accent" />
-            <span>Client showcase: <span className="text-white">3-Day Comics Carnival, Kolkata</span></span>
+            <span>Client showcase: <span className="text-white">Kolkata Comics Karnival 7.0</span></span>
           </div>
         </div>
       </div>

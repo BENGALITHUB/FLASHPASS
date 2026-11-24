@@ -19,16 +19,17 @@ const { generateQRToken } = await imp('src/services/qr.service.js');
 await AdminSettings.collection.insertOne({ reentryMode: 'IN_OUT', eventDays: [{ day: 1, date: '2099-01-01', label: 'Day 1' }], gateOpenTime: '00:00', gateCloseTime: '23:59' });
 await mongoose.connection.collection('events').insertOne({ eventId: 'comics-carnival', name: 'CC', venue: 'V', basePricePaise: 5000, platformFeePaise: 200 });
 
-const call = async (fn, body = {}) => {
+// There is no default event: gate staff carry their event, the admin names one in ?eventId=.
+const call = async (fn, body = {}, query = {}, user = { role: 'SUPER_ADMIN' }) => {
   let out;
   const res = { status() { return this; }, json(b) { out = b; return this; } };
-  await fn({ query: {}, body, user: { _id: new mongoose.Types.ObjectId(), role: 'SUPER_ADMIN' } }, res);
+  await fn({ query, body, user: { _id: new mongoose.Types.ObjectId(), ...user } }, res);
   return out.data;
 };
 
-assert.equal((await call(getGateStats)).reentryMode, 'WRISTBAND');
+assert.equal((await call(getGateStats, {}, {}, { role: 'GATE', assignedEventId: 'comics-carnival' })).reentryMode, 'WRISTBAND');
 console.log('  ✔ gate screen gets hand-stamp mode');
-const m = await call(getDashboardMetrics);
+const m = await call(getDashboardMetrics, {}, { eventId: 'comics-carnival' });
 assert.equal(m.footfall.reentryMode, 'WRISTBAND');
 assert.equal(m.settings.reentryMode, 'WRISTBAND');
 console.log('  ✔ admin dashboard shows hand-stamp mode');

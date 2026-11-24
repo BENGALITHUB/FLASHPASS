@@ -21,13 +21,15 @@ const ADDON_ICONS = { MERCH: Shirt, FOOD: Coffee, PARKING: Car, VIP_PERK: Crown 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const eventId = searchParams.get('eventId') || 'comics-carnival';
+  // With no ?eventId= the server sends the newest event on sale; there is no fixed default event.
+  const paramEventId = searchParams.get('eventId') || '';
   const paramTier = searchParams.get('tier');
   const paramRef = searchParams.get('ref');
   // Merch 'Pre-order' links from the landing page arrive with the add-on preselected
   const paramAddOn = searchParams.get('addon');
 
   const [eventData, setEventData] = useState(null);
+  const eventId = paramEventId || eventData?.eventId || '';
   const [allEvents, setAllEvents] = useState([]);
   const [selectedTierId, setSelectedTierId] = useState(paramTier || 'general');
   const [isGroupBooking, setIsGroupBooking] = useState(false);
@@ -63,7 +65,7 @@ export default function CheckoutPage() {
     setCouponCode('');
     setCouponError('');
 
-    api.getEventInfo(eventId, affiliateCode)
+    api.getEventInfo(paramEventId, affiliateCode)
       .then(data => {
         setEventData(data);
         document.title = 'FlashPass — High-Speed Ingress & Ticketing';
@@ -83,7 +85,7 @@ export default function CheckoutPage() {
       })
       .catch(err => console.error('Failed to load event data:', err));
 
-  }, [eventId]);
+  }, [paramEventId]);
 
   // Load All Active Events for Multi-Event Switching
   useEffect(() => {
@@ -382,7 +384,7 @@ export default function CheckoutPage() {
                   Get your <span className="text-primary">pass</span>
                 </h1>
                 <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono text-text-muted">
-                  <span className="inline-flex items-center gap-1"><Ticket className="w-3.5 h-3.5 text-primary" /> {eventData?.name || '3-Day Comics Carnival'}</span>
+                  <span className="inline-flex items-center gap-1"><Ticket className="w-3.5 h-3.5 text-primary" /> {eventData?.name || 'Loading event…'}</span>
                   {eventData?.venue && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-accent" /> {eventData.venue}</span>}
                 </p>
               </div>
@@ -900,7 +902,7 @@ export default function CheckoutPage() {
                     <div className="absolute inset-0 bg-halftone opacity-30" />
                     <div className="relative">
                       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Order summary</span>
-                      <div className="font-comic text-2xl text-white tracking-wide leading-tight truncate">{eventData?.name || '3-Day Comics Carnival'}</div>
+                      <div className="font-comic text-2xl text-white tracking-wide leading-tight truncate">{eventData?.name || 'Loading event…'}</div>
                       <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-black border-2 border-black font-mono text-[10px] font-bold">
                         <Ticket className="w-3.5 h-3.5" /> {passCount} × {currentTier.name}
                       </div>

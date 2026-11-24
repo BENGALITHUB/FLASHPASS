@@ -12,7 +12,7 @@ import { emitTokenPaid } from '../services/socket.service.js';
 import { generateOrderId, getCurrentEventDay } from '../utils/date.utils.js';
 import { generateQRToken } from '../services/qr.service.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
-import { getCashPricing, getCashAvailability, getCashTiers, getCashAddOns, priceCashAddOns, getTodayRange, validateCash, posError } from '../utils/pos.utils.js';
+import { getCashPricing, getCashAvailability, getCashTiers, getCashAddOns, priceCashAddOns, cashSettings, getTodayRange, validateCash, posError } from '../utils/pos.utils.js';
 import { CASH_TOKEN_STATUS, ORDER_CHANNELS, ORDER_STATUS, LEDGER_TYPES, PASS_STATUS } from '../constants/index.js';
 
 const cashChannels = [ORDER_CHANNELS.CASH_TOKEN, ORDER_CHANNELS.POS_WALKIN];
@@ -44,9 +44,22 @@ const parseToken = value => {
   return Number(value);
 };
 
-async function cashContext() {
-  const settings = await AdminSettings.getSettings();
-  const event = await Event.findOne({ eventId: 'comics-carnival' });
+// The counter sells for the cashier's own event. An account with no event (the super admin)
+// can sell only while exactly one event is on sale, so a sale never lands on a guessed event.
+async function findSaleEvent(user) {
+  if (user?.assignedEventId) {
+    const event = await Event.findOne({ eventId: user.assignedEventId });
+    if (!event || event.status === 'ARCHIVED') throw posError('Your event is not on sale any more. Ask the organizer to move your account to the current event.', 'NO_EVENT', 409);
+    return event;
+  }
+  const events = await Event.find({ status: 'ACTIVE' }).limit(2);
+  if (events.length !== 1) throw posError(events.length ? 'More than one event is on sale. Log in with the cashier account of the event you are selling for.' : 'No event is on sale.', 'NO_EVENT', 409);
+  return events[0];
+}
+
+async function cashContext(user) {
+  const event = await findSaleEvent(user);
+  const settings = cashSettings(await AdminSettings.getSettings(), event);
   return { settings, event, pricing: getCashPricing(settings), availability: getCashAvailability(settings, event), tiers: getCashTiers(settings, event) };
 }
 
@@ -82,17 +95,18 @@ function saleResponse(order, pass, cashTenderedPaise, token = null, passes = [pa
 
 export const getPOSConfig = async (req, res) => {
   try {
-    const { settings, event, pricing, availability, tiers } = await cashContext();
-    return successResponse(res, { eventName: settings.eventName, maxWalkinTickets: maxWalkinTickets(settings), tiers, addOns: getCashAddOns(event), ...pricing, ...availability });
+    const { settings, event, pricing, availability, tiers } = await cashContext(req.user);
+    // The event's name, venue and days also go on the ticket pictures the counter sends.
+    return successResponse(res, { eventId: event.eventId, eventName: settings.eventName, venue: event.venue || '', eventDays: settings.eventDays || [], maxWalkinTickets: maxWalkinTickets(settings), tiers, addOns: getCashAddOns(event), ...pricing, ...availability });
   } catch (error) { return fail(res, error, 'POS_CONFIG_ERROR'); }
 };
 
 export const lookupToken = async (req, res) => {
   try {
     const tokenNo = parseToken(req.params.tokenNo);
-    const { settings, pricing, availability } = await cashContext();
+    const { settings, event, pricing, availability } = await cashContext(req.user);
     requireSales(availability);
-    const token = await CashToken.findOne({ tokenNo, eventDay: getCurrentEventDay(settings.eventDays) || 1, status: CASH_TOKEN_STATUS.OPEN });
+    const token = await CashToken.findOne({ tokenNo, eventId: event.eventId, eventDay: getCurrentEventDay(settings.eventDays) || 1, status: CASH_TOKEN_STATUS.OPEN });
     if (!token) throw posError('No open token found. Check the number with the guest.', 'TOKEN_NOT_FOUND', 404);
     if (new Date(token.expiresAt).getTime() <= Date.now()) throw posError('This token has expired. Ask the guest to create a new token.', 'TOKEN_EXPIRED');
     return successResponse(res, { token, ...pricing, ...availability, amountRupees: (pricing.amountPaise / 100).toFixed(2), maskedPhone: maskedPhone(token.phone) });
@@ -103,7 +117,7 @@ export const confirmTokenPayment = async (req, res) => {
   try {
     const tokenNo = parseToken(req.params.tokenNo);
     const { cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = [] } = req.body;
-    const { settings, pricing, availability, tiers } = await cashContext();
+    const { settings, event, pricing, availability, tiers } = await cashContext(req.user);
     requireSales(availability);
     // The token holder may pay for friends too: one order, one pass per guest.
     checkQuantity(quantity, settings);
@@ -115,12 +129,12 @@ export const confirmTokenPayment = async (req, res) => {
     const result = await mongoose.connection.transaction(async session => {
       // Claim and settle together, so simultaneous confirmations cannot issue two passes.
       const token = await CashToken.findOneAndUpdate({
-        tokenNo, eventDay: getCurrentEventDay(settings.eventDays) || 1,
+        tokenNo, eventId: event.eventId, eventDay: getCurrentEventDay(settings.eventDays) || 1,
         status: CASH_TOKEN_STATUS.OPEN, expiresAt: { $gt: new Date() }
       }, { $set: { status: CASH_TOKEN_STATUS.PAID, orderId } }, { new: true, session });
       if (!token) throw posError('Token expired or already collected. Look it up again before taking cash.', 'TOKEN_UNAVAILABLE', 409);
       await Order.create([{
-        orderId, cashTenderedPaise, channel: ORDER_CHANNELS.CASH_TOKEN, holderName: token.holderName, phone: token.phone,
+        orderId, eventId: event.eventId, cashTenderedPaise, channel: ORDER_CHANNELS.CASH_TOKEN, holderName: token.holderName, phone: token.phone,
         amountPaise: pricing.amountPaise * quantity, organizerSharePaise: pricing.organizerSharePaise * quantity,
         platformFeePaise: pricing.platformFeePaise * quantity, status: ORDER_STATUS.CREATED, cashierId: req.user._id,
         isGroupBooking: quantity > 1,
@@ -154,7 +168,7 @@ export const walkinSale = async (req, res) => {
         return successResponse(res, saleResponse(existing, passes[0], existing.cashTenderedPaise, null, passes));
       }
     }
-    const { settings, event, availability, tiers } = await cashContext();
+    const { settings, event, availability, tiers } = await cashContext(req.user);
     requireSales(availability);
     const pricing = tiers.find(tier => tier.tierId === tierId);
     if (!pricing) throw posError('This ticket category is not on sale at the counter. Refresh and choose another.', 'INVALID_TIER', 409);
@@ -168,7 +182,7 @@ export const walkinSale = async (req, res) => {
     const holderPhone = guestPhone || '0000000000';
     const result = await mongoose.connection.transaction(async session => {
       await Order.create([{
-        orderId, posRequestId, cashTenderedPaise, channel: ORDER_CHANNELS.POS_WALKIN,
+        orderId, eventId: event.eventId, posRequestId, cashTenderedPaise, channel: ORDER_CHANNELS.POS_WALKIN,
         holderName: guestName, phone: holderPhone, tierId: pricing.tierId, tierName: pricing.name,
         // Extras go wholly to the organizer; the platform fee applies to tickets only, as online.
         subtotalPaise: pricing.basePricePaise * quantity, addOns: addOns.addOns,

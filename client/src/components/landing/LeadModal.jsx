@@ -67,7 +67,7 @@ export default function LeadModal({ type, events = [], defaultEventId, onClose }
   const Icon = cfg.icon;
   const isPlatform = type === 'ORGANIZER';
   const [form, setForm] = useState({ ...EMPTY_FORM, category: isPlatform ? EVENT_TYPES[0] : '' });
-  const [eventId, setEventId] = useState(defaultEventId || events[0]?.eventId || 'comics-carnival');
+  const [eventId, setEventId] = useState(defaultEventId || events[0]?.eventId || 'platform');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -118,7 +118,7 @@ export default function LeadModal({ type, events = [], defaultEventId, onClose }
 
   const eventOptions = events.length > 0
     ? events.map((ev) => ({ id: ev.eventId, label: `${ev.name}${ev.venue ? ` — ${ev.venue}` : ''}` }))
-    : [{ id: 'comics-carnival', label: '3-Day Comics Carnival' }];
+    : [{ id: 'platform', label: 'FlashPass (no event yet)' }];
 
   return (
     <div

@@ -176,6 +176,8 @@ export default function BoxOfficePOSPage() {
     ].join('\n');
     setWaBusy(true);
     const imageModule = import('../utils/exportPass');
+    // The pictures name the event this counter sells for.
+    const saleEvent = { name: config?.eventName, venue: config?.venue, eventDays: config?.eventDays };
     if (passes.length > 1) {
       // A clipboard holds one image, so a group gets one named picture per guest in Downloads.
       // The cashier selects them all in the chat's attach menu and sends them together.
@@ -185,7 +187,7 @@ export default function BoxOfficePOSPage() {
       try {
         const { passImageBlob } = await imageModule;
         for (let i = 0; i < passes.length; i++) {
-          const url = URL.createObjectURL(await passImageBlob(passes[i], i, passes.length));
+          const url = URL.createObjectURL(await passImageBlob(passes[i], i, passes.length, saleEvent));
           const link = document.createElement('a');
           link.href = url;
           link.download = `FlashPass_${i + 1}-of-${passes.length}_${fileName(passes[i])}.png`;
@@ -203,7 +205,7 @@ export default function BoxOfficePOSPage() {
       setWaBusy(false);
       return;
     }
-    const image = imageModule.then(({ passImageBlob }) => passImageBlob(passes[0]));
+    const image = imageModule.then(({ passImageBlob }) => passImageBlob(passes[0], 0, 1, saleEvent));
     let copied = false;
     try {
       // The clipboard must be written while this tab still has focus, so before WhatsApp opens.

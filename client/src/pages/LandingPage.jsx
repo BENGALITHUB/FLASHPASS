@@ -106,7 +106,7 @@ export default function LandingPage() {
 
   const handleOpenInquiry = (type = 'SPONSOR', targetEventId = null) => {
     setInquiryType(type);
-    const chosenEvent = targetEventId || eventData?.eventId || allEvents[0]?.eventId || 'comics-carnival';
+    const chosenEvent = targetEventId || eventData?.eventId || allEvents[0]?.eventId || 'platform';
     setInquirySelectedEventId(chosenEvent);
     setInquirySuccess(null);
     setInquiryError(null);
@@ -134,7 +134,7 @@ export default function LandingPage() {
     setInquirySubmitting(true);
     try {
       const payload = {
-        eventId: inquirySelectedEventId || eventData?.eventId || 'comics-carnival',
+        eventId: inquirySelectedEventId || eventData?.eventId || 'platform',
         type: inquiryType,
         brandName: inquiryForm.brandName.trim(),
         contactPerson: inquiryForm.contactPerson.trim(),
@@ -261,7 +261,7 @@ export default function LandingPage() {
       <div className="bg-primary text-black border-b-2 border-black font-mono text-[11px] font-bold py-1.5 overflow-hidden select-none">
         <div className="animate-marquee flex items-center gap-8 whitespace-nowrap">
           <span>⚡ FLASHPASS v2.0 • HIGH-SPEED EVENT INGRESS ENGINE</span>
-          <span>★ LIVE AT 3-DAY COMICS CARNIVAL 2026</span>
+          <span>★ LIVE EVENT TICKETING • KOLKATA</span>
           <span>🚫 ATOMIC ANTI-PASSBACK (ZERO SCREENSHOT FRAUD)</span>
           <span>💸 ₹0 SMS/WHATSAPP BILLS (CLIENT-SIDE VECTOR EXPORT)</span>
           <span>📱 PWA OFFLINE CAPABLE (WORKS WITHOUT VENUE CELL RECEPTION)</span>
@@ -271,7 +271,7 @@ export default function LandingPage() {
           <span>☁️ 100% COMPATIBLE: AWS EC2 / DOCKER & CPANEL PASSENGER</span>
           {/* Duplicate set for seamless continuous loop */}
           <span>⚡ FLASHPASS v2.0 • HIGH-SPEED EVENT INGRESS ENGINE</span>
-          <span>★ LIVE AT 3-DAY COMICS CARNIVAL 2026</span>
+          <span>★ LIVE EVENT TICKETING • KOLKATA</span>
           <span>🚫 ATOMIC ANTI-PASSBACK (ZERO SCREENSHOT FRAUD)</span>
           <span>💸 ₹0 SMS/WHATSAPP BILLS (CLIENT-SIDE VECTOR EXPORT)</span>
           <span>📱 PWA OFFLINE CAPABLE (WORKS WITHOUT VENUE CELL RECEPTION)</span>
@@ -453,7 +453,7 @@ export default function LandingPage() {
                 if (el) {
                   el.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                  navigate(`/buy?eventId=${allEvents[0]?.eventId || 'comics-carnival'}`);
+                  navigate(allEvents[0]?.eventId ? `/buy?eventId=${allEvents[0].eventId}` : '/buy');
                 }
               }}
               className="sm:col-span-2 animate-neon-glow"
@@ -543,17 +543,11 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-6 sm:space-y-10">
-            {(allEvents.length > 0 ? allEvents : [{
-              eventId: 'comics-carnival',
-              name: '3-Day Comics Carnival',
-              venue: 'Milan Mela Prangan, Kolkata',
-              announcementText: 'West Bengal’s premier pop-culture convention. Over 3,000 daily attendees with sub-500ms ingress and 100% screenshot fraud prevention.',
-              totalPriceRupees: pricing.totalPriceRupees,
-              basePriceRupees: pricing.basePriceRupees,
-              platformFeeRupees: pricing.platformFeeRupees,
-              allowReentry: true,
-              onlineSalesEnabled: true
-            }]).map((ev, idx) => (
+            {/* Only real events are shown; with none on sale the section says so. */}
+            {allEvents.length === 0 && (
+              <p className="text-center font-mono text-sm text-text-muted py-10">No events are on sale right now. Check back soon.</p>
+            )}
+            {allEvents.map((ev, idx) => (
               <EventShowcaseCard
                 key={ev.eventId || idx}
                 ev={ev}

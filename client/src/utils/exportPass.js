@@ -30,7 +30,30 @@ export const downloadPassPDF = async (pass, qrDataUrl) => {
   doc.save(fileName);
 };
 
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+/**
+ * The event's name and a "12-14 DEC 2026 • KOLKATA" line, from the event the pass is for
+ * (pass.event, sent with the pass). Nothing here is tied to one particular event.
+ */
+export const eventHeading = (event) => {
+  const title = String(event?.name || 'Event pass').toUpperCase();
+  const dates = (event?.eventDays || []).map(d => d?.date).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d || '')).sort();
+  let when = '';
+  if (dates.length) {
+    const [y1, m1, d1] = dates[0].split('-').map(Number);
+    const [y2, m2, d2] = dates[dates.length - 1].split('-').map(Number);
+    if (dates[0] === dates[dates.length - 1]) when = `${d1} ${MONTHS[m1 - 1]} ${y1}`;
+    else if (y1 === y2 && m1 === m2) when = `${d1}-${d2} ${MONTHS[m1 - 1]} ${y1}`;
+    else when = `${d1} ${MONTHS[m1 - 1]} - ${d2} ${MONTHS[m2 - 1]} ${y2}`;
+  }
+  // The town is the last part of the venue ("Milan Mela Prangan, Kolkata" -> KOLKATA).
+  const place = String(event?.venue || '').split(',').pop().trim().toUpperCase();
+  return { title, subtitle: [when, place].filter(Boolean).join(' • ') };
+};
+
 const buildPassPDF = (pass, qrDataUrl) => {
+  const heading = eventHeading(pass.event);
   // A6 format: 105 x 148 mm
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -49,13 +72,14 @@ const buildPassPDF = (pass, qrDataUrl) => {
 
   // Title
   doc.setTextColor(255, 214, 10);
-  doc.setFontSize(16);
+  // Long event names get a smaller size so they stay inside the border.
+  doc.setFontSize(heading.title.length > 22 ? 12 : 16);
   doc.setFont('helvetica', 'bold');
-  doc.text('3-DAY COMICS CARNIVAL', 52.5, 15, { align: 'center' });
+  doc.text(heading.title.slice(0, 34), 52.5, 15, { align: 'center' });
 
   doc.setFontSize(9);
   doc.setTextColor(245, 245, 250);
-  doc.text('12-14 DEC 2026 • KOLKATA', 52.5, 20, { align: 'center' });
+  doc.text(heading.subtitle.slice(0, 48), 52.5, 20, { align: 'center' });
 
   // Badge box
   doc.setFillColor(255, 46, 136); // Magenta #FF2E88
@@ -183,7 +207,7 @@ export const sharePass = async (cardElementId, pass) => {
       const file = new File([blob], `FlashPass_${pass.holderName}_${pass.orderId}.png`, { type: 'image/png' });
       await navigator.share({
         files: [file],
-        title: `${pass.holderName}'s Comics Carnival Pass`,
+        title: `${pass.holderName}'s ${pass.event?.name || 'event'} pass`,
         text: `Here is the entry pass for ${pass.holderName} (Pass ID: ${pass.orderId})! Show this QR at the gate.`
       });
       return;
@@ -191,7 +215,7 @@ export const sharePass = async (cardElementId, pass) => {
 
     if (navigator.share) {
       await navigator.share({
-        title: `${pass.holderName}'s Comics Carnival Pass`,
+        title: `${pass.holderName}'s ${pass.event?.name || 'event'} pass`,
         text: `Here is the entry pass for ${pass.holderName} (Pass ID: ${pass.orderId})! Show this QR at the gate:`,
         url: `${window.location.origin}/pass/${pass.orderId}`
       });
@@ -219,7 +243,8 @@ const loadImage = src => new Promise((resolve, reject) => {
  * Made for sending in a WhatsApp chat. A group gets one image per guest, so every QR stays
  * full size and each guest's pass can be forwarded on its own.
  */
-export const passImageBlob = async (p, index = 0, total = 1) => {
+export const passImageBlob = async (p, index = 0, total = 1, event = null) => {
+  const heading = eventHeading(p.event || event);
   const W = 720;
   const H = 900;
   const canvas = document.createElement('canvas');
@@ -245,8 +270,8 @@ export const passImageBlob = async (p, index = 0, total = 1) => {
   ctx.lineWidth = 8;
   ctx.strokeRect(20, 20, W - 40, H - 40);
 
-  center('3-DAY COMICS CARNIVAL', 80, 'bold 44px Arial, sans-serif', '#FFD60A');
-  center('12-14 DEC 2026 • KOLKATA', 128, 'bold 24px Arial, sans-serif', '#F5F5FA');
+  center(heading.title, 80, `bold ${heading.title.length > 22 ? 34 : 44}px Arial, sans-serif`, '#FFD60A');
+  center(heading.subtitle, 128, 'bold 24px Arial, sans-serif', '#F5F5FA');
   ctx.fillStyle = '#FF2E88';
   ctx.beginPath();
   ctx.roundRect(110, 155, W - 220, 50, 12);

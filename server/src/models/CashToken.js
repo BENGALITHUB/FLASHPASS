@@ -14,6 +14,12 @@ const cashTokenSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // The event the guest is paying for; the counter only finds tokens for its own event.
+  eventId: {
+    type: String,
+    trim: true,
+    index: true
+  },
   eventDay: {
     type: Number,
     required: true

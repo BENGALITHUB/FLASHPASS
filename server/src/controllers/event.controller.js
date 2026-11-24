@@ -12,24 +12,8 @@ import { successResponse, errorResponse } from '../utils/response.utils.js';
  */
 export const getAllPublicEvents = async (req, res) => {
   try {
-    let events = await Event.find({ status: 'ACTIVE' }).sort({ createdAt: -1 });
-    if (events.length === 0) {
-      const settings = await AdminSettings.getSettings();
-      const defaultEv = await Event.create({
-        eventId: 'comics-carnival',
-        name: settings.eventName,
-        venue: settings.venue,
-        announcementText: settings.announcementText,
-        basePricePaise: settings.basePricePaise,
-        platformFeePaise: settings.platformFeePaise,
-        capacityLimit: settings.capacityLimit,
-        allowReentry: settings.allowReentry,
-        maxReentriesPerDay: settings.maxReentriesPerDay,
-        eventDays: settings.eventDays,
-        status: 'ACTIVE'
-      });
-      events = [defaultEv];
-    }
+    // Only events the super admin created are listed; none is made up when the list is empty.
+    const events = await Event.find({ status: 'ACTIVE' }).sort({ createdAt: -1 });
 
     const formatted = events.map(ev => {
       const basePrice = ev.basePricePaise || 5000;
@@ -111,15 +95,16 @@ export const getEventInfo = async (req, res) => {
     }
 
     return successResponse(res, {
-      eventId: event ? event.eventId : 'comics-carnival',
+      // null when no event is on sale: the page shows no booking button rather than a made-up event.
+      eventId: event ? event.eventId : null,
       name: eventName,
       eventName,
       venue,
       announcementText: announcementText || 'Tickets selling fast! Online passes valid for all 3 days.',
       eventDays,
       currentDay,
-      salesOpen: validity.salesOpen && !settings.emergencyLockdown && (event ? event.onlineSalesEnabled : settings.onlineSalesEnabled),
-      salesReason: settings.emergencyLockdown ? 'Sales temporarily paused by organizers.' : (validity.reason || null),
+      salesOpen: Boolean(event) && event.status !== 'ARCHIVED' && validity.salesOpen && !settings.emergencyLockdown && event.onlineSalesEnabled !== false,
+      salesReason: !event ? 'No event is on sale right now.' : event.status === 'ARCHIVED' ? 'This event has ended.' : settings.emergencyLockdown ? 'Sales temporarily paused by organizers.' : (validity.reason || null),
       todayBadge: validity.badge,
       validDaysForToday: validity.validDays,
       pricing: {

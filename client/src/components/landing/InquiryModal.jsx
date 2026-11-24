@@ -62,7 +62,7 @@ export default function InquiryModal({
 
   const eventOptions = events.length > 0
     ? events.map((ev) => ({ id: ev.eventId, label: `${ev.name}${ev.venue ? ` — ${ev.venue}` : ''}` }))
-    : [{ id: 'comics-carnival', label: '3-Day Comics Carnival — Milan Mela Prangan, Kolkata' }];
+    : [{ id: 'platform', label: 'FlashPass (no event yet)' }];
 
   return (
     <div

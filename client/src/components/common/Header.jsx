@@ -42,10 +42,12 @@ export default function Header() {
 
   const searchParams = new URLSearchParams(location.search);
   const currentEventId = searchParams.get('eventId');
+  // Until the events load (or with none on sale) the header shows a neutral placeholder;
+  // its links open checkout, which picks the event on sale.
   const activeEvent = (events.find(e => e.eventId === currentEventId)) || events[0] || {
-    eventId: 'comics-carnival',
-    name: '3-Day Comics Carnival',
-    venue: 'Milan Mela Prangan, Kolkata',
+    eventId: '',
+    name: 'FlashPass',
+    venue: '',
     basePriceRupees: '50.00'
   };
 

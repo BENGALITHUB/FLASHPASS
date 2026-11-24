@@ -6,6 +6,8 @@ import QRCode from 'qrcode';
 // Save Image / PDF / Share pull in large libraries (jsPDF, html-to-image); load them only
 // when a button is pressed so the pass itself opens fast at the gate
 const loadExport = () => import('../utils/exportPass');
+// Every pass in a group carries its event, so its PDF, picture and message name the right event.
+const withEvent = (list, event) => list.map(p => (p.event ? p : { ...p, event }));
 import Header from '../components/common/Header';
 import './PassPage.css';
 import {
@@ -55,7 +57,7 @@ export default function PassPage() {
         const parsed = JSON.parse(cached);
         setPassData(parsed);
         const filterPhone = phoneParam || (orderId.includes('-P') ? parsed.phone : null);
-        const rawList = parsed.groupPasses && parsed.groupPasses.length > 0 ? parsed.groupPasses : [parsed];
+        const rawList = withEvent(parsed.groupPasses && parsed.groupPasses.length > 0 ? parsed.groupPasses : [parsed], parsed.event);
         const list = filterPhone ? rawList.filter(p => !p.phone || p.phone === filterPhone) : rawList;
 
         setGroupPasses(list);
@@ -76,7 +78,7 @@ export default function PassPage() {
         setPassData(data);
         document.title = 'FlashPass — High-Speed Ingress & Ticketing';
         const filterPhone = phoneParam || (orderId.includes('-P') ? data.phone : null);
-        const rawList = data.groupPasses && data.groupPasses.length > 0 ? data.groupPasses : [data];
+        const rawList = withEvent(data.groupPasses && data.groupPasses.length > 0 ? data.groupPasses : [data], data.event);
         const list = filterPhone ? rawList.filter(p => !p.phone || p.phone === filterPhone) : rawList;
 
         setGroupPasses(list);
@@ -237,7 +239,7 @@ export default function PassPage() {
     if (!pass) return;
     const passUrl = `${window.location.origin}/pass/${pass.orderId}`;
     const text = encodeURIComponent(
-      `Hey ${pass.holderName}! 🎟️ Here is your official entry pass for 3-Day Comics Carnival (${pass.badge || 'ALL ACCESS'}).\n\nShow this QR at the gate:\n${passUrl}\n\nPass ID: ${pass.orderId}`
+      `Hey ${pass.holderName}! 🎟️ Here is your official entry pass for ${pass.event?.name || 'the event'} (${pass.badge || 'ALL ACCESS'}).\n\nShow this QR at the gate:\n${passUrl}\n\nPass ID: ${pass.orderId}`
     );
     const cleanPhone = pass.phone ? String(pass.phone).replace(/\D/g, '').slice(-10) : '';
     const whatsappUrl = cleanPhone
@@ -407,7 +409,7 @@ export default function PassPage() {
                   <Zap className="w-4 h-4 pp-foil-icon" /> FLASHPASS
                 </span>
                 <span className="mt-1.5 block truncate font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-info">
-                  3-Day Comics Carnival • Kolkata
+                  {[currentPass.event?.name || passData?.event?.name, (currentPass.event?.venue || passData?.event?.venue || '').split(',').pop().trim()].filter(Boolean).join(' • ')}
                 </span>
               </div>
               <span className="pp-tier shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1 font-comic text-sm tracking-wider uppercase">

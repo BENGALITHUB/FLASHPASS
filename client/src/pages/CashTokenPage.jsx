@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { initSocket, joinRoom } from '../services/socket';
 import ComicButton from '../components/common/ComicButton';
@@ -11,6 +11,10 @@ export default function CashTokenPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState('FORM'); // 'FORM' or 'TOKEN'
   const [formData, setFormData] = useState({ name: '', phone: '' });
+  // The token is for the event whose card linked here (/cash?eventId=…); with none, the server
+  // uses the only event on sale.
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get('eventId') || undefined;
   const [tokenData, setTokenData] = useState(null);
   const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes in seconds
   const [submitting, setSubmitting] = useState(false);
@@ -89,7 +93,7 @@ export default function CashTokenPage() {
 
     setSubmitting(true);
     try {
-      const res = await api.createCashToken(formData);
+      const res = await api.createCashToken({ ...formData, eventId });
       if (res.existingPass) {
         navigate(`/pass/${res.orderId}`);
         return;

@@ -17,7 +17,7 @@ const COMMISSIONABLE_TYPES = ['SPONSOR', 'STALL'];
 export const createInquiry = async (req, res) => {
   try {
     const {
-      eventId = 'comics-carnival',
+      eventId = 'platform', // a lead with no event is for the platform itself
       type,
       brandName,
       contactPerson,
@@ -51,7 +51,7 @@ export const createInquiry = async (req, res) => {
       return errorResponse(res, 'Please enter a valid email address', 'INVALID_EMAIL', 400);
     }
 
-    const targetEventId = String(eventId || 'comics-carnival').trim().toLowerCase();
+    const targetEventId = String(eventId || 'platform').trim().toLowerCase();
     const event = await Event.findOne({ eventId: targetEventId });
     const eventName = event
       ? event.name
@@ -107,7 +107,7 @@ export const getInquiries = async (req, res) => {
 
     // Scope check: Event Admins can ONLY see their assigned event
     if (req.user.role === 'EVENT_ADMIN') {
-      query.eventId = req.user.assignedEventId || 'comics-carnival';
+      query.eventId = req.user.assignedEventId || '__no-event__';
     } else if (eventId && eventId !== 'ALL') {
       // Super Admin filtered to a specific event
       query.eventId = String(eventId).trim().toLowerCase();
@@ -129,7 +129,7 @@ export const getInquiries = async (req, res) => {
     // Calculate metrics for the active scope
     const baseCountQuery = {};
     if (req.user.role === 'EVENT_ADMIN') {
-      baseCountQuery.eventId = req.user.assignedEventId || 'comics-carnival';
+      baseCountQuery.eventId = req.user.assignedEventId || '__no-event__';
     } else if (eventId && eventId !== 'ALL') {
       baseCountQuery.eventId = String(eventId).trim().toLowerCase();
     }
@@ -259,7 +259,7 @@ export const markInquiriesAsRead = async (req, res) => {
     const query = { isRead: false };
 
     if (req.user.role === 'EVENT_ADMIN') {
-      query.eventId = req.user.assignedEventId || 'comics-carnival';
+      query.eventId = req.user.assignedEventId || '__no-event__';
     } else if (eventId && eventId !== 'ALL') {
       query.eventId = String(eventId).trim().toLowerCase();
     }

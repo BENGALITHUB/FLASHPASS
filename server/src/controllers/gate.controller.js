@@ -591,7 +591,8 @@ export const getGateStats = async (req, res) => {
   try {
     const settings = await AdminSettings.getSettings();
     const eventDay = getCurrentEventDay(settings.eventDays) || 1;
-    const eventId = String(req.query.eventId || 'comics-carnival').trim().toLowerCase();
+    // Gate staff see their own event; the admin passes ?eventId=.
+    const eventId = String(req.user?.assignedEventId || req.query.eventId || '').trim().toLowerCase();
     const event = await Event.findOne({ eventId }).select('reentryMode'); // not lean: schema default applies to older events
 
     const insideNow = await Pass.countDocuments({ presence: PRESENCE.INSIDE });

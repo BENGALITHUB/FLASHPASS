@@ -12,11 +12,12 @@ import { Pass } from '../src/models/Pass.js';
 import { Shift } from '../src/models/Shift.js';
 
 const settings = { basePricePaise: 13750, platformFeePaise: 250, cashPriceMode: 'INCLUSIVE_TOTAL', cashSalesEnabled: true, eventDays: [] };
-const req = (body = {}) => ({ body, params: { tokenNo: '142' }, user: { _id: new mongoose.Types.ObjectId() } });
+// The cashier sells for their own event.
+const req = (body = {}) => ({ body, params: { tokenNo: '142' }, user: { _id: new mongoose.Types.ObjectId(), assignedEventId: 'test-event' } });
 const response = () => ({ status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } });
 function setup(t, overrides = {}) {
   t.mock.method(AdminSettings, 'getSettings', async () => ({ ...settings, ...overrides }));
-  t.mock.method(Event, 'findOne', async () => null);
+  t.mock.method(Event, 'findOne', async () => ({ eventId: 'test-event', status: 'ACTIVE' }));
 }
 afterEach(() => test.mock.restoreAll());
 
@@ -309,4 +310,47 @@ test('undo refuses a sale whose extra was already handed over', async t => {
   await undoLastConfirmation(req({ orderId: 'CC-TESTSALE' }), res);
   assert.equal(res.body.error.code, 'ADDON_CLAIMED');
   assert.equal(pass.mock.callCount(), 0);
+});
+test('the counter sells for the cashier\'s own event, at that event\'s price', async t => {
+  setup(t);
+  t.mock.method(Event, 'findOne', async filter => {
+    assert.equal(filter.eventId, 'kolkata-7');
+    return { eventId: 'kolkata-7', name: 'Kolkata 7.0', status: 'ACTIVE', basePricePaise: 5000, platformFeePaise: 100 };
+  });
+  t.mock.method(mongoose.connection, 'transaction', async callback => callback({}));
+  let created;
+  t.mock.method(Order, 'create', async ([order]) => { created = order; return [order]; });
+  t.mock.method(Order, 'findOne', () => ({ session: async () => null }));
+  const request = req({ cashTenderedPaise: 5100, expectedAmountPaise: 5100 });
+  request.user.assignedEventId = 'kolkata-7';
+  await walkinSale(request, response());
+  assert.equal(created.eventId, 'kolkata-7');
+  assert.equal(created.amountPaise, 5100);
+});
+test('the counter refuses to sell when its event is gone or archived, or the event is unclear', async t => {
+  setup(t);
+  const tx = t.mock.method(mongoose.connection, 'transaction', () => { throw new Error('Must not write'); });
+  for (const event of [null, { eventId: 'test-event', status: 'ARCHIVED' }]) {
+    t.mock.method(Event, 'findOne', async () => event);
+    const res = response();
+    await walkinSale(req({ cashTenderedPaise: 14000 }), res);
+    assert.equal(res.body.error.code, 'NO_EVENT');
+  }
+  // An account with no event of its own sells only while exactly one event is on sale.
+  for (const events of [[], [{ eventId: 'a' }, { eventId: 'b' }]]) {
+    t.mock.method(Event, 'find', () => ({ limit: async () => events }));
+    const request = req({ cashTenderedPaise: 14000 });
+    delete request.user.assignedEventId;
+    const res = response();
+    await walkinSale(request, res);
+    assert.equal(res.body.error.code, 'NO_EVENT');
+  }
+  assert.equal(tx.mock.callCount(), 0);
+});
+test('a token is looked up only among the counter\'s own event', async t => {
+  setup(t);
+  t.mock.method(CashToken, 'findOne', async filter => { assert.equal(filter.eventId, 'test-event'); return null; });
+  const res = response();
+  await lookupToken(req(), res);
+  assert.equal(res.body.error.code, 'TOKEN_NOT_FOUND');
 });

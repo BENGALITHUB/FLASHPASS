@@ -55,7 +55,7 @@ export const validateCoupon = async (req, res) => {
       return errorResponse(res, 'Coupon code is required', 'MISSING_CODE', 400);
     }
 
-    const event = await Event.findOne({ eventId: String(eventId || 'comics-carnival').trim().toLowerCase() });
+    const event = eventId ? await Event.findOne({ eventId: String(eventId).trim().toLowerCase() }) : null;
     if (!event) {
       return errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
     }
@@ -132,9 +132,13 @@ export const createOrder = async (req, res) => {
       if (attendeeError) return errorResponse(res, attendeeError.message, attendeeError.code, 400);
     }
 
-    const targetEventId = eventId ? String(eventId).trim().toLowerCase() : 'comics-carnival';
+    // Every order is for a named event that exists; there is no default event to fall back on.
+    const targetEventId = eventId ? String(eventId).trim().toLowerCase() : '';
+    const event = targetEventId ? await Event.findOne({ eventId: targetEventId }) : null;
+    if (!event) {
+      return errorResponse(res, 'This event is not on sale. Pick an event from the home page.', 'EVENT_NOT_FOUND', 400);
+    }
     const settings = await AdminSettings.getSettings();
-    const event = await Event.findOne({ eventId: targetEventId });
 
     // Check sales open
     const eventDays = (event && event.eventDays && event.eventDays.length > 0) ? event.eventDays : settings.eventDays;

@@ -20,6 +20,11 @@ import { gatewaySettingsForAdmin, mergeGatewaySettings } from '../services/gatew
 import { successResponse, errorResponse } from '../utils/response.utils.js';
 import { PRESENCE, PASS_STATUS, ORDER_STATUS, ORDER_CHANNELS, SCAN_RESULTS, LEDGER_TYPES, ROLES } from '../constants/index.js';
 
+// An event admin sees only their own event. One with no event set matches nothing,
+// rather than falling back to some other event's data.
+const NO_EVENT = '__no-event__';
+const ownEvent = user => user?.assignedEventId || NO_EVENT;
+
 /**
  * GET /api/v1/admin/metrics
  * Live revenue, attendance, and safety metrics
@@ -28,7 +33,7 @@ export const getDashboardMetrics = async (req, res) => {
   try {
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
     const requestedEventId = isEventAdmin
-      ? (req.user.assignedEventId || 'comics-carnival')
+      ? ownEvent(req.user)
       : (req.query.eventId || 'ALL');
 
     const settings = await AdminSettings.getSettings();
@@ -114,8 +119,8 @@ export const getDashboardMetrics = async (req, res) => {
     const reuseResults = [SCAN_RESULTS.ALREADY_USED_TODAY, SCAN_RESULTS.ALREADY_INSIDE];
     const blockedReuseTotal = await ScanLog.countDocuments({ ...scanFilter, result: { $in: reuseResults } });
     const blockedReuseToday = await ScanLog.countDocuments({ ...scanFilter, eventDay, result: { $in: reuseResults } });
-    // Settings are saved to the default event when the "All events" scope is open, so show them from there too
-    const cfgEvent = selectedEvent || await Event.findOne({ eventId: 'comics-carnival' }); // not lean: schema defaults apply
+    // With "All events" open no event's settings are shown; the admin picks an event to edit them.
+    const cfgEvent = selectedEvent;
     const modeSource = cfgEvent;
     const reentryMode = modeSource?.reentryMode || settings.reentryMode || 'IN_OUT';
     const capacityLimit = selectedEvent ? (selectedEvent.capacityLimit || 3000) : settings.capacityLimit;
@@ -273,7 +278,7 @@ export const getDashboardMetrics = async (req, res) => {
 export const searchPasses = async (req, res) => {
   try {
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
-    const targetEventId = isEventAdmin ? (req.user.assignedEventId || 'comics-carnival') : null;
+    const targetEventId = isEventAdmin ? ownEvent(req.user) : null;
     const eventFilter = targetEventId ? { eventId: targetEventId } : {};
 
     const { q } = req.query;
@@ -385,6 +390,8 @@ export const voidPass = async (req, res) => {
 
       await LedgerEntry.create({
         orderId: order.orderId,
+        // Without it the refund would count against the oldest event's money, not this one's.
+        eventId: order.eventId,
         type: LEDGER_TYPES.REVERSAL,
         channel: order.channel,
         grossPaise: -order.amountPaise,
@@ -479,7 +486,7 @@ export const updateSettings = async (req, res) => {
 
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
     const targetEventId = isEventAdmin
-      ? (req.user.assignedEventId || 'comics-carnival')
+      ? ownEvent(req.user)
       : (eventId || null);
 
     if (targetEventId) {
@@ -496,6 +503,8 @@ export const updateSettings = async (req, res) => {
         if (reentryMode === 'IN_OUT' || reentryMode === 'WRISTBAND') event.reentryMode = reentryMode;
         if (emergencyLockdown !== undefined) event.emergencyLockdown = Boolean(emergencyLockdown);
         if (onlineSalesEnabled !== undefined) event.onlineSalesEnabled = Boolean(onlineSalesEnabled);
+        // The box office and cash tokens stop or start for this event alone.
+        if (cashSalesEnabled !== undefined) event.cashSalesEnabled = Boolean(cashSalesEnabled);
 
         // Advanced Features configuration
         if (Array.isArray(ticketTiers)) {
@@ -544,6 +553,7 @@ export const updateSettings = async (req, res) => {
             reentryMode: event.reentryMode,
             emergencyLockdown: event.emergencyLockdown,
             onlineSalesEnabled: event.onlineSalesEnabled,
+            cashSalesEnabled: event.cashSalesEnabled,
             ticketTiers: event.ticketTiers,
             coupons: event.coupons,
             addOns: event.addOns,
@@ -646,7 +656,13 @@ export const createStaffUser = async (req, res) => {
       return errorResponse(res, 'Event Admins can only create Cashiers or Gate Volunteers', 'FORBIDDEN', 403);
     }
 
-    const targetEventId = req.user.role === ROLES.EVENT_ADMIN ? req.user.assignedEventId : (assignedEventId || 'comics-carnival');
+    // Staff below super admin work for one event, which must exist; there is no default event.
+    const targetEventId = req.user.role === ROLES.EVENT_ADMIN
+      ? req.user.assignedEventId
+      : (role === ROLES.SUPER_ADMIN ? null : String(assignedEventId || '').trim().toLowerCase());
+    if (role !== ROLES.SUPER_ADMIN && !(targetEventId && await Event.exists({ eventId: targetEventId }))) {
+      return errorResponse(res, 'Choose the event this staff member works for.', 'EVENT_REQUIRED', 400);
+    }
 
     const existing = await User.findOne({ username: username.toLowerCase().trim() });
     if (existing) {
@@ -930,19 +946,16 @@ export const getPlatformOverview = async (req, res) => {
   }
 };
 
-// The counter, cash tokens and the fallback event page all run on this event.
-const DEFAULT_EVENT_ID = 'comics-carnival';
+// Records saved before events had IDs carry none and belong to the first event, comics-carnival.
+const LEGACY_EVENT_ID = 'comics-carnival';
 // Anything that holds money or attendee history for the event keeps it from being deleted.
 const eventHasRecords = async eventId => {
-  const found = await Promise.all([Order, Pass, LedgerEntry, Payout, SettlementRequest].map(model => model.exists({ eventId })));
+  const match = eventId === LEGACY_EVENT_ID ? { eventId: { $in: [eventId, null] } } : { eventId };
+  const found = await Promise.all([Order, Pass, LedgerEntry, Payout, SettlementRequest].map(model => model.exists(match)));
   return found.some(Boolean);
 };
 const findManagedEvent = async (req, res) => {
   const eventId = String(req.params.eventId || '').trim().toLowerCase();
-  if (eventId === DEFAULT_EVENT_ID) {
-    errorResponse(res, 'The main event runs the box office and cannot be deleted or archived.', 'DEFAULT_EVENT', 400);
-    return null;
-  }
   const event = await Event.findOne({ eventId });
   if (!event) errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
   return event;
@@ -1022,7 +1035,7 @@ export const getDashboardAnalytics = async (req, res) => {
   try {
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
     const requestedEventId = isEventAdmin
-      ? (req.user.assignedEventId || 'comics-carnival')
+      ? ownEvent(req.user)
       : (req.query.eventId || 'ALL');
 
     const settings = await AdminSettings.getSettings();
@@ -1231,7 +1244,7 @@ export const exportCSV = async (req, res) => {
     const phoneOut = fullPhone ? (p) => String(p || '') : maskPhoneForExport;
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
     const targetEventId = isEventAdmin
-      ? (req.user.assignedEventId || 'comics-carnival')
+      ? ownEvent(req.user)
       : (req.query.eventId || null);
 
     const eventFilter = (targetEventId && targetEventId !== 'ALL') ? { eventId: targetEventId } : {};
@@ -1339,7 +1352,7 @@ export const triggerEmergencyEvacuation = async (req, res) => {
   try {
     const { eventId, active, message } = req.body;
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
-    const targetEventId = isEventAdmin ? (req.user.assignedEventId || 'comics-carnival') : (eventId || 'comics-carnival');
+    const targetEventId = isEventAdmin ? ownEvent(req.user) : String(eventId || '').trim().toLowerCase(); // no default: the admin picks the event
 
     const event = await Event.findOne({ eventId: targetEventId });
     if (!event) return errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
@@ -1387,7 +1400,7 @@ export const postLiveAnnouncement = async (req, res) => {
       return errorResponse(res, 'Announcement text is required', 'MISSING_TEXT', 400);
     }
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
-    const targetEventId = isEventAdmin ? (req.user.assignedEventId || 'comics-carnival') : (eventId || 'comics-carnival');
+    const targetEventId = isEventAdmin ? ownEvent(req.user) : String(eventId || '').trim().toLowerCase(); // no default: the admin picks the event
 
     const event = await Event.findOne({ eventId: targetEventId });
     if (!event) return errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
@@ -1430,7 +1443,7 @@ export const getExecutiveReport = async (req, res) => {
   try {
     const { eventId } = req.query;
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
-    const targetEventId = isEventAdmin ? (req.user.assignedEventId || 'comics-carnival') : (eventId || 'comics-carnival');
+    const targetEventId = isEventAdmin ? ownEvent(req.user) : String(eventId || '').trim().toLowerCase(); // no default: the admin picks the event
 
     const event = await Event.findOne({ eventId: targetEventId });
     if (!event) return errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
@@ -1528,7 +1541,7 @@ export const getExecutiveReport = async (req, res) => {
 // Event organizers see only their own event's cashiers
 async function shiftScope(user) {
   if (user.role !== ROLES.EVENT_ADMIN) return {};
-  const ids = await User.find({ assignedEventId: user.assignedEventId || 'comics-carnival' }).distinct('_id');
+  const ids = await User.find({ assignedEventId: ownEvent(user) }).distinct('_id');
   return { cashierId: { $in: ids } };
 }
 

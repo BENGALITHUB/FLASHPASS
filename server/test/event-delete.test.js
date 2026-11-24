@@ -25,15 +25,19 @@ function setup(t, { event, withRecordIn = null } = {}) {
 }
 afterEach(() => test.mock.restoreAll());
 
-test('the main event can be neither deleted nor archived', async t => {
-  const { removed } = setup(t, { event: { eventId: 'comics-carnival' } });
+test('comics-carnival is an ordinary event; its old records without an event ID still count', async t => {
+  const { removed } = setup(t, { event: { _id: 'e0', eventId: 'comics-carnival', name: 'CC' } });
+  const filters = [];
+  for (const model of records) t.mock.method(model, 'exists', async filter => { filters.push(filter); return model === Order ? { _id: 'old' } : null; });
   const res = response();
   await deleteEvent(req('comics-carnival', { confirmEventId: 'comics-carnival' }), res);
-  assert.equal(res.body.error.code, 'DEFAULT_EVENT');
-  const archived = response();
-  await setEventArchived(req('Comics-Carnival'), archived);
-  assert.equal(archived.body.error.code, 'DEFAULT_EVENT');
+  assert.equal(res.body.error.code, 'EVENT_HAS_SALES');
+  assert.deepEqual(filters[0], { eventId: { $in: ['comics-carnival', null] } });
   assert.equal(removed.mock.callCount(), 0);
+  const event = { eventId: 'comics-carnival', name: 'CC', status: 'ACTIVE', save: async () => {} };
+  setup(t, { event });
+  await setEventArchived(req('comics-carnival', { archived: true }), response());
+  assert.equal(event.status, 'ARCHIVED');
 });
 
 test('deleting needs the event ID typed back', async t => {

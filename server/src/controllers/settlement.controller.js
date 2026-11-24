@@ -18,11 +18,13 @@ import { ROLES, LEDGER_TYPES } from '../constants/index.js';
  * The system records payouts; it does not move money.
  */
 
+// Ledger entries saved before events had IDs belong to the first event.
 const DEFAULT_EVENT = 'comics-carnival';
 const METHODS_NEEDING_REFERENCE = ['BANK_TRANSFER', 'UPI', 'CHEQUE'];
 
 const isPlatformAdmin = (user) => user?.role === ROLES.SUPER_ADMIN;
-const ownEventId = (user) => (user?.assignedEventId || DEFAULT_EVENT).toLowerCase();
+// An event admin with no event set sees no event's money, never the oldest event's.
+const ownEventId = (user) => (user?.assignedEventId || '__no-event__').toLowerCase();
 const canSeeEvent = (user, eventId) =>
   isPlatformAdmin(user) || (user?.role === ROLES.EVENT_ADMIN && ownEventId(user) === eventId);
 const normEventId = (v) => String(v || '').trim().toLowerCase();

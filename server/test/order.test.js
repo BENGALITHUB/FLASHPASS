@@ -2,6 +2,7 @@ import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createOrder } from '../src/controllers/order.controller.js';
 import { AdminSettings } from '../src/models/AdminSettings.js';
+import { Event } from '../src/models/Event.js';
 
 const response = () => ({ status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } });
 const guest = (name, phone = '9876543210') => ({ name, phone });
@@ -38,10 +39,20 @@ test('a group booking is refused before any lookup when a guest name or mobile i
   assert.equal(lookups.mock.callCount(), 0);
 });
 
+test('an order must name an event that exists; there is no default event', async t => {
+  t.mock.method(Event, 'findOne', async () => null);
+  const settings = t.mock.method(AdminSettings, 'getSettings', async () => { throw new Error('Must not be reached'); });
+  for (const eventId of [undefined, '', 'comics-carnival']) {
+    const res = await order({ eventId });
+    assert.equal(res.body.error.code, 'EVENT_NOT_FOUND', String(eventId));
+  }
+  assert.equal(settings.mock.callCount(), 0);
+});
+
 test('a valid group of eight passes the guest checks', async t => {
-  // Reaching settings means every guest check passed; stop the order there.
-  const lookups = t.mock.method(AdminSettings, 'getSettings', async () => { throw new Error('stop here'); });
-  const res = await order({ isGroupBooking: true, attendees: Array.from({ length: 8 }, (_, i) => guest(`Guest ${i + 1}`, '+91 98765-43210')) });
+  // Reaching the event lookup means every guest check passed; stop the order there.
+  const lookups = t.mock.method(Event, 'findOne', async () => { throw new Error('stop here'); });
+  const res = await order({ eventId: 'rock-night', isGroupBooking: true, attendees: Array.from({ length: 8 }, (_, i) => guest(`Guest ${i + 1}`, '+91 98765-43210')) });
   assert.equal(lookups.mock.callCount(), 1);
   assert.notEqual(res.body?.error?.code, 'INVALID_NAME');
   assert.notEqual(res.body?.error?.code, 'INVALID_PHONE');

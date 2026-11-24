@@ -97,6 +97,8 @@ function SectionTitle({ icon: Icon, title, hint, action }) {
   );
 }
 
+const PICK_EVENT = 'Choose an event in "Event scope" first (or press "Manage this event" on its card), then save again.';
+
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('cc_staff_user') || '{}'));
@@ -115,6 +117,13 @@ export default function AdminDashboardPage() {
     }
     return 'ALL';
   });
+  // The event being edited: an event admin's own, or the one the super admin picked in Event scope.
+  // There is no default event, so with "All events" open, changes wait until an event is picked.
+  const pickedEvent = isEventAdmin ? (currentUser.assignedEventId || null) : (selectedEventScope !== 'ALL' ? selectedEventScope : null);
+  const editScope = () => {
+    if (!pickedEvent) throw new Error(PICK_EVENT);
+    return pickedEvent;
+  };
   // The 12-second auto-refresh runs from a long-lived timer, so it reads the scope from here
   const scopeRef = useRef(selectedEventScope);
   useEffect(() => { scopeRef.current = selectedEventScope; }, [selectedEventScope]);
@@ -169,8 +178,8 @@ export default function AdminDashboardPage() {
   // Settings & CMS Form state
   const [adminPin, setAdminPin] = useState('');
   const [settingsForm, setSettingsForm] = useState({
-    eventName: '3-Day Comics Carnival',
-    venue: 'Milan Mela Prangan, Kolkata',
+    eventName: '',
+    venue: '',
     announcementText: 'Tickets selling fast! Online passes valid for all 3 days.',
     baseRupees: 50,
     feeRupees: 2,
@@ -329,7 +338,7 @@ export default function AdminDashboardPage() {
   const loadAllData = async (scope = selectedEventScope, { keepForms = false } = {}) => {
     try {
       const user = JSON.parse(localStorage.getItem('cc_staff_user') || '{}');
-      const effectiveScope = user.role === 'EVENT_ADMIN' ? (user.assignedEventId || 'comics-carnival') : scope;
+      const effectiveScope = user.role === 'EVENT_ADMIN' ? (user.assignedEventId || '__no-event__') : scope;
       const data = await api.adminMetrics(effectiveScope);
       setMetrics(data);
 
@@ -337,8 +346,8 @@ export default function AdminDashboardPage() {
       setAnalyticsData(analytics);
       if (data.settings) {
         if (!keepForms) setSettingsForm({
-          eventName: data.settings.eventName || '3-Day Comics Carnival',
-          venue: data.settings.venue || 'Milan Mela Prangan, Kolkata',
+          eventName: data.settings.eventName || '',
+          venue: data.settings.venue || '',
           announcementText: data.settings.announcementText || '',
           baseRupees: (data.settings.basePricePaise || 5000) / 100,
           feeRupees: (data.settings.platformFeePaise || 200) / 100,
@@ -481,7 +490,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       await api.adminUpdateSettings({
         eventId: effectiveScope,
         eventName: settingsForm.eventName,
@@ -510,7 +519,7 @@ export default function AdminDashboardPage() {
 
   // Called by TicketTiersManager; it shows its own errors and success message
   const handleSaveTiers = async (tiers, pin) => {
-    const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+    const effectiveScope = editScope();
     await api.adminUpdateSettings({ ticketTiers: tiers, eventId: effectiveScope }, pin);
     await loadAllData();
   };
@@ -522,7 +531,7 @@ export default function AdminDashboardPage() {
       return;
     }
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       await api.adminUpdateSettings({
         paymentGateway: paymentGatewayForm,
         eventId: effectiveScope
@@ -558,7 +567,7 @@ export default function AdminDashboardPage() {
       }
     ];
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       await api.adminUpdateSettings({
         coupons: updatedCoupons,
         eventId: effectiveScope
@@ -581,7 +590,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       const addOnId = `${effectiveScope}-addon-${Date.now().toString(36)}`;
       const variantsArr = newAddOnForm.category === 'MERCH' && newAddOnForm.variants.trim()
         ? newAddOnForm.variants.split(',').map(v => v.trim()).filter(Boolean)
@@ -621,7 +630,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       const updatedAddOns = addOns.filter(a => a.addOnId !== addOnId);
       await api.adminUpdateSettings({
         addOns: updatedAddOns,
@@ -642,7 +651,7 @@ export default function AdminDashboardPage() {
       return false;
     }
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       const updatedAddOns = addOns.map(a => (a.addOnId === addOnId ? { ...a, ...patch } : a));
       await api.adminUpdateSettings({ addOns: updatedAddOns, eventId: effectiveScope }, adminPin);
       setAdminPin('');
@@ -655,7 +664,8 @@ export default function AdminDashboardPage() {
   };
 
   const handleTriggerEvacuation = async (active) => {
-    const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+    const effectiveScope = pickedEvent;
+    if (!effectiveScope) { alert(PICK_EVENT); return; }
     const msg = active
       ? prompt('Enter Emergency Evacuation broadcast message for all gates & attendee passes:', 'EMERGENCY EVACUATION ACTIVE: Please proceed calmly to the nearest exit.')
       : null;
@@ -678,7 +688,8 @@ export default function AdminDashboardPage() {
   const handlePostAnnouncement = async (e) => {
     e.preventDefault();
     if (!announcementForm.message.trim()) return;
-    const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+    const effectiveScope = pickedEvent;
+    if (!effectiveScope) { alert(PICK_EVENT); return; }
     try {
       await api.adminPostAnnouncement({
         title: announcementForm.title || 'Live Notice',
@@ -700,7 +711,7 @@ export default function AdminDashboardPage() {
     if (!helpdeskQuery.trim()) return;
     setHelpdeskLoading(true);
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : null);
+      const effectiveScope = pickedEvent;
       const res = await api.helpdeskSearch(helpdeskQuery.trim(), effectiveScope);
       setHelpdeskResults(res);
     } catch (err) {
@@ -727,7 +738,7 @@ export default function AdminDashboardPage() {
     setExecutiveReportLoading(true);
     setExecutiveReportModal(true);
     try {
-      const effectiveScope = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : (selectedEventScope !== 'ALL' ? selectedEventScope : 'comics-carnival');
+      const effectiveScope = editScope();
       const rep = await api.adminGetExecutiveReport(effectiveScope);
       setExecutiveReportData(rep);
     } catch (err) {
@@ -788,8 +799,13 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const assignedEventId = isSuperAdmin ? (newStaffForm.assignedEventId || pickedEvent || '') : undefined;
+    if (isSuperAdmin && !assignedEventId) {
+      alert('Choose the event this staff member works for.');
+      return;
+    }
     try {
-      await api.adminCreateUser(newStaffForm);
+      await api.adminCreateUser({ ...newStaffForm, assignedEventId });
       alert(`Staff "${newStaffForm.username}" (${newStaffForm.role}) created successfully!`);
       setNewStaffModal(false);
       setNewStaffForm({ username: '', name: '', pin: '', role: 'CASHIER' });
@@ -906,7 +922,7 @@ export default function AdminDashboardPage() {
 
   const handleMarkAllInquiriesRead = async () => {
     const user = JSON.parse(localStorage.getItem('cc_staff_user') || '{}');
-    const effectiveScope = user.role === 'EVENT_ADMIN' ? (user.assignedEventId || 'comics-carnival') : selectedEventScope;
+    const effectiveScope = user.role === 'EVENT_ADMIN' ? (user.assignedEventId || '__no-event__') : selectedEventScope;
     try {
       await api.adminMarkInquiriesRead(effectiveScope !== 'ALL' ? effectiveScope : undefined);
       setInquiriesList(prev => prev.map(i => ({ ...i, isRead: true })));
@@ -999,7 +1015,7 @@ export default function AdminDashboardPage() {
               {isEventAdmin ? (
                 <div className="mt-3 rounded-xl bg-white/[0.03] border border-white/[0.06] p-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-comic text-base text-white">{metrics?.settings?.eventName || '3-Day Comics Carnival'}</span>
+                    <span className="truncate font-comic text-base text-white">{metrics?.settings?.eventName || 'All events'}</span>
                     <span className="flex shrink-0 items-center gap-1 font-mono text-[9px] font-bold uppercase text-success"><span className="h-1.5 w-1.5 rounded-full bg-success motion-safe:animate-pulse" /> Live</span>
                   </div>
                   <div className={`adm-tone-${capacityTone} mt-2`}>
@@ -1165,9 +1181,9 @@ export default function AdminDashboardPage() {
                 <span className="adm-scope flex min-w-0 items-center gap-2 rounded-xl px-3 py-1.5 font-mono text-xs">
                   <span className="h-2 w-2 shrink-0 rounded-full bg-success motion-safe:animate-pulse" />
                   <span className="text-white font-bold truncate max-w-[220px]">
-                    {metrics?.settings?.eventName || 'Comics Carnival'}
+                    {metrics?.settings?.eventName || 'All events'}
                   </span>
-                  <span className="text-info text-[10px] hidden sm:inline">{currentUser.assignedEventId || 'comics-carnival'}</span>
+                  <span className="text-info text-[10px] hidden sm:inline">{currentUser.assignedEventId || 'no event'}</span>
                 </span>
               )}
             </div>
@@ -1726,8 +1742,7 @@ export default function AdminDashboardPage() {
                     >
                       MANAGE THIS EVENT →
                     </ComicButton>
-                    {/* The main event runs the box office, so it cannot be archived or deleted. */}
-                    {ev.eventId !== 'comics-carnival' && (
+                    {(
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm justify-center" onClick={() => setEventAction({ event: ev, mode: ev.status === 'ARCHIVED' ? 'restore' : 'archive' })}>
                           {ev.status === 'ARCHIVED' ? <><Eye className="h-3.5 w-3.5" /> Restore</> : <><EyeOff className="h-3.5 w-3.5" /> Archive</>}
@@ -1890,7 +1905,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <p className="text-xs font-mono text-text-muted mt-0.5">
                       {isEventAdmin
-                        ? `Viewing verified business inquiries exclusively submitted for: ${currentUser.assignedEventId || 'comics-carnival'}`
+                        ? `Viewing verified business inquiries exclusively submitted for: ${currentUser.assignedEventId || 'no event'}`
                         : selectedEventScope === 'ALL'
                         ? 'Viewing all incoming brand inquiries across the entire multi-tenant network.'
                         : `Filtered to event: ${selectedEventScope}`}
@@ -3096,7 +3111,7 @@ export default function AdminDashboardPage() {
 
               {/* SUB-VIEW 4: MERCH PRE-ORDERS */}
               {settingsSubTab === 'MERCH' && (() => {
-                const scopeLabel = isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : selectedEventScope;
+                const scopeLabel = isEventAdmin ? (currentUser.assignedEventId || 'no event') : selectedEventScope;
                 const unitsSold = addOns.reduce((s, a) => s + (a.soldCount || 0), 0);
                 const revenuePaise = addOns.reduce((s, a) => s + (a.soldCount || 0) * a.pricePaise, 0);
                 const lowStock = addOns.filter(a => {
@@ -3560,7 +3575,7 @@ export default function AdminDashboardPage() {
                     <div className="px-3.5 py-2 rounded-2xl bg-surface-2 border border-border text-right">
                       <span className="text-[10px] font-mono text-text-muted block">Active Event Scope</span>
                       <strong className="font-comic text-base text-white">
-                        {isEventAdmin ? (currentUser.assignedEventId || 'comics-carnival') : selectedEventScope}
+                        {isEventAdmin ? (currentUser.assignedEventId || 'no event') : selectedEventScope}
                       </strong>
                     </div>
                   </div>
@@ -4358,6 +4373,21 @@ export default function AdminDashboardPage() {
                   <option value="GATE_VOLUNTEER">Gate Volunteer (QR Scanner)</option>
                 </select>
               </div>
+              {/* The super admin picks the event; an event admin's staff join their own event. */}
+              {isSuperAdmin && (
+                <div>
+                  <label htmlFor="new-staff-event" className="text-xs font-mono text-text-muted block mb-1">Works for event *</label>
+                  <select
+                    id="new-staff-event"
+                    value={newStaffForm.assignedEventId || pickedEvent || ''}
+                    onChange={(e) => setNewStaffForm({ ...newStaffForm, assignedEventId: e.target.value })}
+                    className="w-full bg-surface-2 border border-border rounded-xl p-2 font-mono text-xs text-text"
+                  >
+                    <option value="" disabled>Choose an event</option>
+                    {eventsList.filter(ev => ev.status !== 'ARCHIVED').map(ev => <option key={ev.eventId} value={ev.eventId}>{ev.name} ({ev.eventId})</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-mono text-accent font-bold block mb-1">6-Digit Login PIN *</label>
                 <input

@@ -82,6 +82,8 @@ export const getPassByOrderId = async (req, res) => {
       groupIndex: pass.groupIndex,
       qrToken,
       groupPasses: groupPasses.length > 1 ? groupPasses : [],
+      // The pass, its PDF and its picture show the event it is actually for.
+      event: event ? { eventId: event.eventId, name: event.name, venue: event.venue || '', eventDays: event.eventDays || [] } : null,
       liveAnnouncements: event?.liveAnnouncements?.filter(a => a.active) || [],
       emergencyEvacuation: event?.emergencyEvacuation || { active: false }
     });

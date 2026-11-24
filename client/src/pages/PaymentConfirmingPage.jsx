@@ -332,8 +332,8 @@ export default function PaymentConfirmingPage() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const eventName = orderData?.event?.name || 'Comics Carnival Festival';
-  const venue = orderData?.event?.venue || 'Milan Mela Prangan, Kolkata';
+  const eventName = orderData?.event?.name || 'Your event';
+  const venue = orderData?.event?.venue || '';
   const subtotalRupees = ((orderData?.subtotalPaise || (orderData?.amountPaise ? orderData.amountPaise - 200 : 5000)) / 100).toFixed(2);
   const platformFeeRupees = ((orderData?.platformFeePaise || 200) / 100).toFixed(2);
   const discountRupees = orderData?.discountPaise ? (orderData.discountPaise / 100).toFixed(2) : null;
