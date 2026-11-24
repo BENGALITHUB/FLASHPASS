@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, CalendarDays, Users, Smartphone, Clock, CheckCircle2, RefreshCw,
   Building2, Store, HeartHandshake, ArrowRight, Crown, Ticket, Banknote, Zap, Flame, Timer,
-  Shirt, Coffee, Car, ShoppingBag, ChevronDown
+  Shirt, Coffee, Car, ShoppingBag, ChevronDown, ShieldCheck
 } from 'lucide-react';
 import { stockInfo } from '../../utils/stock';
 import { skinFor } from './eventSkins';
@@ -293,6 +293,37 @@ function SkinBackdrop({ skin }) {
   );
 }
 
+// The price stub's own art for an event with its own look: a warm glow and faint rays behind the
+// price burst and a halftone fade at the foot.
+function StubBackdrop({ skin }) {
+  const { burst, orange } = skin.colors;
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 w-[140%] aspect-square">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            background: `repeating-conic-gradient(from 0deg, ${burst}1f 0deg 5deg, transparent 5deg 15deg)`,
+            WebkitMaskImage: 'radial-gradient(circle, #000 10%, transparent 55%)',
+            maskImage: 'radial-gradient(circle, #000 10%, transparent 55%)'
+          }}
+        />
+        <div className="absolute inset-[28%] rounded-full blur-3xl opacity-40" style={{ background: `radial-gradient(circle, ${burst}, ${orange} 55%, transparent 72%)` }} />
+      </div>
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/2"
+        style={{
+          backgroundImage: `radial-gradient(${orange}66 1.2px, transparent 1.7px)`,
+          backgroundSize: '12px 12px',
+          WebkitMaskImage: 'linear-gradient(180deg, transparent, #000)',
+          maskImage: 'linear-gradient(180deg, transparent, #000)',
+          opacity: 0.45
+        }}
+      />
+    </div>
+  );
+}
+
 // Phones book from a bar pinned to the bottom of the screen, like an app's checkout bar. It slides
 // in while its event card is on screen, so the price and button are always under the thumb.
 function MobileBookingBar({ show, skin, theme, priceLabel, totalRupees, dateRange, soldOut, onBook }) {
@@ -546,7 +577,16 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
             {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
                 full-width button below. Tablets: one row. Laptops: the ticket's torn-off stub. */}
-            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 overflow-hidden ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+              {skin && <StubBackdrop skin={skin} />}
+
+              {/* Ticket header: what this is and when (phones and laptops) */}
+              <div className="relative col-span-2 flex md:hidden lg:flex w-full items-center justify-between gap-2 lg:mb-4 pb-3 border-b border-dashed border-white/15">
+                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.a }}>
+                  <Ticket className="w-3.5 h-3.5" /> Entry pass
+                </span>
+                {dateRange && <span className="font-mono text-[10px] font-bold text-white/80">{dateRange}</span>}
+              </div>
               {/* Ticket notches (desktop) */}
               <span className="hidden lg:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
               <span className="hidden lg:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
@@ -563,7 +603,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   + ₹{feeRupees.toFixed(2)} fee • <span className="text-white font-bold">₹{totalRupees} at checkout</span>
                 </span>
                 {availability && <span className={`font-mono text-[10px] font-bold uppercase ${availability.tone}`}>{availability.label}</span>}
-                <span className="lg:hidden inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
+                <span className="hidden md:inline-flex lg:hidden items-center gap-1.5 font-mono text-[10px] text-text-muted">
                   <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Instant pass • No app needed
                 </span>
               </div>
@@ -585,8 +625,18 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 >
                   <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
                 </Link>
-                <div className="hidden lg:flex mt-5 pt-4 border-t border-white/10 items-center justify-center gap-1.5 font-mono text-[10px] text-text-muted">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Instant pass • No app needed
+                {/* What you get, at a glance */}
+                <div className="relative mt-4 grid grid-cols-3 gap-1.5 md:hidden lg:grid">
+                  {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
+                    <span key={label} className="flex flex-col items-center gap-1 rounded-xl bg-white/[0.04] border border-white/10 px-1 py-2 font-mono text-[9px] font-bold uppercase tracking-wide text-white/75 text-center leading-tight">
+                      <Icon className="w-4 h-4" style={{ color: theme.a }} /> {label}
+                    </span>
+                  ))}
+                </div>
+                {/* Ticket barcode */}
+                <div className="relative mt-4 hidden lg:block" aria-hidden="true">
+                  <div className="h-9 rounded-sm opacity-70" style={{ background: 'repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px, #fff 8px 11px, transparent 11px 13px)' }} />
+                  <span className="mt-1 block truncate font-mono text-[9px] tracking-[0.25em] text-white/40">ADMIT ONE • {dayCount ? `${dayCount}-DAY PASS` : 'ENTRY PASS'}</span>
                 </div>
               </div>
             </div>
