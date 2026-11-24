@@ -192,9 +192,19 @@ function PriceBurst({ color, rupees, size = 'lg' }) {
   );
 }
 
-// Comic-poster backdrop for an event with its own look: speed rays bursting from behind the
-// logo, a halftone dot screen fading across the panel, soft glows in the logo's red, blue and
+// Comic-poster backdrop for an event with its own look: a comic page of slanted panels with
+// the logo in the first, a halftone dot screen fading across the panel, soft glows in the logo's red, blue and
 // green, and the logo itself as a large faint stamp. Purely decorative, on every screen size.
+// Panels of a comic page, in a 100×100 box: the first holds the logo. Gaps between them are the gutters.
+const COMIC_PANELS = [
+  '1.5,1.5 46,1.5 42,40 1.5,43',
+  '48,1.5 98.5,1.5 98.5,24 45,27',
+  '44.5,29.5 98.5,26.5 98.5,52 42.5,55',
+  '1.5,45.5 41.5,42.5 39,72 1.5,75',
+  '42,57.5 98.5,54.5 98.5,98.5 38,98.5',
+  '1.5,77.5 38.5,74.5 35.5,98.5 1.5,98.5'
+];
+
 function SkinBackdrop({ skin }) {
   const { orange, burst, red } = skin.colors;
   return (
@@ -203,15 +213,22 @@ function SkinBackdrop({ skin }) {
       <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.32]" style={{ background: red }} />
       <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.26]" style={{ background: '#1E5BFF' }} />
       <div className="absolute -bottom-28 left-1/4 w-96 h-80 rounded-full blur-3xl opacity-[0.22]" style={{ background: '#7ED957' }} />
-      {/* Speed rays from behind the logo */}
-      <div
-        className="absolute inset-0 opacity-90"
-        style={{
-          background: `repeating-conic-gradient(from 0deg at 22% 18%, ${orange}33 0deg 5deg, transparent 5deg 14deg)`,
-          WebkitMaskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 80%)',
-          maskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 80%)'
-        }}
-      />
+      {/* Comic page: slanted panels with black gutters and orange ink borders, the logo's
+          panel lit warmest. Stretches to any card size; lines keep their width. */}
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {COMIC_PANELS.map((points, i) => (
+          <polygon
+            key={i}
+            points={points}
+            fill={i === 0 ? `${orange}2e` : i % 2 ? `${orange}14` : `${red}12`}
+            stroke={orange}
+            strokeOpacity="0.55"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
       {/* Halftone dots, densest at the lower right */}
       <div
         className="absolute inset-0"
