@@ -199,18 +199,21 @@ function PriceBurst({ color, rupees, size = 'lg', ribbon = null }) {
 }
 
 // Backdrop for an event with its own look: a Kolkata dusk. A warm sky and a setting sun behind
-// the Howrah Bridge and Victoria Memorial in silhouette along the bottom, a halftone screen,
-// soft glows in the logo's colours and the logo as a faint stamp. Decorative, on every screen size.
-// A row of small waves at height y, one 40-unit period repeated past both edges, so sliding it
-// by one period loops without a seam.
-const wavePath = (y) => {
-  let d = `M-80 ${y}`;
-  for (let x = -80; x < 1080; x += 40) d += ` q10 -3 20 0 t20 0`;
-  return d;
-};
+// the Howrah Bridge and Victoria Memorial in silhouette, over the Hooghly. The river mirrors the
+// city and the sun the way still water does: a darkened, rippling reflection and a long
+// trembling sun path, with fine ripple lines drifting across. Decorative, on every screen size.
+const RIPPLES = [
+  [250, 184, 46], [338, 190, 30], [612, 186, 54], [700, 193, 36], [290, 199, 64], [655, 201, 44],
+  [230, 208, 40], [372, 211, 28], [600, 210, 58], [735, 214, 34], [310, 216, 50], [520, 196, 24]
+];
 
 function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit = 'xMidYMax slice' }) {
   const ink = '#0A0A0A';
+  // Unique ids: the skyline can be on the page twice (phone strip and panel backdrop).
+  const uid = useId().replace(/:/g, '');
+  const id = name => `${name}-${uid}`;
+  const [animate] = useState(() => typeof window === 'undefined' || !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+
   // Howrah Bridge: two lattice towers, cantilever arms and the suspended middle span.
   const towers = [380, 620];
   const topChord = 'M232 168 L300 150 L380 58 L452 112 L548 112 L620 58 L700 150 L768 168';
@@ -226,66 +229,103 @@ function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit
   for (let x = 244; x < 760; x += 24) {
     lattice.push(`M${x} 170 L${x + 12} ${chordY(x + 12)}`, `M${x + 24} 170 L${x + 12} ${chordY(x + 12)}`);
   }
+  const WATER = 176;
+
   return (
     <svg className={className} viewBox={viewBox} preserveAspectRatio={fit}>
       <defs>
-        <radialGradient id="kck-sun" cx="50%" cy="50%" r="50%">
+        <radialGradient id={id('sun')} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#FFE14A" />
           <stop offset="55%" stopColor={orange} />
           <stop offset="100%" stopColor={red} stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="kck-river" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={orange} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={orange} stopOpacity="0" />
+        {/* Water: the warm sky mirrored near the bank, deepening to night further out */}
+        <linearGradient id={id('water')} x1="0" y1={WATER} x2="0" y2="220" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#B4521C" />
+          <stop offset="45%" stopColor="#5A2614" />
+          <stop offset="100%" stopColor="#140A0A" />
         </linearGradient>
+        {/* Sun path on the water: bright under the sun, thinning out towards the viewer */}
+        <linearGradient id={id('glow')} x1="0" y1={WATER} x2="0" y2="220" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFE58A" stopOpacity="0.95" />
+          <stop offset="100%" stopColor={orange} stopOpacity="0.15" />
+        </linearGradient>
+        {/* Reflections fade as the water deepens */}
+        <linearGradient id={id('fade')} x1="0" y1={WATER} x2="0" y2="220" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.75" />
+          <stop offset="100%" stopColor="#fff" stopOpacity="0.1" />
+        </linearGradient>
+        <mask id={id('fadeMask')} maskUnits="userSpaceOnUse" x="0" y={WATER} width="1000" height="44">
+          <rect x="0" y={WATER} width="1000" height="44" fill={`url(#${id('fade')})`} />
+        </mask>
+        <clipPath id={id('river')}>
+          <rect x="0" y={WATER} width="1000" height="44" />
+        </clipPath>
+        {/* Moving water bends what it mirrors: horizontal noise displaces the reflections */}
+        <filter id={id('ripple')} x="-5%" y="-20%" width="110%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.004 0.16" numOctaves="2" seed="7" result="noise">
+            {animate && <animate attributeName="baseFrequency" dur="9s" values="0.004 0.16;0.005 0.2;0.004 0.16" repeatCount="indefinite" />}
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+
+        {/* The city once, drawn again upside down in the river */}
+        <g id={id('city')}>
+          <path fill={ink} opacity="0.55" d="M0 175 V150 h30 v-14 h22 v20 h26 v-30 h18 v30 h30 v-12 h24 v22 h40 V175 Z M820 175 V146 h26 v-18 h20 v24 h34 v-28 h22 v28 h40 v-10 h58 V175 Z" />
+          <g stroke={ink} fill="none" strokeLinejoin="round">
+            <path d={topChord} strokeWidth="6" />
+            <path d={lattice.join(' ')} strokeWidth="2.2" />
+            <path d="M222 170 H778" strokeWidth="7" />
+          </g>
+          {towers.map(x => (
+            <g key={x} fill={ink}>
+              <path d={`M${x - 16} 176 L${x - 7} 50 L${x + 7} 50 L${x + 16} 176 Z`} />
+              <rect x={x - 3} y="38" width="6" height="14" />
+            </g>
+          ))}
+          {/* Victoria Memorial, a little smaller, just right of the bridge */}
+          <g fill={ink} transform="translate(784 176) scale(0.75) translate(-822 -176)">
+            <rect x="822" y="150" width="128" height="26" />
+            <rect x="846" y="132" width="80" height="20" />
+            <rect x="862" y="118" width="48" height="16" />
+            <path d="M864 120 Q886 76 908 120 Z" />
+            <rect x="883" y="66" width="6" height="16" />
+            <path d="M886 52 l7 12 h-14 Z" />
+            <rect x="822" y="136" width="10" height="16" />
+            <rect x="940" y="136" width="10" height="16" />
+          </g>
+        </g>
       </defs>
 
       {/* Setting sun behind the bridge */}
-      <circle cx="500" cy="150" r="120" fill="url(#kck-sun)" opacity="0.55" />
+      <circle cx="500" cy="150" r="120" fill={`url(#${id('sun')})`} opacity="0.55" />
       <circle cx="500" cy="150" r="58" fill="#FFD23A" opacity="0.5" />
 
-      {/* Far buildings */}
-      <path fill={ink} opacity="0.55" d="M0 175 V150 h30 v-14 h22 v20 h26 v-30 h18 v30 h30 v-12 h24 v22 h40 V175 Z M820 175 V146 h26 v-18 h20 v24 h34 v-28 h22 v28 h40 v-10 h58 V175 Z" />
+      {/* The city */}
+      <use href={`#${id('city')}`} />
 
-      {/* Howrah Bridge */}
-      <g stroke={ink} fill="none" strokeLinejoin="round">
-        <path d={topChord} strokeWidth="6" />
-        <path d={lattice.join(' ')} strokeWidth="2.2" />
-        <path d="M222 170 H778" strokeWidth="7" />
-      </g>
-      {towers.map(x => (
-        <g key={x} fill={ink}>
-          <path d={`M${x - 16} 176 L${x - 7} 50 L${x + 7} 50 L${x + 16} 176 Z`} />
-          <rect x={x - 3} y="38" width="6" height="14" />
+      {/* The Hooghly */}
+      <g clipPath={`url(#${id('river')})`}>
+        <rect x="0" y={WATER} width="1000" height="44" fill={`url(#${id('water')})`} />
+        {/* Sun path, trembling */}
+        <g filter={`url(#${id('ripple')})`}>
+          <path d={`M455 ${WATER} H545 L522 220 H478 Z`} fill={`url(#${id('glow')})`} opacity="0.85" />
+          <ellipse cx="500" cy={WATER + 3} rx="70" ry="4" fill="#FFF1B0" opacity="0.7" />
         </g>
-      ))}
-
-      {/* Victoria Memorial, a little smaller, just right of the bridge */}
-      <g fill={ink} transform="translate(784 176) scale(0.75) translate(-822 -176)">
-        <rect x="822" y="150" width="128" height="26" />
-        <rect x="846" y="132" width="80" height="20" />
-        <rect x="862" y="118" width="48" height="16" />
-        <path d="M864 120 Q886 76 908 120 Z" />
-        <rect x="883" y="66" width="6" height="16" />
-        <path d="M886 52 l7 12 h-14 Z" />
-        <rect x="822" y="136" width="10" height="16" />
-        <rect x="940" y="136" width="10" height="16" />
+        {/* The city's reflection: mirrored at the waterline, darkened, rippling and fading */}
+        <g filter={`url(#${id('ripple')})`} mask={`url(#${id('fadeMask')})`}>
+          <use href={`#${id('city')}`} transform={`translate(0 ${WATER * 2}) scale(1 -1)`} />
+        </g>
+        {/* Fine ripple lines catching the light, drifting gently */}
+        <g className={animate ? 'kck-drift' : undefined}>
+          {RIPPLES.map(([x, y, len], i) => (
+            <path key={i} d={`M${x} ${y} h${len}`} stroke={i % 3 === 0 ? '#FFE7B8' : '#FFB067'} strokeOpacity={0.18 + (i % 4) * 0.06} strokeWidth="0.9" strokeLinecap="round" />
+          ))}
+        </g>
+        {/* Haze where the water meets the sky */}
+        <rect x="0" y={WATER} width="1000" height="3" fill="#FFC27A" opacity="0.25" />
       </g>
 
-      {/* The Hooghly under the bridge: dusk water, rolling waves and the sun's glints */}
-      <rect x="0" y="176" width="1000" height="44" fill="#0E1A2B" />
-      <rect x="0" y="176" width="1000" height="44" fill="url(#kck-river)" />
-      {[
-        { y: 182, cls: 'kck-wave', op: 0.55, w: 2 },
-        { y: 194, cls: 'kck-wave-rev', op: 0.4, w: 1.6 },
-        { y: 207, cls: 'kck-wave-slow', op: 0.3, w: 1.4 }
-      ].map(({ y, cls, op, w }) => (
-        <path key={y} className={cls} d={wavePath(y)} fill="none" stroke="#FFD23A" strokeOpacity={op} strokeWidth={w} strokeLinecap="round" />
-      ))}
-      {/* Sun glints on the water, twinkling under the sun */}
-      {[[400, 188, 120, 0], [430, 199, 90, 0.6], [462, 211, 60, 1.2], [560, 192, 70, 0.9], [520, 204, 50, 0.3]].map(([x, y, len, delay]) => (
-        <path key={`${x}-${y}`} className="kck-glint" style={{ animationDelay: `${delay}s` }} d={`M${x} ${y} h${len}`} stroke="#FFF1A8" strokeWidth="2.2" strokeLinecap="round" />
-      ))}
       {/* River banks either side of the bridge */}
       <path fill={ink} d="M0 172 H246 L262 180 H0 Z M1000 172 H754 L738 180 H1000 Z" />
     </svg>
