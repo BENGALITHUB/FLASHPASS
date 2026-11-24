@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { ArrowLeft, ArrowRight, ArrowUpRight, Banknote, Check, CheckCircle2, ChevronRight, Clock3, CreditCard, Hash, Keyboard, Loader2, LogOut, Minus, Plus, ReceiptText, RefreshCw, RotateCcw, ScanLine, ShieldCheck, Ticket, UserPlus, Users, Wallet, X, Zap, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Banknote, Check, CheckCircle2, ChevronRight, Clock3, CreditCard, Hash, Keyboard, Loader2, LogOut, MessageCircle, Minus, Plus, ReceiptText, RefreshCw, RotateCcw, ScanLine, ShieldCheck, Ticket, UserPlus, Users, Wallet, X, Zap, AlertCircle } from 'lucide-react';
 import { toPaise, formatMoney } from '../utils/pos';
 import ShiftBar from '../components/pos/ShiftBar';
 import './BoxOfficePOSPage.css';
 
 const ticketsLabel = n => `${n} ${n === 1 ? 'ticket' : 'tickets'}`;
 const timeLabel = value => new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+const isMobile = value => /^[6-9]\d{9}$/.test(value || '');
 const dateLabel = value => new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 
 export default function BoxOfficePOSPage() {
@@ -29,6 +30,8 @@ export default function BoxOfficePOSPage() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [receipt, setReceipt] = useState(null);
+  const [waPhone, setWaPhone] = useState('');
+  const [waBusy, setWaBusy] = useState(false);
   const [lastSale, setLastSale] = useState(null);
   const [notice, setNotice] = useState(null);
   const [undoOpen, setUndoOpen] = useState(false);
@@ -133,6 +136,51 @@ export default function BoxOfficePOSPage() {
   const canUndo = Boolean(lastSale && undoSeconds > 0 && !busy);
   const recent = summary?.recentSales || [];
 
+  // Copies the pass image (with QR) to the clipboard, then opens the buyer's chat in the
+  // cashier's own WhatsApp with a message typed in. WhatsApp links cannot carry files, so
+  // the cashier presses Ctrl+V in the chat and sends the image.
+  const sendWhatsApp = async () => {
+    if (!receipt || !isMobile(waPhone) || waBusy) return;
+    const name = receipt.pass?.holderName || 'there';
+    const count = receipt.quantity || 1;
+    const passes = (receipt.passes?.length ? receipt.passes : [receipt.pass])
+      .map(p => (p.orderId === receipt.pass?.orderId ? { ...p, ...receipt.pass } : p));
+    if (passes.some(p => !p.qrToken)) {
+      notify('Could not load the QR codes for this sale. Open the ticket and share it from there.', 'error');
+      return;
+    }
+    const text = [
+      `Hi ${name}! Your ${count > 1 ? `${count} tickets` : 'ticket'} for ${config?.eventName || 'the event'} ${count > 1 ? 'are' : 'is'} ready. Show the QR at the gate.`,
+      '',
+      `Open ${count > 1 ? 'them' : 'it'} any time here: ${window.location.origin}/pass/${receipt.orderId}`,
+      `Order ID: ${receipt.orderId}`
+    ].join('\n');
+    setWaBusy(true);
+    const image = import('../utils/exportPass').then(({ passesImageBlob }) => passesImageBlob(passes));
+    let copied = false;
+    try {
+      // The clipboard must be written while this tab still has focus, so before WhatsApp opens.
+      // Handing ClipboardItem a promise keeps the click's permission while the image is drawn.
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': image })]);
+      copied = true;
+    } catch {
+      // No image clipboard in this browser: save the image so it can be attached instead.
+      try {
+        const url = URL.createObjectURL(await image);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `FlashPass_${receipt.orderId}.png`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } catch { /* the message still carries the ticket link */ }
+    }
+    window.open(`https://wa.me/91${waPhone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    notify(copied
+      ? `Ticket image copied. In the WhatsApp chat press Ctrl+V, then Send.`
+      : `Ticket image downloaded. Attach it in the WhatsApp chat, then Send.`, copied ? 'success' : 'error');
+    setWaBusy(false);
+  };
+
   useEffect(() => { if (quantity > maxTickets) setQuantity(maxTickets); }, [quantity, maxTickets]);
 
   const reset = (nextMode = mode) => {
@@ -147,6 +195,7 @@ export default function BoxOfficePOSPage() {
     setCash('');
     setError('');
     setReceipt(null);
+    setWaPhone('');
     requestId.current = null;
     requestAnimationFrame(() => (nextMode === 'token' ? tokenRef : nameRef).current?.focus());
   };
@@ -188,6 +237,8 @@ export default function BoxOfficePOSPage() {
         result = await api.posConfirmToken(activeToken.token.tokenNo, cashPaise, amount);
       }
       setReceipt({ ...result, pricing: { ...pricing } });
+      const buyerPhone = String(result.pass?.phone || '').replace(/\D/g, '').slice(-10);
+      setWaPhone(isMobile(buyerPhone) ? buyerPhone : '');
       setLastSale(result);
       setNow(Date.now());
       setActiveToken(null);
@@ -280,6 +331,11 @@ export default function BoxOfficePOSPage() {
               <div className="pos-success-icon"><Check size={30} /></div><span className="pos-eyebrow">PAYMENT COMPLETE</span><h3>You're all set.</h3><p>{receipt.quantity > 1 ? <><strong>{receipt.quantity} tickets</strong> issued for <strong>{guest.name.trim() || 'Walk-in Guest'}</strong>'s group{receipt.tierName ? ` (${receipt.tierName})` : ''}. Each guest has their own QR.</> : <>A ticket has been issued to <strong>{receipt.pass.holderName}</strong>.</>}</p>
               {receipt.addOns?.length > 0 && <p className="pos-receipt-extras">Extras: {receipt.addOns.map(line => `${line.name}${line.variant ? ` (${line.variant})` : ''} ×${line.quantity}`).join(', ')}. The guest collects them by showing their pass QR.</p>}
               <div className="pos-receipt-details"><span>Order reference<strong>{receipt.orderId}</strong></span><span>Change to return<strong>{formatMoney(Math.round(Number(receipt.changeRupees) * 100))}</strong></span></div>
+              <div className="pos-receipt-whatsapp">
+                <label htmlFor="pos-wa-phone">Send ticket on WhatsApp</label>
+                <div className="pos-lookup-row"><div className="pos-phone-input"><span>+91</span><input id="pos-wa-phone" type="tel" inputMode="numeric" placeholder="10-digit mobile number" autoComplete="off" maxLength={10} value={waPhone} aria-invalid={Boolean(waPhone) && !isMobile(waPhone)} onChange={e => setWaPhone(e.target.value.replace(/\D/g, ''))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendWhatsApp(); } }} /></div><button type="button" className="pos-button pos-button-secondary" disabled={!isMobile(waPhone) || waBusy} onClick={sendWhatsApp}>{waBusy ? <Loader2 size={16} className="pos-spin" /> : <MessageCircle size={16} />} Send ticket on WhatsApp</button></div>
+                {waPhone && !isMobile(waPhone) && <p className="pos-field-error">Enter 10 digits starting with 6, 7, 8 or 9.</p>}
+              </div>
               <div className="pos-receipt-actions"><a className="pos-button pos-button-secondary" href={`/pass/${receipt.orderId}`} target="_blank" rel="noreferrer"><Ticket size={16} /> {receipt.quantity > 1 ? `Open all ${receipt.quantity} tickets` : 'Open ticket'} <ArrowUpRight size={15} /></a><button type="button" className="pos-button pos-button-primary" onClick={() => reset()}>Next guest <ArrowRight size={16} /></button></div>
             </div> : <>
               {mode === 'token' ? <>

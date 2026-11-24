@@ -44,7 +44,11 @@ function saleResponse(order, pass, cashTenderedPaise, token = null, passes = [pa
     tierId: order.tierId,
     tierName: order.tierName,
     addOns: (order.addOns || []).map(({ addOnId, name, variant, quantity, pricePaise }) => ({ addOnId, name, variant, quantity, pricePaise })),
-    passes: passes.map(p => ({ orderId: p.orderId, holderName: p.holderName })),
+    // Each pass's QR too, so the counter can make the PDFs to send the buyer.
+    passes: passes.map(p => ({
+      orderId: p.orderId, holderName: p.holderName, maskedPhone: maskedPhone(p.phone),
+      badge: p.badge, validDays: p.validDays, qrToken: generateQRToken(p._id.toString(), p.qrNonce)
+    })),
     orderId: order.orderId,
     amountPaise: order.amountPaise,
     paidAt: order.paidAt,

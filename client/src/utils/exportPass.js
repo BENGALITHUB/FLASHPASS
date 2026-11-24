@@ -26,6 +26,11 @@ export const savePassImage = async (cardElementId, orderId, holderName = 'Attend
  * Download Printable A6 PDF Pass with attendee's name and individual QR
  */
 export const downloadPassPDF = async (pass, qrDataUrl) => {
+  const { doc, fileName } = buildPassPDF(pass, qrDataUrl);
+  doc.save(fileName);
+};
+
+const buildPassPDF = (pass, qrDataUrl) => {
   // A6 format: 105 x 148 mm
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -125,7 +130,7 @@ export const downloadPassPDF = async (pass, qrDataUrl) => {
 
   // Safe file naming with attendee's name
   const safeName = (pass.holderName || 'Attendee').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-  doc.save(`FlashPass_${safeName}_${pass.orderId}.pdf`);
+  return { doc, fileName: `FlashPass_${safeName}_${pass.orderId}.pdf` };
 };
 
 /**
@@ -200,4 +205,73 @@ export const sharePass = async (cardElementId, pass) => {
       console.error('Share error', err);
     }
   }
+};
+
+const loadImage = src => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => resolve(img);
+  img.onerror = reject;
+  img.src = src;
+});
+
+/**
+ * One PNG with every pass in the order stacked (name, badge, days, QR, pass ID), the same
+ * details as the PDF. Made for pasting into a WhatsApp chat.
+ */
+export const passesImageBlob = async (passes) => {
+  const W = 720;
+  const H = 900;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H * passes.length;
+  const ctx = canvas.getContext('2d');
+  const fit = (text, max) => {
+    let t = String(text || '');
+    while (t.length > 1 && ctx.measureText(t).width > max) t = t.slice(0, -1);
+    return t === String(text || '') ? t : `${t.slice(0, -1)}…`;
+  };
+  const center = (text, y, font, color) => {
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.fillText(fit(text, W - 100), W / 2, y);
+  };
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for (let i = 0; i < passes.length; i++) {
+    const p = passes[i];
+    ctx.save();
+    ctx.translate(0, H * i);
+    ctx.fillStyle = '#0B0B14';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#FFD60A';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(20, 20, W - 40, H - 40);
+
+    center('3-DAY COMICS CARNIVAL', 80, 'bold 44px Arial, sans-serif', '#FFD60A');
+    center('12-14 DEC 2026 • KOLKATA', 128, 'bold 24px Arial, sans-serif', '#F5F5FA');
+    ctx.fillStyle = '#FF2E88';
+    ctx.beginPath();
+    ctx.roundRect(110, 155, W - 220, 50, 12);
+    ctx.fill();
+    center(p.badge || '3-DAY ALL ACCESS', 181, 'bold 26px Arial, sans-serif', '#FFFFFF');
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 220, 230, 440, 440, 18);
+    ctx.fill();
+    if (p.qrToken) {
+      const qr = await loadImage(await QRCode.toDataURL(p.qrToken, { width: 400, margin: 1, color: { dark: '#000000', light: '#FFFFFF' } }));
+      ctx.drawImage(qr, W / 2 - 200, 250, 400, 400);
+    }
+
+    center(String(p.holderName || 'Guest').toUpperCase(), 712, 'bold 38px Arial, sans-serif', '#FFFFFF');
+    const days = p.validDays?.length ? p.validDays.map(d => `[DAY ${d}]`).join('  ') : '[ALL DAYS]';
+    center(days, 760, 'bold 28px Arial, sans-serif', '#22D3EE');
+    center(`Pass ID: ${p.orderId}`, 808, 'bold 28px Arial, sans-serif', '#FFD60A');
+    center(passes.length > 1 ? `Pass ${i + 1} of ${passes.length} • Show this QR at the gate` : 'Show this QR at the gate', 852, 'italic 20px Arial, sans-serif', '#A3A3C2');
+    ctx.restore();
+  }
+
+  return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Could not make the image'))), 'image/png'));
 };

@@ -211,6 +211,10 @@
 .pos-receipt-details > span { color: #8b8ba7; font-size: 9px; display: flex; flex-direction: column; gap: 8px; }
 .pos-receipt-details strong { color: #fff2b2; font-size: 16px; font-weight: 500; }
 .pos-receipt-actions { display: flex; justify-content: center; gap: 10px; }
+.pos-receipt-whatsapp { text-align: left; margin: 0 0 17px; }
+.pos-receipt-whatsapp label { display: block; color: #a3a3c2; font-size: 11px; margin-bottom: 8px; }
+.pos-receipt-whatsapp .pos-phone-input { flex: 1; min-width: 0; }
+.pos-receipt-whatsapp input { width: 100%; min-width: 0; padding: 11px 12px; color: inherit; font-size: 15px; outline: none; }
 .pos-undo-dialog { background: #171726; color: #eaeaf3; border: 1px solid #424258; border-radius: 16px; padding: 26px; width: min(430px, calc(100vw - 32px)); box-shadow: 0 25px 100px #0008; }
 .pos-undo-dialog::backdrop { background: #06060bc9; backdrop-filter: blur(5px); }
 .pos-dialog-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
