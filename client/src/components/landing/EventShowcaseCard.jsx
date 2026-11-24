@@ -79,15 +79,72 @@ function initials(name = '') {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// A paragraph that opens with an emoji ("🔥 KOLKATA COMICS…") becomes a highlight row.
+const LEADING_EMOJI = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:️|‍(?:\p{Extended_Pictographic}))*)\s*/u;
+
+// An event's own look: a dark glass panel with its colour as the accent and offset shadow, an
+// "About the event" sticker, the first paragraph as a headline, emoji paragraphs as highlight
+// rows, and the rest folded under a fade until "Read more".
+function BrandedDescription({ text, band }) {
+  const [open, setOpen] = useState(false);
+  const paragraphs = String(text).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const [lead, ...rest] = paragraphs;
+  const long = rest.length > 1 || rest.join(' ').length > 220;
+  const shown = !long || open ? rest : rest.slice(0, 2);
+
+  return (
+    <section
+      className="relative max-w-2xl !mt-6 rounded-2xl border-2 p-4 pt-6 sm:p-6 sm:pt-7 backdrop-blur-sm font-sans"
+      style={{ borderColor: band, background: 'linear-gradient(160deg, rgba(255,122,26,0.14), rgba(10,10,10,0.78) 45%)', boxShadow: `5px 5px 0 ${band}` }}
+    >
+      <span className="absolute -top-3 left-4 px-2.5 py-0.5 rounded-md border-2 border-black font-display text-sm tracking-[0.18em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
+        About the event
+      </span>
+
+      <p className="text-[15px] sm:text-lg font-semibold leading-snug text-white whitespace-pre-line">{lead}</p>
+
+      <div className={`relative mt-3 space-y-2.5 ${long && !open ? 'max-h-36 overflow-hidden' : ''}`}>
+        {shown.map((p, i) => {
+          const emoji = p.match(LEADING_EMOJI);
+          return emoji ? (
+            <div key={i} className="flex items-start gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2.5">
+              <span className="grid place-items-center w-8 h-8 shrink-0 rounded-full text-base" style={{ background: `${band}26`, boxShadow: `inset 0 0 0 1px ${band}66` }} aria-hidden="true">{emoji[1]}</span>
+              <p className="pt-1 text-[13px] sm:text-sm leading-relaxed text-white/85 whitespace-pre-line">{p.slice(emoji[0].length)}</p>
+            </div>
+          ) : (
+            <p key={i} className="text-[13px] sm:text-sm leading-relaxed text-white/70 whitespace-pre-line">{p}</p>
+          );
+        })}
+        {long && !open && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0d0b0a] to-transparent" />}
+      </div>
+
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full border-2 border-black px-3.5 py-1.5 font-display text-sm tracking-[0.14em] text-black shadow-[2px_2px_0_#000] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+          style={{ background: band }}
+        >
+          {open ? 'Show less' : 'Read more'}
+          <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+    </section>
+  );
+}
+
 // The organizer's description, as they wrote it: blank lines start new paragraphs. The first
 // paragraph leads in brighter type; the rest fold away behind "Read more" when it runs long.
-// With `band` set (an event's own colour) it sits on that colour in black type, as on a poster.
+// With `band` set (an event's own colour) it uses the event's branded panel instead.
 function EventDescription({ text, accent, band = null }) {
   const [open, setOpen] = useState(false);
   const paragraphs = String(text).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   const [lead, ...rest] = paragraphs;
   const long = rest.length > 1 || rest.join(' ').length > 220;
   const shown = !long || open ? rest : rest.slice(0, 1);
+
+  if (band) return <BrandedDescription text={text} band={band} />;
 
   return (
     <div
