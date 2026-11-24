@@ -192,56 +192,103 @@ function PriceBurst({ color, rupees, size = 'lg' }) {
   );
 }
 
-// Comic-poster backdrop for an event with its own look: a comic page of slanted panels with
-// the logo in the first, a halftone dot screen fading across the panel, soft glows in the logo's red, blue and
-// green, and the logo itself as a large faint stamp. Purely decorative, on every screen size.
-// Panels of a comic page, in a 100×100 box: the first holds the logo. Gaps between them are the gutters.
-const COMIC_PANELS = [
-  '1.5,1.5 46,1.5 42,40 1.5,43',
-  '48,1.5 98.5,1.5 98.5,24 45,27',
-  '44.5,29.5 98.5,26.5 98.5,52 42.5,55',
-  '1.5,45.5 41.5,42.5 39,72 1.5,75',
-  '42,57.5 98.5,54.5 98.5,98.5 38,98.5',
-  '1.5,77.5 38.5,74.5 35.5,98.5 1.5,98.5'
-];
+// Backdrop for an event with its own look: a Kolkata dusk. A warm sky and a setting sun behind
+// the Howrah Bridge and Victoria Memorial in silhouette along the bottom, a halftone screen,
+// soft glows in the logo's colours and the logo as a faint stamp. Decorative, on every screen size.
+function KolkataSkyline({ orange, red }) {
+  const ink = '#0A0A0A';
+  // Howrah Bridge: two lattice towers, cantilever arms and the suspended middle span.
+  const towers = [380, 620];
+  const topChord = 'M232 168 L300 150 L380 58 L452 112 L548 112 L620 58 L700 150 L768 168';
+  const lattice = [];
+  const chordY = x => {
+    const pts = [[232, 168], [300, 150], [380, 58], [452, 112], [548, 112], [620, 58], [700, 150], [768, 168]];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1, y1] = pts[i]; const [x2, y2] = pts[i + 1];
+      if (x >= x1 && x <= x2) return y1 + ((y2 - y1) * (x - x1)) / (x2 - x1);
+    }
+    return 168;
+  };
+  for (let x = 244; x < 760; x += 24) {
+    lattice.push(`M${x} 170 L${x + 12} ${chordY(x + 12)}`, `M${x + 24} 170 L${x + 12} ${chordY(x + 12)}`);
+  }
+  return (
+    <svg className="absolute inset-x-0 bottom-0 w-full h-[46%] sm:h-[34%] lg:h-[28%]" viewBox="150 0 760 220" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <radialGradient id="kck-sun" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFE14A" />
+          <stop offset="55%" stopColor={orange} />
+          <stop offset="100%" stopColor={red} stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="kck-river" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={orange} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={orange} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* Setting sun behind the bridge */}
+      <circle cx="500" cy="150" r="120" fill="url(#kck-sun)" opacity="0.55" />
+      <circle cx="500" cy="150" r="58" fill="#FFD23A" opacity="0.5" />
+
+      {/* Far buildings */}
+      <path fill={ink} opacity="0.55" d="M0 175 V150 h30 v-14 h22 v20 h26 v-30 h18 v30 h30 v-12 h24 v22 h40 V175 Z M820 175 V146 h26 v-18 h20 v24 h34 v-28 h22 v28 h40 v-10 h58 V175 Z" />
+
+      {/* Howrah Bridge */}
+      <g stroke={ink} fill="none" strokeLinejoin="round">
+        <path d={topChord} strokeWidth="6" />
+        <path d={lattice.join(' ')} strokeWidth="2.2" />
+        <path d="M222 170 H778" strokeWidth="7" />
+      </g>
+      {towers.map(x => (
+        <g key={x} fill={ink}>
+          <path d={`M${x - 16} 176 L${x - 7} 50 L${x + 7} 50 L${x + 16} 176 Z`} />
+          <rect x={x - 3} y="38" width="6" height="14" />
+        </g>
+      ))}
+
+      {/* Victoria Memorial, a little smaller, just right of the bridge */}
+      <g fill={ink} transform="translate(784 176) scale(0.75) translate(-822 -176)">
+        <rect x="822" y="150" width="128" height="26" />
+        <rect x="846" y="132" width="80" height="20" />
+        <rect x="862" y="118" width="48" height="16" />
+        <path d="M864 120 Q886 76 908 120 Z" />
+        <rect x="883" y="66" width="6" height="16" />
+        <path d="M886 52 l7 12 h-14 Z" />
+        <rect x="822" y="136" width="10" height="16" />
+        <rect x="940" y="136" width="10" height="16" />
+      </g>
+
+      {/* Ground and the river catching the sunset */}
+      <rect x="0" y="174" width="1000" height="10" fill={ink} />
+      <rect x="0" y="184" width="1000" height="36" fill="url(#kck-river)" />
+      <path d="M380 192 h240 M420 202 h160 M455 211 h90" stroke="#FFD23A" strokeOpacity="0.35" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function SkinBackdrop({ skin }) {
   const { orange, burst, red } = skin.colors;
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {/* Dusk sky: warm at the horizon, night at the top */}
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 0%, ${red}1f 45%, ${orange}47 78%, ${orange}5c 100%)` }} />
       {/* Logo-colour glows */}
-      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.32]" style={{ background: red }} />
-      <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.26]" style={{ background: '#1E5BFF' }} />
-      <div className="absolute -bottom-28 left-1/4 w-96 h-80 rounded-full blur-3xl opacity-[0.22]" style={{ background: '#7ED957' }} />
-      {/* Comic page: slanted panels with black gutters and orange ink borders, the logo's
-          panel lit warmest. Stretches to any card size; lines keep their width. */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {COMIC_PANELS.map((points, i) => (
-          <polygon
-            key={i}
-            points={points}
-            fill={i === 0 ? `${orange}2e` : i % 2 ? `${orange}14` : `${red}12`}
-            stroke={orange}
-            strokeOpacity="0.55"
-            strokeWidth="2"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-      </svg>
-      {/* Halftone dots, densest at the lower right */}
+      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.28]" style={{ background: red }} />
+      <div className="absolute top-1/4 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.2]" style={{ background: '#1E5BFF' }} />
+      {/* Halftone dots, thickest towards the sky's glow */}
       <div
         className="absolute inset-0"
         style={{
           backgroundImage: `radial-gradient(${burst}55 1.3px, transparent 1.8px)`,
           backgroundSize: '13px 13px',
-          WebkitMaskImage: 'linear-gradient(135deg, transparent 35%, #000 100%)',
-          maskImage: 'linear-gradient(135deg, transparent 35%, #000 100%)',
-          opacity: 0.55
+          WebkitMaskImage: 'linear-gradient(180deg, transparent 25%, #000 90%)',
+          maskImage: 'linear-gradient(180deg, transparent 25%, #000 90%)',
+          opacity: 0.4
         }}
       />
-      {/* The logo as a faint stamp */}
-      <img src={skin.logo} alt="" className="absolute -right-10 -bottom-6 w-[26rem] max-w-[90%] rotate-[-8deg] opacity-[0.13] select-none" />
+      {/* The logo as a faint stamp, above the skyline */}
+      <img src={skin.logo} alt="" className="absolute right-2 top-[28%] w-[20rem] max-w-[70%] rotate-[-8deg] opacity-[0.09] select-none" />
+      <KolkataSkyline orange={orange} red={red} />
     </div>
   );
 }
