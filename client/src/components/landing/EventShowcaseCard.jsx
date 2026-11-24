@@ -383,8 +383,10 @@ function SkinBackdrop({ skin }) {
           opacity: 0.4
         }}
       />
-      {/* The logo as a faint stamp, above the skyline */}
-      <img src={skin.logo} alt="" className="absolute -right-6 top-[22%] w-[28rem] max-w-[95%] rotate-[-8deg] opacity-[0.16] select-none" />
+      {/* The logo as a faint stamp. Phones: in the open space under the description, behind the
+          pass perks, where the description panel does not cover it. Larger screens: beside the
+          description, above the skyline. */}
+      <img src={skin.logo} alt="" className="absolute left-1/2 -translate-x-1/2 top-[62%] w-[82%] rotate-[-8deg] opacity-[0.22] md:left-auto md:translate-x-0 md:-right-6 md:top-[22%] md:w-[28rem] md:max-w-[95%] md:opacity-[0.16] select-none" />
       {/* Tablets and up: the skyline across the foot of the panel. Phones get it as its own strip. */}
       <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[34%] lg:h-[28%]" />
     </div>
