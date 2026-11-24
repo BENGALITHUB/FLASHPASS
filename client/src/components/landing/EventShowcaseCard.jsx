@@ -466,12 +466,12 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                           <span
                             className="absolute inset-0 rounded-full motion-safe:animate-[spin_40s_linear_infinite]"
                             style={{
-                              background: `repeating-conic-gradient(from 0deg, ${skin.colors.burst}b3 0deg 4.5deg, transparent 4.5deg 12deg)`,
-                              WebkitMaskImage: 'radial-gradient(circle, #000 12%, rgba(0,0,0,0.8) 34%, transparent 68%)',
-                              maskImage: 'radial-gradient(circle, #000 12%, rgba(0,0,0,0.8) 34%, transparent 68%)'
+                              background: `repeating-conic-gradient(from 0deg, ${skin.colors.burst}38 0deg 4deg, transparent 4deg 12deg)`,
+                              WebkitMaskImage: 'radial-gradient(circle, #000 8%, rgba(0,0,0,0.45) 28%, transparent 58%)',
+                              maskImage: 'radial-gradient(circle, #000 8%, rgba(0,0,0,0.45) 28%, transparent 58%)'
                             }}
                           />
-                          <span className="absolute inset-[28%] rounded-full blur-2xl opacity-100" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
+                          <span className="absolute inset-[32%] rounded-full blur-2xl opacity-55" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
                         </span>
                         <img src={skin.logo} alt="" width="772" height="508" className="relative h-24 sm:h-32 xl:h-36 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
                       </span>
