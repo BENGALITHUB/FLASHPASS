@@ -201,7 +201,7 @@ function PriceBurst({ color, rupees, size = 'lg', ribbon = null }) {
 // Backdrop for an event with its own look: a Kolkata dusk. A warm sky and a setting sun behind
 // the Howrah Bridge and Victoria Memorial in silhouette along the bottom, a halftone screen,
 // soft glows in the logo's colours and the logo as a faint stamp. Decorative, on every screen size.
-function KolkataSkyline({ orange, red }) {
+function KolkataSkyline({ orange, red, className }) {
   const ink = '#0A0A0A';
   // Howrah Bridge: two lattice towers, cantilever arms and the suspended middle span.
   const towers = [380, 620];
@@ -219,7 +219,7 @@ function KolkataSkyline({ orange, red }) {
     lattice.push(`M${x} 170 L${x + 12} ${chordY(x + 12)}`, `M${x + 24} 170 L${x + 12} ${chordY(x + 12)}`);
   }
   return (
-    <svg className="absolute inset-x-0 bottom-0 w-full h-[46%] sm:h-[34%] lg:h-[28%]" viewBox="150 0 760 220" preserveAspectRatio="xMidYMax slice">
+    <svg className={className} viewBox="150 0 760 220" preserveAspectRatio="xMidYMax slice">
       <defs>
         <radialGradient id="kck-sun" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#FFE14A" />
@@ -294,7 +294,8 @@ function SkinBackdrop({ skin }) {
       />
       {/* The logo as a faint stamp, above the skyline */}
       <img src={skin.logo} alt="" className="absolute -right-6 top-[22%] w-[28rem] max-w-[95%] rotate-[-8deg] opacity-[0.16] select-none" />
-      <KolkataSkyline orange={orange} red={red} />
+      {/* Tablets and up: the skyline across the foot of the panel. Phones get it as its own strip. */}
+      <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[34%] lg:h-[28%]" />
     </div>
   );
 }
@@ -579,6 +580,14 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   ))}
                 </div>
               </div>
+
+              {/* Phones: the Kolkata skyline as its own full-width strip under the details, edge to edge */}
+              {skin && (
+                <div className="md:hidden relative -mx-4 -mb-4 mt-5 h-36 overflow-hidden" aria-hidden="true">
+                  <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent, ${skin.colors.orange}33 60%, ${skin.colors.orange}55)` }} />
+                  <KolkataSkyline orange={skin.colors.orange} red={skin.colors.red} className="absolute inset-x-0 bottom-0 w-full h-full" />
+                </div>
+              )}
             </div>
 
             {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
