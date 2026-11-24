@@ -135,6 +135,43 @@ function PriceBurst({ color, rupees, size = 'lg' }) {
   );
 }
 
+// Comic-poster backdrop for an event with its own look: speed rays bursting from behind the
+// logo, a halftone dot screen fading across the panel, soft glows in the logo's red, blue and
+// green, and the logo itself as a large faint stamp. Purely decorative, on every screen size.
+function SkinBackdrop({ skin }) {
+  const { orange, burst, red } = skin.colors;
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {/* Logo-colour glows */}
+      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.22]" style={{ background: red }} />
+      <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.16]" style={{ background: '#1E5BFF' }} />
+      <div className="absolute -bottom-28 left-1/4 w-96 h-80 rounded-full blur-3xl opacity-[0.14]" style={{ background: '#7ED957' }} />
+      {/* Speed rays from behind the logo */}
+      <div
+        className="absolute inset-0 opacity-[0.55]"
+        style={{
+          background: `repeating-conic-gradient(from 0deg at 22% 18%, ${orange}1f 0deg 5deg, transparent 5deg 14deg)`,
+          WebkitMaskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 70%)',
+          maskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 70%)'
+        }}
+      />
+      {/* Halftone dots, densest at the lower right */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `radial-gradient(${burst}55 1.3px, transparent 1.8px)`,
+          backgroundSize: '13px 13px',
+          WebkitMaskImage: 'linear-gradient(135deg, transparent 35%, #000 100%)',
+          maskImage: 'linear-gradient(135deg, transparent 35%, #000 100%)',
+          opacity: 0.35
+        }}
+      />
+      {/* The logo as a faint stamp */}
+      <img src={skin.logo} alt="" className="absolute -right-10 -bottom-6 w-[26rem] max-w-[90%] rotate-[-8deg] opacity-[0.07] select-none" />
+    </div>
+  );
+}
+
 // Phones book from a bar pinned to the bottom of the screen, like an app's checkout bar. It slides
 // in while its event card is on screen, so the price and button are always under the thumb.
 function MobileBookingBar({ show, skin, theme, priceLabel, totalRupees, dateRange, soldOut, onBook }) {
@@ -205,21 +242,27 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
   ) : null;
   const book = () => navigate(`/buy?eventId=${ev.eventId}${soloTier ? `&tier=${soloTier.tierId}` : ''}${refQuery}`);
 
-  // The phone booking bar shows while this card fills the middle of the screen.
+  // The phone booking bar shows while this card fills the middle of the screen, but only when the
+  // card's own Book button is off screen, so the two are never seen at once.
   const cardRef = useRef(null);
+  const bookButtonRef = useRef(null);
   const [inView, setInView] = useState(false);
+  const [buttonVisible, setButtonVisible] = useState(false);
   useEffect(() => {
-    const node = cardRef.current;
-    if (!node || typeof IntersectionObserver === 'undefined') return undefined;
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: '-30% 0px -30% 0px' });
-    observer.observe(node);
-    return () => observer.disconnect();
+    const card = cardRef.current;
+    const button = bookButtonRef.current;
+    if (!card || typeof IntersectionObserver === 'undefined') return undefined;
+    const cardObserver = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: '-30% 0px -30% 0px' });
+    cardObserver.observe(card);
+    const buttonObserver = new IntersectionObserver(([entry]) => setButtonVisible(entry.isIntersecting));
+    if (button) buttonObserver.observe(button);
+    return () => { cardObserver.disconnect(); buttonObserver.disconnect(); };
   }, []);
 
   return (
     <article ref={cardRef} className="event-card relative group min-w-0">
       <MobileBookingBar
-        show={inView}
+        show={inView && !buttonVisible}
         skin={skin}
         theme={theme}
         priceLabel={priceLabel}
@@ -245,11 +288,13 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
             {/* Event body */}
             <div className="relative min-w-0 p-4 sm:p-6 xl:p-8 overflow-hidden">
               {/* Themed art: gradient wash, halftone, giant watermark */}
-              <div
-                className={`absolute inset-0 ${skin ? 'opacity-[0.22]' : 'opacity-[0.18]'}`}
-                style={{ background: skin ? `radial-gradient(circle at 100% 100%, ${skin.colors.orange}, transparent 45%)` : `radial-gradient(circle at 15% 0%, ${theme.a}, transparent 55%), radial-gradient(circle at 100% 100%, ${theme.b}, transparent 50%)` }}
-              />
-              <div className={`absolute inset-0 bg-halftone ${skin ? 'opacity-20' : 'opacity-40'}`} />
+              {skin ? <SkinBackdrop skin={skin} /> : <>
+                <div
+                  className="absolute inset-0 opacity-[0.18]"
+                  style={{ background: `radial-gradient(circle at 15% 0%, ${theme.a}, transparent 55%), radial-gradient(circle at 100% 100%, ${theme.b}, transparent 50%)` }}
+                />
+                <div className="absolute inset-0 bg-halftone opacity-40" />
+              </>}
               {!skin && <div
                 className="absolute -right-4 -bottom-10 font-comic text-[11rem] sm:text-[14rem] leading-none select-none pointer-events-none opacity-[0.07]"
                 style={{ color: theme.a }}
@@ -361,22 +406,12 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     </div>
                   ))}
                 </div>
-
-                {/* On phones the stub is replaced by the bottom bar; its cash option stays here. */}
-                <div className="md:hidden flex items-center justify-between gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-3.5 py-3">
-                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" /> Instant pass • No app needed
-                  </span>
-                  <Link to={`/cash?eventId=${ev.eventId}`} className="shrink-0 inline-flex items-center gap-1 font-mono text-[11px] font-bold text-white active:opacity-70">
-                    <Banknote className="w-3.5 h-3.5" style={{ color: theme.a }} /> Pay cash
-                  </Link>
-                </div>
               </div>
             </div>
 
-            {/* The one place to book on tablets and up (phones use the bottom bar): price, total,
-                stock and the button. A row on tablets, the ticket's torn-off stub on laptops. */}
-            <div className={`event-booking relative min-w-0 hidden md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
+                full-width button below. Tablets: one row. Laptops: the ticket's torn-off stub. */}
+            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {/* Ticket notches (desktop) */}
               <span className="hidden lg:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
               <span className="hidden lg:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
@@ -398,8 +433,9 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 </span>
               </div>
 
-              <div className="w-56 lg:w-full shrink-0 flex flex-col items-stretch lg:mt-5">
+              <div className="col-span-2 w-full md:w-56 lg:w-full shrink-0 flex flex-col items-stretch lg:mt-5">
                 <button
+                  ref={bookButtonRef}
                   type="button"
                   disabled={soldOut}
                   onClick={book}
