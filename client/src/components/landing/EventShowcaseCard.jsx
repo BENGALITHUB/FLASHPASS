@@ -77,6 +77,37 @@ function initials(name = '') {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// The organizer's description, as they wrote it: blank lines start new paragraphs. The first
+// paragraph leads in brighter type; the rest fold away behind "Read more" when it runs long.
+function EventDescription({ text, accent }) {
+  const [open, setOpen] = useState(false);
+  const paragraphs = String(text).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const [lead, ...rest] = paragraphs;
+  const long = rest.length > 1 || rest.join(' ').length > 220;
+  const shown = !long || open ? rest : rest.slice(0, 1);
+
+  return (
+    <div className="max-w-2xl space-y-2.5 font-sans">
+      <p className="text-sm sm:text-base text-white/90 leading-relaxed whitespace-pre-line">{lead}</p>
+      {shown.map((p, i) => (
+        <p key={i} className="text-[13px] sm:text-sm text-text-muted leading-relaxed whitespace-pre-line">{p}</p>
+      ))}
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          className="inline-flex items-center gap-1 font-mono text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer"
+          style={{ color: accent }}
+        >
+          {open ? 'Show less' : 'Read more'}
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 // With a single ticket type there is nothing to compare, so instead of one card stretched across
 // the row the pass is shown as a full ticket: details on the left, a torn-off price stub on the right.
 function SoloTierTicket({ tier, ev, theme, onBook }) {
@@ -85,17 +116,14 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
   const fee = (tier.platformFeePaise ?? 200) / 100;
   const stock = stockInfo(tier.capacity, tier.soldCount);
   const perks = tier.perks?.length ? tier.perks : ['Event admission'];
-  const highlights = [
-    { icon: Zap, label: 'Instant QR on your phone' },
-    { icon: RefreshCw, label: ev.allowReentry !== false ? 'Re-entry allowed' : 'Single entry' },
-    { icon: Smartphone, label: 'Works offline at the gate' }
-  ];
+  // A sales bar only means something once tickets are going; before that it is an empty track.
+  const showBar = tier.capacity > 0 && (stock.low || stock.soldOut || stock.pctSold >= 50);
 
   return (
     <div className="relative rounded-3xl p-[2px] shadow-[6px_6px_0_#000]" style={{ background: `linear-gradient(120deg, ${accent}, ${theme.b} 60%, ${theme.a})` }}>
       <div className="relative grid md:grid-cols-[minmax(0,1fr)_280px] rounded-[calc(1.5rem-2px)] bg-[#11112A] overflow-hidden">
         {/* Ticket body */}
-        <div className="relative min-w-0 p-5 sm:p-7 overflow-hidden">
+        <div className="relative min-w-0 p-5 sm:p-7 overflow-hidden flex flex-col justify-center">
           <div className="absolute inset-0 opacity-[0.16] pointer-events-none" style={{ background: `radial-gradient(circle at 0% 0%, ${accent}, transparent 50%), radial-gradient(circle at 90% 120%, ${theme.b}, transparent 55%)` }} />
           <div className="absolute inset-0 bg-halftone opacity-30 pointer-events-none" />
           <Ticket className="absolute -right-6 -bottom-8 w-48 h-48 rotate-[-18deg] pointer-events-none" style={{ color: accent, opacity: 0.06 }} aria-hidden="true" />
@@ -125,14 +153,6 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
                 </li>
               ))}
             </ul>
-
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] text-text-muted">
-              {highlights.map(({ icon: Icon, label }) => (
-                <span key={label} className="inline-flex items-center gap-1.5">
-                  <Icon className="w-3.5 h-3.5" style={{ color: theme.a }} /> {label}
-                </span>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -149,7 +169,10 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
             <span className="block mt-1.5 font-mono text-[10px] text-text-muted">+ ₹{fee.toFixed(2)} fee • ₹{(price + fee).toFixed(2)} at checkout</span>
           </div>
 
-          {tier.capacity > 0 && (
+          {tier.capacity > 0 && !showBar && (
+            <span className="font-mono text-[10px] font-bold uppercase text-success">{Number(tier.capacity).toLocaleString('en-IN')} passes available</span>
+          )}
+          {showBar && (
             <div className="space-y-1.5 text-left">
               <div className="flex justify-between font-mono text-[10px] font-bold uppercase">
                 <span className={stock.soldOut ? 'text-text-muted' : stock.low ? 'text-danger' : 'text-success'}>
@@ -194,6 +217,9 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
   const featuredTierIdx = tiers.findIndex((t) => t.tierId === 'vip');
   const countdown = useEventCountdown(ev.eventDays);
   const merch = ev.addOns || [];
+  const soloTier = tiers.length === 1 ? tiers[0] : null;
+  // Phones open the options panel only when it holds a choice (several tiers) or extras.
+  const mobileOptions = tiers.length > 1 || merch.length > 0;
 
   return (
     <article className="event-card relative group min-w-0">
@@ -266,9 +292,21 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   {ev.name}
                 </h2>
 
-                <p className="text-xs sm:text-sm text-text-muted leading-relaxed max-w-2xl">
-                  {ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'}
-                </p>
+                <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} />
+
+                {/* One ticket type: on phones its perks sit here, so there is no separate options panel to open. */}
+                {soloTier?.perks?.length > 0 && (
+                  <div className="md:hidden">
+                    <span className="block mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Your pass includes</span>
+                    <ul className="flex flex-wrap gap-1.5">
+                      {soloTier.perks.map((perk, i) => (
+                        <li key={i} className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 border border-white/10 px-2.5 py-1.5 font-mono text-[11px] text-text">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-info" /> {perk}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Feature chips */}
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-xs">
@@ -341,7 +379,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           </div>
 
           {/* Keep mobile event browsing compact; full options stay visible on larger screens. */}
-          {(tiers.length > 0 || merch.length > 0) && (
+          {mobileOptions && (
             <button
               type="button"
               aria-expanded={detailsExpanded}
@@ -353,7 +391,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 <span className="block font-comic text-lg tracking-wide text-primary">{detailsExpanded ? 'Hide pass options' : 'View pass options'}</span>
                 <span className="block font-mono text-[10px] text-text-muted">
                   {[
-                    tiers.length > 0 && `${tiers.length} ${tiers.length === 1 ? 'tier' : 'tiers'}`,
+                    tiers.length > 1 && `${tiers.length} tiers`,
                     merch.length > 0 && `${merch.length} ${merch.length === 1 ? 'extra' : 'extras'}`
                   ].filter(Boolean).join(' · ')}
                 </span>
@@ -365,13 +403,13 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           <div id={detailsId} className={`event-options ${detailsExpanded ? 'block' : 'hidden'} md:block`}>
           {/* ===== Pass tiers ===== */}
           {tiers.length > 0 && (
-            <div className="border-t-2 border-white/10 p-4 sm:p-6 xl:p-8 bg-[#0B0B16]">
+            <div className={`border-t-2 border-white/10 p-4 sm:p-6 xl:p-8 bg-[#0B0B16] ${soloTier ? 'hidden md:block' : ''}`}>
               <div className="flex flex-wrap items-end justify-between gap-2 mb-5">
                 <div>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">{tiers.length === 1 ? 'Your ticket' : 'Pick your experience'}</span>
-                  <h3 className="font-comic text-2xl sm:text-3xl text-white uppercase tracking-wide">{tiers.length === 1 ? 'One pass, all in' : 'Choose your pass tier'}</h3>
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">{soloTier ? 'Your ticket' : 'Pick your experience'}</span>
+                  <h3 className="font-comic text-2xl sm:text-3xl text-white uppercase tracking-wide">{soloTier ? 'One pass, all in' : 'Choose your pass tier'}</h3>
                 </div>
-                <span className="text-[11px] font-mono text-text-muted">{tiers.length === 1 ? 'Instant QR • works offline at the gate' : 'VIP perks, green rooms & stage access'}</span>
+                {!soloTier && <span className="text-[11px] font-mono text-text-muted">VIP perks, green rooms & stage access</span>}
               </div>
 
               {tiers.length === 1 ? (
