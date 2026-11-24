@@ -7,7 +7,7 @@ import { stockInfo } from '../utils/stock';
 import {
   ArrowLeft, ArrowRight, Lock, AlertCircle, CheckCircle, RefreshCw, ShieldCheck,
   X, Users, User, Tag, ShoppingBag, Check, Zap, HeartHandshake, Ticket, MapPin, Mail, Smartphone,
-  Shirt, Coffee, Car, Crown, ChevronDown
+  Shirt, Coffee, Car, Crown, ChevronDown, Sparkles
 } from 'lucide-react';
 
 // Shared input look for the checkout form (border colour is added per field)
@@ -586,41 +586,79 @@ export default function CheckoutPage() {
               </section>
 
               {/* ===== 2. Group booking ===== */}
-              <section className={`rounded-3xl border-2 p-4 sm:p-5 shadow-[4px_4px_0_#000] transition-colors ${isGroupBooking ? 'bg-accent/10 border-accent' : 'bg-[#0D0D1A]/90 border-white/10'}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <IconTile icon={Users} a="#FF2E88" b="#FFD60A" size="sm" />
-                    <div>
-                      <span className="font-comic text-xl text-white tracking-wide block leading-tight">Coming with friends?</span>
-                      <span className="text-[11px] font-mono text-text-muted">Book up to 8 passes in one order — each attendee gets an individual QR pass</span>
-                    </div>
-                  </div>
-                  {/* Toggle switch */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={isGroupBooking}
-                    aria-label="Group booking"
-                    onClick={() => setIsGroupBooking(!isGroupBooking)}
-                    className={`relative w-14 h-8 rounded-full border-2 border-black shadow-[2px_2px_0_#000] transition-colors shrink-0 cursor-pointer ${isGroupBooking ? 'bg-accent' : 'bg-white/10'}`}
-                  >
-                    <span className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white border-2 border-black transition-all ${isGroupBooking ? 'left-[26px]' : 'left-0.5'}`} />
-                  </button>
-                </div>
+              {/* Stands out on purpose: booking for a group in one go is easy to miss otherwise. */}
+              <section className="relative mt-3">
+                {/* Glow behind the card, stronger once switched on */}
+                <div
+                  className={`absolute -inset-1 rounded-[1.75rem] blur-xl transition-opacity duration-500 ${isGroupBooking ? 'opacity-60' : 'opacity-35 motion-safe:animate-pulse'}`}
+                  style={{ background: 'linear-gradient(110deg, #FF2E88, #FFD60A, #22D3EE)' }}
+                  aria-hidden="true"
+                />
+                <div className="relative rounded-3xl p-[2px] shadow-[5px_5px_0_#000]" style={{ background: 'linear-gradient(110deg, #FF2E88, #FFD60A 55%, #22D3EE)' }}>
+                  <div className="relative rounded-[calc(1.5rem-2px)] overflow-hidden p-4 sm:p-5" style={{ background: isGroupBooking ? 'linear-gradient(135deg, #2A0F22, #14102A 60%, #0D0D1A)' : 'linear-gradient(135deg, #1C0F1E, #0D0D1A 65%)' }}>
+                    <div className="absolute inset-0 bg-halftone opacity-25 pointer-events-none" aria-hidden="true" />
+
+                    {/* Sticker */}
+                    <span className="absolute top-0 right-4 sm:right-5 -translate-y-px inline-flex items-center gap-1 rounded-b-lg border-2 border-t-0 border-black bg-primary px-2.5 py-0.5 font-comic text-xs tracking-wider text-black">
+                      <Sparkles className="w-3 h-3" /> SQUAD DEAL
+                    </span>
+
+                    {/* The whole row switches group booking on and off */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isGroupBooking}
+                      aria-label="Group booking: book passes for friends in one order"
+                      onClick={() => setIsGroupBooking(!isGroupBooking)}
+                      className="relative w-full flex items-center gap-3 sm:gap-4 text-left cursor-pointer"
+                    >
+                      {/* Avatar stack */}
+                      <span className="relative shrink-0 w-14 h-12 sm:w-16 sm:h-14" aria-hidden="true">
+                        {[['#FF2E88', 'left-0 top-1'], ['#FFD60A', 'left-4 sm:left-5 top-0'], ['#22D3EE', 'left-8 sm:left-9 top-2']].map(([color, pos], i) => (
+                          <span key={i} className={`absolute ${pos} grid place-items-center w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 border-black shadow-[2px_2px_0_#000]`} style={{ background: color }}>
+                            <User className="w-4 h-4 text-black" />
+                          </span>
+                        ))}
+                      </span>
+
+                      <span className="min-w-0 flex-1 pt-2 sm:pt-1">
+                        <span className="block font-comic text-2xl sm:text-3xl leading-none tracking-wide bg-gradient-to-r from-accent via-primary to-info bg-clip-text text-transparent drop-shadow-[2px_2px_0_#000]">
+                          Coming with friends?
+                        </span>
+                        <span className="mt-1.5 block text-xs sm:text-[13px] text-white/80 leading-snug">
+                          Book <strong className="text-primary">up to 8 passes</strong> in one order. Everyone gets their <strong className="text-info">own QR pass</strong>.
+                        </span>
+                      </span>
+
+                      {/* Toggle */}
+                      <span
+                        className={`relative shrink-0 w-[4.25rem] h-9 rounded-full border-2 border-black shadow-[3px_3px_0_#000] transition-colors ${isGroupBooking ? 'bg-accent' : 'bg-white/10'}`}
+                        aria-hidden="true"
+                      >
+                        <span className={`absolute inset-y-0 grid place-items-center font-mono text-[9px] font-bold ${isGroupBooking ? 'left-2 text-white' : 'right-2 text-white/60'}`}>{isGroupBooking ? 'ON' : 'OFF'}</span>
+                        <span className={`absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white border-2 border-black transition-all ${isGroupBooking ? 'left-[calc(100%-1.95rem)]' : 'left-0.5'}`} />
+                      </span>
+                    </button>
+
+                    {!isGroupBooking && (
+                      <p className="relative mt-3 pl-[4.25rem] sm:pl-20 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                        Tap to add your squad →
+                      </p>
+                    )}
 
                 {isGroupBooking && (
-                  <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+                  <div className="relative mt-4 pt-4 border-t border-white/15 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <span className="text-xs font-mono text-text-muted font-bold uppercase block">How many tickets?</span>
                       <span className="text-[10px] font-mono text-primary font-bold">Every person gets their own distinct QR code for gate entry</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    <div className="w-full sm:w-auto grid grid-cols-7 sm:flex gap-1.5 sm:gap-2">
                       {[2, 3, 4, 5, 6, 7, 8].map(num => (
                         <button
                           key={num}
                           type="button"
                           onClick={() => setGroupSize(num)}
-                          className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl font-comic text-lg sm:text-xl border-2 border-black flex items-center justify-center transition-all cursor-pointer ${
+                          className={`w-full aspect-square sm:w-11 sm:h-11 sm:aspect-auto rounded-xl font-comic text-lg sm:text-xl border-2 border-black flex items-center justify-center transition-all cursor-pointer ${
                             groupSize === num
                               ? 'bg-primary text-black shadow-[3px_3px_0_#000] -translate-y-0.5'
                               : 'bg-white/5 text-text hover:bg-white/10'
@@ -632,6 +670,8 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
+                  </div>
+                </div>
               </section>
 
               {/* ===== 3. Attendees ===== */}
