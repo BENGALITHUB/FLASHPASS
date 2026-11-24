@@ -23,6 +23,7 @@ export default function BoxOfficePOSPage() {
   const [tokenInput, setTokenInput] = useState('');
   const [activeToken, setActiveToken] = useState(null);
   const [guest, setGuest] = useState({ name: '', phone: '' });
+  const [guestNames, setGuestNames] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [tierId, setTierId] = useState('general');
   const [extras, setExtras] = useState({});
@@ -142,8 +143,9 @@ export default function BoxOfficePOSPage() {
   // picture per guest instead, for the cashier to attach together.
   const sendWhatsApp = async () => {
     if (!receipt || !isMobile(waPhone) || waBusy) return;
-    const name = receipt.pass?.holderName || 'there';
     const count = receipt.quantity || 1;
+    // In a group the first pass may carry another guest's name, so greet the buyer.
+    const name = (count > 1 ? guest.name.trim() : receipt.pass?.holderName) || 'there';
     const passes = (receipt.passes?.length ? receipt.passes : [receipt.pass])
       .map(p => (p.orderId === receipt.pass?.orderId ? { ...p, ...receipt.pass } : p));
     if (passes.some(p => !p.qrToken)) {
@@ -161,7 +163,8 @@ export default function BoxOfficePOSPage() {
     if (passes.length > 1) {
       // A clipboard holds one image, so a group gets one named picture per guest in Downloads.
       // The cashier selects them all in the chat's attach menu and sends them together.
-      const baseName = (receipt.pass?.holderName || 'Guest').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Guest';
+      // Each file is named after the guest on that pass, so the buyer knows whom to forward it to.
+      const fileName = p => String(p.holderName || 'Guest').replace(/\(\d+\/\d+\)/, '').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Guest';
       let saved = 0;
       try {
         const { passImageBlob } = await imageModule;
@@ -169,7 +172,7 @@ export default function BoxOfficePOSPage() {
           const url = URL.createObjectURL(await passImageBlob(passes[i], i, passes.length));
           const link = document.createElement('a');
           link.href = url;
-          link.download = `FlashPass_${baseName}_${i + 1}-of-${passes.length}.png`;
+          link.download = `FlashPass_${i + 1}-of-${passes.length}_${fileName(passes[i])}.png`;
           link.click();
           setTimeout(() => URL.revokeObjectURL(url), 10000);
           saved++;
@@ -217,6 +220,7 @@ export default function BoxOfficePOSPage() {
     setTokenInput('');
     setActiveToken(null);
     setGuest({ name: '', phone: '' });
+    setGuestNames([]);
     setQuantity(1);
     setTierId('general');
     setExtras({});
@@ -258,6 +262,7 @@ export default function BoxOfficePOSPage() {
         if (!requestId.current) requestId.current = crypto.randomUUID();
         result = await api.posWalkin({
           name: guest.name.trim() || 'Walk-in Guest', phone: guest.phone, quantity, tierId: tier.tierId,
+          guestNames: quantity > 1 ? Array.from({ length: quantity }, (_, i) => (guestNames[i] || '').trim()) : [],
           addOns: extraLines.map(({ addOnId, variant, quantity: count }) => ({ addOnId, variant, quantity: count })),
           cashTenderedPaise: cashPaise, expectedAmountPaise: amount, requestId: requestId.current
         });
@@ -364,7 +369,7 @@ export default function BoxOfficePOSPage() {
                 <div className="pos-lookup-row"><div className="pos-phone-input"><span>+91</span><input id="pos-wa-phone" type="tel" inputMode="numeric" placeholder="10-digit mobile number" autoComplete="off" maxLength={10} value={waPhone} aria-invalid={Boolean(waPhone) && !isMobile(waPhone)} onChange={e => setWaPhone(e.target.value.replace(/\D/g, ''))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendWhatsApp(); } }} /></div><button type="button" className="pos-button pos-button-secondary" disabled={!isMobile(waPhone) || waBusy} onClick={sendWhatsApp}>{waBusy ? <Loader2 size={16} className="pos-spin" /> : <MessageCircle size={16} />} Send ticket on WhatsApp</button></div>
                 {waPhone && !isMobile(waPhone) && <p className="pos-field-error">Enter 10 digits starting with 6, 7, 8 or 9.</p>}
                 {receipt.quantity > 1 ? <ol className="pos-wa-steps">
-                  <li>Check the buyer's number and click <strong>Send ticket on WhatsApp</strong>. One picture per guest ({receipt.quantity} in all, named with the buyer's name) is saved to Downloads.</li>
+                  <li>Check the buyer's number and click <strong>Send ticket on WhatsApp</strong>. One picture per guest ({receipt.quantity} in all, each named after its guest) is saved to Downloads.</li>
                   <li>The buyer's chat opens with a message. Click the attach (<strong>+</strong>) button, choose <strong>Photos &amp; videos</strong>, and select all {receipt.quantity} <strong>FlashPass_…</strong> pictures in Downloads.</li>
                   <li>Tap <strong>Send</strong>. The buyer can forward each guest their own picture.</li>
                 </ol> : <ol className="pos-wa-steps">
@@ -391,6 +396,14 @@ export default function BoxOfficePOSPage() {
                 {!phoneValid && <p id="pos-phone-error" className="pos-field-error">Enter 10 digits starting with 6, 7, 8 or 9, or leave this blank.</p>}
                 <label htmlFor="pos-quantity">Number of tickets <span>up to {maxTickets}</span></label>
                 <div className="pos-quantity"><button type="button" aria-label="One less ticket" disabled={Boolean(busy) || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><Minus size={18} /></button><output id="pos-quantity" aria-live="polite"><Users size={17} /> {ticketsLabel(quantity)}</output><button type="button" aria-label="One more ticket" disabled={Boolean(busy) || quantity >= maxTickets} onClick={() => setQuantity(quantity + 1)}><Plus size={18} /></button></div>
+                {quantity > 1 && <>
+                  <span className="pos-field-label pos-extras-label" id="pos-guest-names-label">Name on each ticket <span>optional</span></span>
+                  <div className="pos-guest-names" role="group" aria-labelledby="pos-guest-names-label">{Array.from({ length: quantity }, (_, i) => <div className="pos-guest-name-row" key={i}>
+                    <span aria-hidden="true">{i + 1}</span>
+                    <input form="pos-payment-form" aria-label={`Name on ticket ${i + 1}`} placeholder={`${guest.name.trim() || 'Walk-in Guest'} (${i + 1}/${quantity})`} autoComplete="off" maxLength={60} value={guestNames[i] || ''} disabled={Boolean(busy)} onChange={e => setGuestNames(names => { const next = [...names]; next[i] = e.target.value; return next; })} />
+                  </div>)}</div>
+                  <p className="pos-guest-names-help">Leave a box blank to use the name shown in it.</p>
+                </>}
                 {catalog.length > 0 && <>
                   <span className="pos-field-label pos-extras-label">Extras <span>optional</span></span>
                   <div className="pos-extras">{catalog.map(item => {

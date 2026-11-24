@@ -182,6 +182,12 @@ test('a walk-in for four guests charges four tickets and issues one pass per gue
   assert.equal(created.organizerSharePaise + created.platformFeePaise, 56000);
   assert.equal(created.isGroupBooking, true);
   assert.deepEqual(created.attendees.map(a => a.name), ['Rahul (1/4)', 'Rahul (2/4)', 'Rahul (3/4)', 'Rahul (4/4)']);
+  // Guests can be named one by one; anyone left blank keeps the buyer's label.
+  await walkinSale(req({ name: 'Rahul', quantity: 4, guestNames: ['Rahul', ' Priya ', '', null], cashTenderedPaise: 60000, expectedAmountPaise: 56000 }), response());
+  assert.deepEqual(created.attendees.map(a => a.name), ['Rahul', 'Priya', 'Rahul (3/4)', 'Rahul (4/4)']);
+  const tooLong = response();
+  await walkinSale(req({ name: 'Rahul', quantity: 2, guestNames: ['x'.repeat(61)], cashTenderedPaise: 60000 }), tooLong);
+  assert.equal(tooLong.body.error.code, 'INVALID_NAME');
 });
 test('undo reverses every pass in a group sale, and refuses if any was used', async t => {
   const session = {};

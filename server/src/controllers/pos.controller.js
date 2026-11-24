@@ -114,10 +114,13 @@ export const confirmTokenPayment = async (req, res) => {
 
 export const walkinSale = async (req, res) => {
   try {
-    const { name, phone, quantity = 1, tierId = 'general', addOns: extras = [], cashTenderedPaise, expectedAmountPaise, requestId } = req.body;
+    const { name, phone, quantity = 1, guestNames = [], tierId = 'general', addOns: extras = [], cashTenderedPaise, expectedAmountPaise, requestId } = req.body;
     const guestName = typeof name === 'string' && name.trim() ? name.trim() : 'Walk-in Guest';
     const guestPhone = typeof phone === 'string' ? phone.trim() : '';
     if (guestName.length > 60) throw posError('Guest name must be 60 characters or fewer.', 'INVALID_NAME');
+    if (!Array.isArray(guestNames) || guestNames.length > 20 || guestNames.some(n => n != null && (typeof n !== 'string' || n.trim().length > 60))) {
+      throw posError('Each guest name must be 60 characters or fewer.', 'INVALID_NAME');
+    }
     if (guestPhone && !/^[6-9]\d{9}$/.test(guestPhone)) throw posError('Enter a valid 10-digit mobile number, or leave it blank.', 'INVALID_PHONE');
     if (requestId !== undefined && (typeof requestId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId))) throw posError('Invalid sale reference. Start a new sale.', 'INVALID_REQUEST');
     const posRequestId = requestId ? `${req.user._id}:${requestId}` : undefined;
@@ -153,9 +156,10 @@ export const walkinSale = async (req, res) => {
         subtotalPaise: pricing.basePricePaise * quantity, addOns: addOns.addOns,
         amountPaise: pricing.amountPaise * quantity + addOns.totalPaise,
         organizerSharePaise: pricing.organizerSharePaise * quantity + addOns.totalPaise, platformFeePaise: pricing.platformFeePaise * quantity,
-        // Each guest gets their own pass and QR, labelled so the group can tell them apart.
+        // Each guest gets their own pass and QR under their own name. A guest left unnamed gets
+        // the buyer's name with their place in the group, so the group can tell them apart.
         isGroupBooking: quantity > 1,
-        attendees: quantity > 1 ? Array.from({ length: quantity }, (_, i) => ({ name: `${guestName} (${i + 1}/${quantity})`, phone: holderPhone, tierId: pricing.tierId })) : [],
+        attendees: quantity > 1 ? Array.from({ length: quantity }, (_, i) => ({ name: guestNames[i]?.trim() || `${guestName} (${i + 1}/${quantity})`, phone: holderPhone, tierId: pricing.tierId })) : [],
         status: ORDER_STATUS.CREATED, cashierId: req.user._id, gateway: { provider: 'CASH', method: 'CASH' }
       }], { session });
       const { order, pass, passes } = await completeOrderAndIssuePass({ orderId, cashierId: req.user._id, session });
