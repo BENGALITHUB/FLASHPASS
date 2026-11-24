@@ -1,4 +1,5 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, CalendarDays, Users, Smartphone, Clock, CheckCircle2, RefreshCw,
@@ -134,101 +135,39 @@ function PriceBurst({ color, rupees, size = 'lg' }) {
   );
 }
 
-// With a single ticket type there is nothing to compare, so instead of one card stretched across
-// the row the pass is shown as a full ticket: details on the left, a torn-off price stub on the right.
-function SoloTierTicket({ tier, theme, onBook, skin = null }) {
-  const accent = skin ? skin.colors.burst : '#22D3EE';
-  const price = tier.pricePaise / 100;
-  const fee = (tier.platformFeePaise ?? 200) / 100;
-  const stock = stockInfo(tier.capacity, tier.soldCount);
-  const perks = tier.perks?.length ? tier.perks : ['Event admission'];
-  // A sales bar only means something once tickets are going; before that it is an empty track.
-  const showBar = tier.capacity > 0 && (stock.low || stock.soldOut || stock.pctSold >= 50);
-
-  return (
-    <div className="relative rounded-3xl p-[2px] shadow-[6px_6px_0_#000]" style={{ background: skin ? `linear-gradient(120deg, ${skin.colors.orange}, ${skin.colors.burst})` : `linear-gradient(120deg, ${accent}, ${theme.b} 60%, ${theme.a})` }}>
-      <div className="relative grid md:grid-cols-[minmax(0,1fr)_280px] rounded-[calc(1.5rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#11112A' }}>
-        {/* Ticket body */}
-        <div className="relative min-w-0 p-5 sm:p-7 overflow-hidden flex flex-col justify-center">
-          <div className="absolute inset-0 opacity-[0.16] pointer-events-none" style={{ background: skin ? `radial-gradient(circle at 100% 120%, ${skin.colors.orange}, transparent 55%)` : `radial-gradient(circle at 0% 0%, ${accent}, transparent 50%), radial-gradient(circle at 90% 120%, ${theme.b}, transparent 55%)` }} />
-          <div className="absolute inset-0 bg-halftone opacity-30 pointer-events-none" />
-          <Ticket className="absolute -right-6 -bottom-8 w-48 h-48 rotate-[-18deg] pointer-events-none" style={{ color: accent, opacity: 0.06 }} aria-hidden="true" />
-
-          <div className="relative">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold border-2 border-black text-black" style={{ background: accent }}>
-                {tier.badge || 'PASS'}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-white/5 border border-white/10 text-text">
-                <CheckCircle2 className="w-3 h-3 text-success" /> Everything included
-              </span>
-            </div>
-
-            <h4 className={`mt-3 text-white leading-tight uppercase [overflow-wrap:anywhere] ${skin ? 'font-display text-4xl sm:text-5xl tracking-[0.04em]' : 'font-comic text-3xl sm:text-4xl'}`} style={{ textShadow: `3px 3px 0 #000` }}>
-              {tier.name}
-            </h4>
-
-            {/* What the pass gets you */}
-            <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
-              {perks.map((perk, i) => (
-                <li key={i} className="flex items-center gap-2.5 rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 font-mono text-xs text-text">
-                  <span className="grid place-items-center w-6 h-6 rounded-lg shrink-0 border border-black" style={{ background: `${accent}26` }}>
-                    <CheckCircle2 className="w-3.5 h-3.5" style={{ color: accent }} />
-                  </span>
-                  <span className="min-w-0">{perk}</span>
-                </li>
-              ))}
-            </ul>
+// Phones book from a bar pinned to the bottom of the screen, like an app's checkout bar. It slides
+// in while its event card is on screen, so the price and button are always under the thumb.
+function MobileBookingBar({ show, skin, theme, priceLabel, totalRupees, dateRange, soldOut, onBook }) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div
+      className={`md:hidden fixed inset-x-0 bottom-0 z-[60] px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-all duration-300 ease-out ${show ? 'translate-y-0 opacity-100 visible' : 'translate-y-full opacity-0 invisible'}`}
+      aria-hidden={!show}
+    >
+      <div
+        className="flex items-center gap-3 rounded-2xl border-2 border-black p-2.5 pl-3.5 shadow-[0_-8px_30px_rgba(0,0,0,0.55),4px_4px_0_#000] backdrop-blur-md"
+        style={{ background: skin ? 'rgba(17,17,17,0.94)' : 'rgba(18,18,36,0.94)' }}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-1.5">
+            <span className={`leading-none ${skin ? 'font-display text-3xl' : 'font-comic text-2xl'}`} style={{ color: theme.a }}>₹{priceLabel}</span>
+            <span className="font-mono text-[10px] text-white/60">/ person</span>
           </div>
+          <span className="block truncate font-mono text-[10px] text-white/70">₹{totalRupees} at checkout{dateRange ? ` • ${dateRange}` : ''}</span>
         </div>
-
-        {/* Price stub, torn off along the dashed line */}
-        <div className="relative min-w-0 flex flex-col justify-center gap-3 p-5 sm:p-6 bg-[#0B0B1C] border-t-2 md:border-t-0 md:border-l-2 border-dashed border-white/15 text-center">
-          <span className="hidden md:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-[#0B0B16]" aria-hidden="true" />
-          <span className="hidden md:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-[#0B0B16]" aria-hidden="true" />
-
-          <div className="flex flex-col items-center">
-            <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Per person</span>
-            {skin ? <PriceBurst color={skin.colors.burst} rupees={price} size="sm" /> : (
-            <div className="font-comic text-5xl sm:text-6xl leading-none mt-1" style={{ color: accent, textShadow: '3px 3px 0 #000' }}>
-              ₹{price.toFixed(price % 1 ? 2 : 0)}
-            </div>
-            )}
-            <span className="block mt-1.5 font-mono text-[10px] text-text-muted">+ ₹{fee.toFixed(2)} fee • ₹{(price + fee).toFixed(2)} at checkout</span>
-          </div>
-
-          {tier.capacity > 0 && !showBar && (
-            <span className="font-mono text-[10px] font-bold uppercase text-success">{Number(tier.capacity).toLocaleString('en-IN')} passes available</span>
-          )}
-          {showBar && (
-            <div className="space-y-1.5 text-left">
-              <div className="flex justify-between font-mono text-[10px] font-bold uppercase">
-                <span className={stock.soldOut ? 'text-text-muted' : stock.low ? 'text-danger' : 'text-success'}>
-                  {stock.soldOut ? 'Sold out' : stock.low ? `Only ${stock.left} left` : 'Available'}
-                </span>
-                <span className="text-text-muted">{Number(tier.capacity).toLocaleString('en-IN')} passes</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${Math.max(stock.pctSold, 3)}%`, background: stock.low ? 'linear-gradient(90deg,#FB923C,#EF4444)' : `linear-gradient(90deg, ${accent}, ${theme.b})` }} />
-              </div>
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={stock.soldOut}
-            onClick={onBook}
-            className={`w-full min-h-12 inline-flex items-center justify-center gap-1.5 border-2 ${skin ? 'rounded-2xl font-display text-2xl tracking-[0.12em]' : 'rounded-xl font-comic text-xl tracking-wide'}  border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0`}
-            style={{ background: skin ? skin.colors.button : accent }}
-          >
-            {stock.soldOut ? 'SOLD OUT' : <>GET YOUR PASS <ArrowRight className="w-5 h-5 shrink-0" /></>}
-          </button>
-          <span className="inline-flex items-center justify-center gap-1.5 font-mono text-[10px] text-text-muted">
-            <Clock className="w-3.5 h-3.5" /> 30-second UPI checkout
-          </span>
-        </div>
+        <button
+          type="button"
+          tabIndex={show ? 0 : -1}
+          disabled={soldOut}
+          onClick={onBook}
+          className={`shrink-0 min-h-12 inline-flex items-center justify-center gap-1.5 px-5 rounded-xl border-2 border-black text-black shadow-[3px_3px_0_#000] active:translate-y-0.5 active:shadow-[1px_1px_0_#000] transition-all touch-manipulation disabled:opacity-50 ${skin ? 'font-display text-xl tracking-[0.12em]' : 'font-comic text-lg tracking-wide bg-primary'}`}
+          style={skin ? { background: skin.colors.button } : undefined}
+        >
+          {soldOut ? 'SOLD OUT' : <>BOOK PASS <ArrowRight className="w-4 h-4" /></>}
+        </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -251,8 +190,44 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
   // Phones open the options panel only when it holds a choice (several tiers) or extras.
   const mobileOptions = tiers.length > 1 || merch.length > 0;
 
+  // One place to book: the price stub (tablet and up) or the bottom bar (phones). With one ticket
+  // type the price, total and stock are that type's own.
+  const priceRupees = soloTier ? soloTier.pricePaise / 100 : Number(ev.basePriceRupees) || 0;
+  const feeRupees = soloTier ? (soloTier.platformFeePaise ?? Math.round(Number(ev.platformFeeRupees) * 100)) / 100 : Number(ev.platformFeeRupees) || 0;
+  const priceLabel = priceRupees % 1 ? priceRupees.toFixed(2) : String(priceRupees);
+  const totalRupees = (priceRupees + feeRupees).toFixed(2);
+  const stock = soloTier ? stockInfo(soloTier.capacity, soloTier.soldCount) : null;
+  const soldOut = Boolean(stock?.soldOut);
+  const availability = soloTier?.capacity > 0 ? (
+    stock.soldOut ? { label: 'Sold out', tone: 'text-text-muted' }
+      : stock.low ? { label: `Only ${stock.left} left`, tone: 'text-danger' }
+        : { label: `${Number(soloTier.capacity).toLocaleString('en-IN')} passes available`, tone: 'text-success' }
+  ) : null;
+  const book = () => navigate(`/buy?eventId=${ev.eventId}${soloTier ? `&tier=${soloTier.tierId}` : ''}${refQuery}`);
+
+  // The phone booking bar shows while this card fills the middle of the screen.
+  const cardRef = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const node = cardRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: '-30% 0px -30% 0px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <article className="event-card relative group min-w-0">
+    <article ref={cardRef} className="event-card relative group min-w-0">
+      <MobileBookingBar
+        show={inView}
+        skin={skin}
+        theme={theme}
+        priceLabel={priceLabel}
+        totalRupees={totalRupees}
+        dateRange={dateRange}
+        soldOut={soldOut}
+        onBook={book}
+      />
       {/* Ambient glow */}
       <div
         className="absolute -inset-2 rounded-[2rem] blur-2xl opacity-25 group-hover:opacity-40 transition-opacity duration-500"
@@ -261,7 +236,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
       {/* Gradient border */}
       <div
-        className="relative rounded-[1.75rem] p-[2px] shadow-[8px_8px_0_#000]"
+        className="relative rounded-[1.5rem] sm:rounded-[1.75rem] p-[2px] shadow-[4px_4px_0_#000] sm:shadow-[8px_8px_0_#000]"
         style={{ background: `linear-gradient(135deg, ${theme.a}, ${theme.b} 55%, ${theme.a})` }}
       >
         <div className="relative rounded-[calc(1.75rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#0D0D1A' }}>
@@ -285,7 +260,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
               <div className="relative space-y-3 sm:space-y-4">
                 {/* Status + meta chips */}
-                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px] font-bold">
+                <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar items-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px] font-bold [&>span]:shrink-0 [&>span]:whitespace-nowrap">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 border-black shadow-[2px_2px_0_#000] ${salesOpen ? 'bg-success text-white' : 'bg-warning text-black'}`}>
                     <span className="relative flex w-2 h-2">
                       {salesOpen && <span className="absolute inline-flex w-full h-full rounded-full bg-white opacity-75 animate-ping" />}
@@ -300,16 +275,16 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                       <span className="hidden sm:inline">{countdown.label}</span>
                     </span>
                   )}
-                  {ev.venue && (
-                    <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-text">
-                      <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: theme.a }} />
-                      <span className="min-w-0 break-words">{ev.venue}</span>
-                    </span>
-                  )}
                   {dateRange && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-text">
                       <CalendarDays className="w-3.5 h-3.5" style={{ color: theme.b }} />
                       {dateRange}
+                    </span>
+                  )}
+                  {ev.venue && (
+                    <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-text">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: theme.a }} />
+                      <span className="min-w-0 break-words">{ev.venue}</span>
                     </span>
                   )}
                 </div>
@@ -339,29 +314,32 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
                 <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} band={skin?.colors.orange} />
 
-                {/* One ticket type: on phones its perks sit here, so there is no separate options panel to open. */}
+                {/* One ticket type: what it includes sits here; it is booked from the price stub. */}
                 {soloTier?.perks?.length > 0 && (
-                  <div className="md:hidden">
+                  <div>
                     <span className="block mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Your pass includes</span>
-                    <ul className="flex flex-wrap gap-1.5">
+                    <ul className="flex flex-wrap gap-1.5 sm:gap-2">
                       {soloTier.perks.map((perk, i) => (
-                        <li key={i} className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 border border-white/10 px-2.5 py-1.5 font-mono text-[11px] text-text">
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: skin ? theme.a : '#22D3EE' }} /> {perk}
+                        <li key={i} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/15 pl-1.5 pr-3 py-1 font-mono text-[11px] sm:text-xs text-white">
+                          <span className="grid place-items-center w-5 h-5 rounded-full" style={{ background: `${skin ? theme.a : '#22D3EE'}26` }}>
+                            <CheckCircle2 className="w-3.5 h-3.5" style={{ color: skin ? theme.a : '#22D3EE' }} />
+                          </span>
+                          {perk}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* Feature chips */}
-                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-xs">
+                {/* Feature chips: a swipeable row on phones, wrapped on wider screens */}
+                <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar snap-x gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-xs">
                   {[
                     { icon: RefreshCw, label: ev.allowReentry !== false ? 'Re-Entry Allowed' : 'Single Entry', color: theme.a },
                     { icon: Smartphone, label: 'Offline PWA Pass', color: '#22D3EE' },
                     { icon: Clock, label: '30-Sec UPI Pay', color: '#FF2E88' },
                     { icon: Zap, label: '<500ms Gate Scan', color: '#FFD60A' }
                   ].map(({ icon: Icon, label, color }) => (
-                    <span key={label} className="min-w-0 inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-[#161626]/90 border border-border text-text">
+                    <span key={label} className="snap-start shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#161626]/90 border border-border text-text">
                       <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
                       <span className="min-w-0">{label}</span>
                     </span>
@@ -383,50 +361,62 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     </div>
                   ))}
                 </div>
+
+                {/* On phones the stub is replaced by the bottom bar; its cash option stays here. */}
+                <div className="md:hidden flex items-center justify-between gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-3.5 py-3">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" /> Instant pass • No app needed
+                  </span>
+                  <Link to={`/cash?eventId=${ev.eventId}`} className="shrink-0 inline-flex items-center gap-1 font-mono text-[11px] font-bold text-white active:opacity-70">
+                    <Banknote className="w-3.5 h-3.5" style={{ color: theme.a }} /> Pay cash
+                  </Link>
+                </div>
               </div>
             </div>
 
-            {/* Price stub with perforation */}
-            <div className={`event-booking relative min-w-0 border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-4 sm:p-6 lg:p-7 grid grid-cols-[minmax(0,1fr)_minmax(7.25rem,0.85fr)] items-center gap-x-3 gap-y-2 lg:flex lg:flex-col lg:justify-center lg:gap-0 lg:text-center ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            {/* The one place to book on tablets and up (phones use the bottom bar): price, total,
+                stock and the button. A row on tablets, the ticket's torn-off stub on laptops. */}
+            <div className={`event-booking relative min-w-0 hidden md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {/* Ticket notches (desktop) */}
               <span className="hidden lg:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
               <span className="hidden lg:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
 
-              {skin ? (
-                <div className="event-price min-w-0 flex flex-col items-start lg:items-center">
-                  <span className="block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">Passes from</span>
-                  <PriceBurst color={skin.colors.burst} rupees={ev.basePriceRupees} />
-                </div>
-              ) : (
-              <div className="event-price min-w-0">
-                <span className="block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Passes from</span>
-                <div className="font-comic text-4xl lg:text-6xl leading-none mt-1 lg:my-2 [overflow-wrap:anywhere]" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>
-                  ₹{ev.basePriceRupees}
-                </div>
+              <div className="event-price min-w-0 shrink-0 flex flex-col items-center">
+                <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white/70' : 'text-text-muted'}`}>Passes from</span>
+                {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} /> : (
+                  <div className="font-comic text-5xl lg:text-6xl leading-none mt-1 lg:my-2" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>₹{priceLabel}</div>
+                )}
               </div>
-              )}
-              <span className={`col-span-2 font-mono text-[10px] ${skin ? 'text-white/70' : 'text-text-muted'}`}>
-                + ₹{ev.platformFeeRupees} platform fee at checkout
-              </span>
 
-              <button
-                type="button"
-                onClick={() => navigate(`/buy?eventId=${ev.eventId}${refQuery}`)}
-                className={`event-book-button col-start-2 row-start-1 lg:mt-5 min-h-12 min-w-0 w-full inline-flex items-center justify-center gap-1.5 px-2 sm:px-5 py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer ${skin ? 'rounded-2xl font-display text-xl sm:text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-lg sm:text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
-                style={skin ? { background: skin.colors.button } : undefined}
-              >
-                <span>BOOK PASS</span> <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              </button>
+              <div className="min-w-0 flex-1 lg:flex-none flex flex-col gap-1 lg:items-center">
+                <span className={`font-mono text-[11px] lg:text-[10px] ${skin ? 'text-white/70' : 'text-text-muted'}`}>
+                  + ₹{feeRupees.toFixed(2)} fee • <span className="text-white font-bold">₹{totalRupees} at checkout</span>
+                </span>
+                {availability && <span className={`font-mono text-[10px] font-bold uppercase ${availability.tone}`}>{availability.label}</span>}
+                <span className="lg:hidden inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Instant pass • No app needed
+                </span>
+              </div>
 
-              <Link
-                to={`/cash?eventId=${ev.eventId}`}
-                className="col-span-2 min-h-9 lg:min-h-0 lg:mt-3 inline-flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-mono text-text-muted hover:text-warning transition-colors"
-              >
-                <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
-              </Link>
-
-              <div className="col-span-2 pt-2 lg:mt-5 lg:pt-4 border-t border-white/10 flex items-center justify-center gap-1.5 font-mono text-[10px] text-text-muted">
-                <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Instant pass • No app needed
+              <div className="w-56 lg:w-full shrink-0 flex flex-col items-stretch lg:mt-5">
+                <button
+                  type="button"
+                  disabled={soldOut}
+                  onClick={book}
+                  className={`event-book-button min-h-12 w-full inline-flex items-center justify-center gap-1.5 px-5 py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${skin ? 'rounded-2xl font-display text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
+                  style={skin ? { background: skin.colors.button } : undefined}
+                >
+                  {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-5 h-5 shrink-0" /></>}
+                </button>
+                <Link
+                  to={`/cash?eventId=${ev.eventId}`}
+                  className="mt-2.5 inline-flex items-center justify-center gap-1.5 text-xs font-mono text-text-muted hover:text-warning transition-colors"
+                >
+                  <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
+                </Link>
+                <div className="hidden lg:flex mt-5 pt-4 border-t border-white/10 items-center justify-center gap-1.5 font-mono text-[10px] text-text-muted">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Instant pass • No app needed
+                </div>
               </div>
             </div>
           </div>
@@ -454,20 +444,17 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           )}
 
           <div id={detailsId} className={`event-options ${detailsExpanded ? 'block' : 'hidden'} md:block`}>
-          {/* ===== Pass tiers ===== */}
-          {tiers.length > 0 && (
-            <div className={`border-t-2 border-white/10 p-4 sm:p-6 xl:p-8 bg-[#0B0B16] ${soloTier ? 'hidden md:block' : ''}`}>
+          {/* ===== Pass tiers: only when there is a choice to make. One tier is booked from the stub. ===== */}
+          {tiers.length > 1 && (
+            <div className="border-t-2 border-white/10 p-4 sm:p-6 xl:p-8 bg-[#0B0B16]">
               <div className="flex flex-wrap items-end justify-between gap-2 mb-5">
                 <div>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">{soloTier ? 'Your ticket' : 'Pick your experience'}</span>
-                  <h3 className="font-comic text-2xl sm:text-3xl text-white uppercase tracking-wide">{soloTier ? 'One pass, all in' : 'Choose your pass tier'}</h3>
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">Pick your experience</span>
+                  <h3 className="font-comic text-2xl sm:text-3xl text-white uppercase tracking-wide">Choose your pass tier</h3>
                 </div>
-                {!soloTier && <span className="text-[11px] font-mono text-text-muted">VIP perks, green rooms & stage access</span>}
+                <span className="text-[11px] font-mono text-text-muted">VIP perks, green rooms & stage access</span>
               </div>
 
-              {tiers.length === 1 ? (
-                <SoloTierTicket tier={tiers[0]} theme={theme} skin={skin} onBook={() => navigate(`/buy?eventId=${ev.eventId}&tier=${tiers[0].tierId}${refQuery}`)} />
-              ) : (
               <div className="ticket-tier-grid grid gap-4">
                 {tiers.map((tier, tIdx) => {
                   const tt = tier.tierId === 'vip' ? TIER_THEMES[1] : TIER_THEMES[tIdx % TIER_THEMES.length];
@@ -543,7 +530,6 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   );
                 })}
               </div>
-              )}
             </div>
           )}
 
