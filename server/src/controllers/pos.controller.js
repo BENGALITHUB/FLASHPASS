@@ -21,6 +21,22 @@ const maskedPhone = phone => (phone || '').replace(/(\d{2})\d{5}(\d{3})/, '$1•
 // A walk-in for several guests is one order whose passes are <orderId>, <orderId>-P2, <orderId>-P3…
 const orderPasses = orderId => ({ $or: [{ orderId }, { orderId: new RegExp(`^${orderId}-P\\d+$`) }] });
 const maxWalkinTickets = settings => Math.min(10, Math.max(1, Number(settings.maxPassesPerPhone) || 5));
+const checkQuantity = (quantity, settings) => {
+  const maxTickets = maxWalkinTickets(settings);
+  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > maxTickets) {
+    throw posError(`Choose between 1 and ${maxTickets} tickets for one sale.`, 'INVALID_QUANTITY');
+  }
+};
+const checkGuestNames = guestNames => {
+  if (!Array.isArray(guestNames) || guestNames.length > 20 || guestNames.some(n => n != null && (typeof n !== 'string' || n.trim().length > 60))) {
+    throw posError('Each guest name must be 60 characters or fewer.', 'INVALID_NAME');
+  }
+};
+// Each guest in a group gets their own pass and QR under their own name. A guest left unnamed
+// gets the buyer's name with their place in the group, so the group can tell them apart.
+const groupAttendees = (quantity, guestNames, buyerName, phone, tierId) => (quantity > 1
+  ? Array.from({ length: quantity }, (_, i) => ({ name: guestNames[i]?.trim() || `${buyerName} (${i + 1}/${quantity})`, phone, tierId }))
+  : []);
 const parseToken = value => {
   if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < 1) {
     throw posError('Enter a valid token number, for example C-142.', 'INVALID_TOKEN');
@@ -86,10 +102,15 @@ export const lookupToken = async (req, res) => {
 export const confirmTokenPayment = async (req, res) => {
   try {
     const tokenNo = parseToken(req.params.tokenNo);
-    const { cashTenderedPaise, expectedAmountPaise } = req.body;
-    const { settings, pricing, availability } = await cashContext();
+    const { cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = [] } = req.body;
+    const { settings, pricing, availability, tiers } = await cashContext();
     requireSales(availability);
-    validateCash(cashTenderedPaise, pricing.amountPaise, expectedAmountPaise);
+    // The token holder may pay for friends too: one order, one pass per guest.
+    checkQuantity(quantity, settings);
+    checkGuestNames(guestNames);
+    const remaining = tiers.find(tier => tier.tierId === 'general')?.remaining ?? null;
+    if (remaining !== null && quantity > remaining) throw posError(remaining ? `Only ${remaining} tickets left.` : 'Tickets are sold out.', 'SOLD_OUT', 409);
+    validateCash(cashTenderedPaise, pricing.amountPaise * quantity, expectedAmountPaise);
     const orderId = generateOrderId();
     const result = await mongoose.connection.transaction(async session => {
       // Claim and settle together, so simultaneous confirmations cannot issue two passes.
@@ -100,12 +121,14 @@ export const confirmTokenPayment = async (req, res) => {
       if (!token) throw posError('Token expired or already collected. Look it up again before taking cash.', 'TOKEN_UNAVAILABLE', 409);
       await Order.create([{
         orderId, cashTenderedPaise, channel: ORDER_CHANNELS.CASH_TOKEN, holderName: token.holderName, phone: token.phone,
-        amountPaise: pricing.amountPaise, organizerSharePaise: pricing.organizerSharePaise,
-        platformFeePaise: pricing.platformFeePaise, status: ORDER_STATUS.CREATED, cashierId: req.user._id,
+        amountPaise: pricing.amountPaise * quantity, organizerSharePaise: pricing.organizerSharePaise * quantity,
+        platformFeePaise: pricing.platformFeePaise * quantity, status: ORDER_STATUS.CREATED, cashierId: req.user._id,
+        isGroupBooking: quantity > 1,
+        attendees: groupAttendees(quantity, guestNames, token.holderName, token.phone),
         gateway: { provider: 'CASH', method: 'CASH' }
       }], { session });
-      const { order, pass } = await completeOrderAndIssuePass({ orderId, cashierId: req.user._id, session });
-      return saleResponse(order, pass, cashTenderedPaise, token);
+      const { order, pass, passes } = await completeOrderAndIssuePass({ orderId, cashierId: req.user._id, session });
+      return saleResponse(order, pass, cashTenderedPaise, token, passes);
     });
     emitTokenPaid(result.token._id.toString(), result.pass);
     return successResponse(res, result);
@@ -118,9 +141,7 @@ export const walkinSale = async (req, res) => {
     const guestName = typeof name === 'string' && name.trim() ? name.trim() : 'Walk-in Guest';
     const guestPhone = typeof phone === 'string' ? phone.trim() : '';
     if (guestName.length > 60) throw posError('Guest name must be 60 characters or fewer.', 'INVALID_NAME');
-    if (!Array.isArray(guestNames) || guestNames.length > 20 || guestNames.some(n => n != null && (typeof n !== 'string' || n.trim().length > 60))) {
-      throw posError('Each guest name must be 60 characters or fewer.', 'INVALID_NAME');
-    }
+    checkGuestNames(guestNames);
     if (guestPhone && !/^[6-9]\d{9}$/.test(guestPhone)) throw posError('Enter a valid 10-digit mobile number, or leave it blank.', 'INVALID_PHONE');
     if (requestId !== undefined && (typeof requestId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId))) throw posError('Invalid sale reference. Start a new sale.', 'INVALID_REQUEST');
     const posRequestId = requestId ? `${req.user._id}:${requestId}` : undefined;
@@ -137,10 +158,7 @@ export const walkinSale = async (req, res) => {
     requireSales(availability);
     const pricing = tiers.find(tier => tier.tierId === tierId);
     if (!pricing) throw posError('This ticket category is not on sale at the counter. Refresh and choose another.', 'INVALID_TIER', 409);
-    const maxTickets = maxWalkinTickets(settings);
-    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > maxTickets) {
-      throw posError(`Choose between 1 and ${maxTickets} tickets for one sale.`, 'INVALID_QUANTITY');
-    }
+    checkQuantity(quantity, settings);
     if (pricing.remaining !== null && quantity > pricing.remaining) {
       throw posError(pricing.remaining ? `Only ${pricing.remaining} ${pricing.name} left.` : `${pricing.name} is sold out.`, 'SOLD_OUT', 409);
     }
@@ -156,10 +174,8 @@ export const walkinSale = async (req, res) => {
         subtotalPaise: pricing.basePricePaise * quantity, addOns: addOns.addOns,
         amountPaise: pricing.amountPaise * quantity + addOns.totalPaise,
         organizerSharePaise: pricing.organizerSharePaise * quantity + addOns.totalPaise, platformFeePaise: pricing.platformFeePaise * quantity,
-        // Each guest gets their own pass and QR under their own name. A guest left unnamed gets
-        // the buyer's name with their place in the group, so the group can tell them apart.
         isGroupBooking: quantity > 1,
-        attendees: quantity > 1 ? Array.from({ length: quantity }, (_, i) => ({ name: guestNames[i]?.trim() || `${guestName} (${i + 1}/${quantity})`, phone: holderPhone, tierId: pricing.tierId })) : [],
+        attendees: groupAttendees(quantity, guestNames, guestName, holderPhone, pricing.tierId),
         status: ORDER_STATUS.CREATED, cashierId: req.user._id, gateway: { provider: 'CASH', method: 'CASH' }
       }], { session });
       const { order, pass, passes } = await completeOrderAndIssuePass({ orderId, cashierId: req.user._id, session });

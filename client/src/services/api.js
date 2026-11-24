@@ -170,11 +170,11 @@ export const api = {
     return handleResponse(res);
   },
 
-  posConfirmToken: async (tokenNo, cashTenderedPaise, expectedAmountPaise) => {
+  posConfirmToken: async (tokenNo, cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = []) => {
     const res = await fetch(`${BASE_URL}/pos/tokens/${tokenNo}/confirm`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ cashTenderedPaise, expectedAmountPaise })
+      body: JSON.stringify({ cashTenderedPaise, expectedAmountPaise, quantity, guestNames })
     });
     return handleResponse(res);
   },

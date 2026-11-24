@@ -123,8 +123,24 @@ export default function BoxOfficePOSPage() {
   const tier = tiers.find(t => t.tierId === tierId) || tiers[0];
   const tierSoldOut = tier?.remaining === 0;
   const pricing = receipt?.pricing || (mode === 'walkin' ? tier || config : activeToken || config);
-  const maxTickets = Math.max(1, Math.min(config?.maxWalkinTickets || 5, tier?.remaining ?? Infinity));
-  const saleQuantity = receipt ? receipt.quantity || 1 : mode === 'walkin' ? quantity : 1;
+  // A token is paid at the general price, so its group is limited by what general has left.
+  const saleTier = mode === 'walkin' ? tier : tiers.find(t => t.tierId === 'general');
+  const maxTickets = Math.max(1, Math.min(config?.maxWalkinTickets || 5, saleTier?.remaining ?? Infinity));
+  const saleQuantity = receipt ? receipt.quantity || 1 : mode === 'walkin' || activeToken ? quantity : 1;
+  const sentGuestNames = () => (quantity > 1 ? Array.from({ length: quantity }, (_, i) => (guestNames[i] || '').trim()) : []);
+  // Ticket count and one optional name box per guest; shared by walk-in and token sales.
+  const groupFields = buyerName => <>
+    <label htmlFor="pos-quantity">Number of tickets <span>up to {maxTickets}</span></label>
+    <div className="pos-quantity"><button type="button" aria-label="One less ticket" disabled={Boolean(busy) || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><Minus size={18} /></button><output id="pos-quantity" aria-live="polite"><Users size={17} /> {ticketsLabel(quantity)}</output><button type="button" aria-label="One more ticket" disabled={Boolean(busy) || quantity >= maxTickets} onClick={() => setQuantity(quantity + 1)}><Plus size={18} /></button></div>
+    {quantity > 1 && <>
+      <span className="pos-field-label pos-extras-label" id="pos-guest-names-label">Name on each ticket <span>optional</span></span>
+      <div className="pos-guest-names" role="group" aria-labelledby="pos-guest-names-label">{Array.from({ length: quantity }, (_, i) => <div className="pos-guest-name-row" key={i}>
+        <span aria-hidden="true">{i + 1}</span>
+        <input form="pos-payment-form" aria-label={`Name on ticket ${i + 1}`} placeholder={`${buyerName} (${i + 1}/${quantity})`} autoComplete="off" maxLength={60} value={guestNames[i] || ''} disabled={Boolean(busy)} onChange={e => setGuestNames(names => { const next = [...names]; next[i] = e.target.value; return next; })} />
+      </div>)}</div>
+      <p className="pos-guest-names-help">Leave a box blank to use the name shown in it.</p>
+    </>}
+  </>;
   const amount = Number.isSafeInteger(pricing?.amountPaise) ? pricing.amountPaise * saleQuantity + extrasPaise : undefined;
   const cashPaise = toPaise(cash);
   const tokenExpired = activeToken && new Date(activeToken.token.expiresAt).getTime() <= now;
@@ -145,7 +161,7 @@ export default function BoxOfficePOSPage() {
     if (!receipt || !isMobile(waPhone) || waBusy) return;
     const count = receipt.quantity || 1;
     // In a group the first pass may carry another guest's name, so greet the buyer.
-    const name = (count > 1 ? guest.name.trim() : receipt.pass?.holderName) || 'there';
+    const name = (count > 1 ? receipt.token?.holderName || guest.name.trim() : receipt.pass?.holderName) || 'there';
     const passes = (receipt.passes?.length ? receipt.passes : [receipt.pass])
       .map(p => (p.orderId === receipt.pass?.orderId ? { ...p, ...receipt.pass } : p));
     if (passes.some(p => !p.qrToken)) {
@@ -242,6 +258,9 @@ export default function BoxOfficePOSPage() {
     setError('');
     setActiveToken(null);
     setCash('');
+    // Each token starts as one ticket; the cashier adds friends paying with it.
+    setQuantity(1);
+    setGuestNames([]);
     try {
       const data = await api.posLookupToken(match[1]);
       setActiveToken(data);
@@ -262,12 +281,12 @@ export default function BoxOfficePOSPage() {
         if (!requestId.current) requestId.current = crypto.randomUUID();
         result = await api.posWalkin({
           name: guest.name.trim() || 'Walk-in Guest', phone: guest.phone, quantity, tierId: tier.tierId,
-          guestNames: quantity > 1 ? Array.from({ length: quantity }, (_, i) => (guestNames[i] || '').trim()) : [],
+          guestNames: sentGuestNames(),
           addOns: extraLines.map(({ addOnId, variant, quantity: count }) => ({ addOnId, variant, quantity: count })),
           cashTenderedPaise: cashPaise, expectedAmountPaise: amount, requestId: requestId.current
         });
       } else {
-        result = await api.posConfirmToken(activeToken.token.tokenNo, cashPaise, amount);
+        result = await api.posConfirmToken(activeToken.token.tokenNo, cashPaise, amount, quantity, sentGuestNames());
       }
       setReceipt({ ...result, pricing: { ...pricing } });
       const buyerPhone = String(result.pass?.phone || '').replace(/\D/g, '').slice(-10);
@@ -361,7 +380,7 @@ export default function BoxOfficePOSPage() {
             </div>
 
             {receipt ? <div className="pos-receipt" role="status">
-              <div className="pos-success-icon"><Check size={30} /></div><span className="pos-eyebrow">PAYMENT COMPLETE</span><h3>You're all set.</h3><p>{receipt.quantity > 1 ? <><strong>{receipt.quantity} tickets</strong> issued for <strong>{guest.name.trim() || 'Walk-in Guest'}</strong>'s group{receipt.tierName ? ` (${receipt.tierName})` : ''}. Each guest has their own QR.</> : <>A ticket has been issued to <strong>{receipt.pass.holderName}</strong>.</>}</p>
+              <div className="pos-success-icon"><Check size={30} /></div><span className="pos-eyebrow">PAYMENT COMPLETE</span><h3>You're all set.</h3><p>{receipt.quantity > 1 ? <><strong>{receipt.quantity} tickets</strong> issued for <strong>{receipt.token?.holderName || guest.name.trim() || 'Walk-in Guest'}</strong>'s group{receipt.tierName ? ` (${receipt.tierName})` : ''}. Each guest has their own QR.</> : <>A ticket has been issued to <strong>{receipt.pass.holderName}</strong>.</>}</p>
               {receipt.addOns?.length > 0 && <p className="pos-receipt-extras">Extras: {receipt.addOns.map(line => `${line.name}${line.variant ? ` (${line.variant})` : ''} ×${line.quantity}`).join(', ')}. The guest collects them by showing their pass QR.</p>}
               <div className="pos-receipt-details"><span>Order reference<strong>{receipt.orderId}</strong></span><span>Change to return<strong>{formatMoney(Math.round(Number(receipt.changeRupees) * 100))}</strong></span></div>
               <div className="pos-receipt-whatsapp">
@@ -386,6 +405,7 @@ export default function BoxOfficePOSPage() {
                   <div className="pos-ticket-top"><span><Ticket size={17} /> {activeToken.token.display}</span><span className={`pos-pill ${tokenExpired ? 'is-warning' : ''}`}>{tokenExpired ? 'Expired' : 'Ready to collect'}</span></div>
                   <h3>{activeToken.token.holderName}</h3><p>{activeToken.maskedPhone}</p>
                   <div className="pos-ticket-bottom"><span>{activeToken.badge || config?.badge || 'Event admission'}</span><span><Clock3 size={13} /> {tokenExpired ? 'Request a new token' : `Expires at ${timeLabel(activeToken.token.expiresAt)}`}</span></div>
+                  {!tokenExpired && <div className="pos-token-group">{groupFields(activeToken.token.holderName)}</div>}
                 </div> : <div className="pos-empty-state"><div className="pos-ticket-art" aria-hidden="true"><span className="pos-art-lines"><i /><i /><i /></span><Ticket size={34} strokeWidth={1.25} /><span className="pos-art-dots" /></div><h3>One token. One great experience.</h3><p>Find a guest's token to review their details<br />and collect their payment.</p><div className="pos-flow"><span><span>1</span> Find token</span><ChevronRight size={12} /><span><span>2</span> Collect cash</span><ChevronRight size={12} /><span><span>3</span> Issue ticket</span></div></div>}
               </> : <div className="pos-walkin">
                 <div className="pos-walkin-intro"><UserPlus size={20} /><div><strong>No token? No problem.</strong><p>Issue a ticket directly to a guest at the counter.</p></div></div>
@@ -394,16 +414,7 @@ export default function BoxOfficePOSPage() {
                 <label htmlFor="pos-guest-name">Guest name <span>optional</span></label><input id="pos-guest-name" ref={nameRef} form="pos-payment-form" placeholder="Walk-in Guest" autoComplete="off" maxLength={60} value={guest.name} disabled={Boolean(busy)} onChange={e => setGuest({ ...guest, name: e.target.value })} />
                 <label htmlFor="pos-guest-phone">Mobile number <span>optional</span></label><div className="pos-phone-input"><span>+91</span><input id="pos-guest-phone" form="pos-payment-form" type="tel" inputMode="numeric" placeholder="10-digit mobile number" autoComplete="off" maxLength={10} aria-invalid={!phoneValid} aria-describedby={!phoneValid ? 'pos-phone-error' : undefined} value={guest.phone} disabled={Boolean(busy)} onChange={e => setGuest({ ...guest, phone: e.target.value.replace(/\D/g, '') })} /></div>
                 {!phoneValid && <p id="pos-phone-error" className="pos-field-error">Enter 10 digits starting with 6, 7, 8 or 9, or leave this blank.</p>}
-                <label htmlFor="pos-quantity">Number of tickets <span>up to {maxTickets}</span></label>
-                <div className="pos-quantity"><button type="button" aria-label="One less ticket" disabled={Boolean(busy) || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><Minus size={18} /></button><output id="pos-quantity" aria-live="polite"><Users size={17} /> {ticketsLabel(quantity)}</output><button type="button" aria-label="One more ticket" disabled={Boolean(busy) || quantity >= maxTickets} onClick={() => setQuantity(quantity + 1)}><Plus size={18} /></button></div>
-                {quantity > 1 && <>
-                  <span className="pos-field-label pos-extras-label" id="pos-guest-names-label">Name on each ticket <span>optional</span></span>
-                  <div className="pos-guest-names" role="group" aria-labelledby="pos-guest-names-label">{Array.from({ length: quantity }, (_, i) => <div className="pos-guest-name-row" key={i}>
-                    <span aria-hidden="true">{i + 1}</span>
-                    <input form="pos-payment-form" aria-label={`Name on ticket ${i + 1}`} placeholder={`${guest.name.trim() || 'Walk-in Guest'} (${i + 1}/${quantity})`} autoComplete="off" maxLength={60} value={guestNames[i] || ''} disabled={Boolean(busy)} onChange={e => setGuestNames(names => { const next = [...names]; next[i] = e.target.value; return next; })} />
-                  </div>)}</div>
-                  <p className="pos-guest-names-help">Leave a box blank to use the name shown in it.</p>
-                </>}
+                {groupFields(guest.name.trim() || 'Walk-in Guest')}
                 {catalog.length > 0 && <>
                   <span className="pos-field-label pos-extras-label">Extras <span>optional</span></span>
                   <div className="pos-extras">{catalog.map(item => {

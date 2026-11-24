@@ -107,6 +107,26 @@ test('token confirmation claims only an open unexpired token within its transact
   assert.equal(res.body.error.code, 'TOKEN_UNAVAILABLE');
   assert.equal(creates.mock.callCount(), 0);
 });
+test('a token can pay for a named group: one ticket price per guest, one pass each', async t => {
+  setup(t);
+  t.mock.method(mongoose.connection, 'transaction', async callback => callback({}));
+  t.mock.method(CashToken, 'findOneAndUpdate', async () => ({ _id: 'token', holderName: 'Ananya', phone: '9876543210' }));
+  let created;
+  t.mock.method(Order, 'create', async ([order]) => { created = order; return [order]; });
+  // Stop at pass issuing: only the order written for the group is under test here.
+  t.mock.method(Order, 'findOne', () => ({ session: async () => null }));
+  const underpaid = response();
+  await confirmTokenPayment(req({ quantity: 3, cashTenderedPaise: 41999 }), underpaid);
+  assert.equal(underpaid.body.error.code, 'INSUFFICIENT_CASH');
+  await confirmTokenPayment(req({ quantity: 3, guestNames: ['', 'Rohit'], cashTenderedPaise: 42000, expectedAmountPaise: 42000 }), response());
+  assert.equal(created.amountPaise, 42000);
+  assert.equal(created.organizerSharePaise + created.platformFeePaise, 42000);
+  assert.equal(created.isGroupBooking, true);
+  assert.deepEqual(created.attendees.map(a => a.name), ['Ananya (1/3)', 'Rohit', 'Ananya (3/3)']);
+  const tooMany = response();
+  await confirmTokenPayment(req({ quantity: 50, cashTenderedPaise: 1000000 }), tooMany);
+  assert.equal(tooMany.body.error.code, 'INVALID_QUANTITY');
+});
 test('a retried walk-in returns its existing receipt without another transaction', async t => {
   const existing = { orderId: 'CC-TESTSALE', status: 'PAID', paidAt: new Date(), amountPaise: 14000, cashTenderedPaise: 20000 };
   t.mock.method(Order, 'findOne', async () => existing);
