@@ -77,6 +77,110 @@ function initials(name = '') {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
+// With a single ticket type there is nothing to compare, so instead of one card stretched across
+// the row the pass is shown as a full ticket: details on the left, a torn-off price stub on the right.
+function SoloTierTicket({ tier, ev, theme, onBook }) {
+  const accent = '#22D3EE';
+  const price = tier.pricePaise / 100;
+  const fee = (tier.platformFeePaise ?? 200) / 100;
+  const stock = stockInfo(tier.capacity, tier.soldCount);
+  const perks = tier.perks?.length ? tier.perks : ['Event admission'];
+  const highlights = [
+    { icon: Zap, label: 'Instant QR on your phone' },
+    { icon: RefreshCw, label: ev.allowReentry !== false ? 'Re-entry allowed' : 'Single entry' },
+    { icon: Smartphone, label: 'Works offline at the gate' }
+  ];
+
+  return (
+    <div className="relative rounded-3xl p-[2px] shadow-[6px_6px_0_#000]" style={{ background: `linear-gradient(120deg, ${accent}, ${theme.b} 60%, ${theme.a})` }}>
+      <div className="relative grid md:grid-cols-[minmax(0,1fr)_280px] rounded-[calc(1.5rem-2px)] bg-[#11112A] overflow-hidden">
+        {/* Ticket body */}
+        <div className="relative min-w-0 p-5 sm:p-7 overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.16] pointer-events-none" style={{ background: `radial-gradient(circle at 0% 0%, ${accent}, transparent 50%), radial-gradient(circle at 90% 120%, ${theme.b}, transparent 55%)` }} />
+          <div className="absolute inset-0 bg-halftone opacity-30 pointer-events-none" />
+          <Ticket className="absolute -right-6 -bottom-8 w-48 h-48 rotate-[-18deg] pointer-events-none" style={{ color: accent, opacity: 0.06 }} aria-hidden="true" />
+
+          <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold border-2 border-black text-black" style={{ background: accent }}>
+                {tier.badge || 'PASS'}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-white/5 border border-white/10 text-text">
+                <CheckCircle2 className="w-3 h-3 text-success" /> Everything included
+              </span>
+            </div>
+
+            <h4 className="mt-3 font-comic text-3xl sm:text-4xl text-white leading-tight uppercase [overflow-wrap:anywhere]" style={{ textShadow: `3px 3px 0 #000` }}>
+              {tier.name}
+            </h4>
+
+            {/* What the pass gets you */}
+            <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+              {perks.map((perk, i) => (
+                <li key={i} className="flex items-center gap-2.5 rounded-xl bg-black/30 border border-white/10 px-3 py-2.5 font-mono text-xs text-text">
+                  <span className="grid place-items-center w-6 h-6 rounded-lg shrink-0 border border-black" style={{ background: `${accent}26` }}>
+                    <CheckCircle2 className="w-3.5 h-3.5" style={{ color: accent }} />
+                  </span>
+                  <span className="min-w-0">{perk}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] text-text-muted">
+              {highlights.map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5">
+                  <Icon className="w-3.5 h-3.5" style={{ color: theme.a }} /> {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Price stub, torn off along the dashed line */}
+        <div className="relative min-w-0 flex flex-col justify-center gap-3 p-5 sm:p-6 bg-[#0B0B1C] border-t-2 md:border-t-0 md:border-l-2 border-dashed border-white/15 text-center">
+          <span className="hidden md:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-[#0B0B16]" aria-hidden="true" />
+          <span className="hidden md:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-[#0B0B16]" aria-hidden="true" />
+
+          <div>
+            <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Per person</span>
+            <div className="font-comic text-5xl sm:text-6xl leading-none mt-1" style={{ color: accent, textShadow: '3px 3px 0 #000' }}>
+              ₹{price.toFixed(price % 1 ? 2 : 0)}
+            </div>
+            <span className="block mt-1.5 font-mono text-[10px] text-text-muted">+ ₹{fee.toFixed(2)} fee • ₹{(price + fee).toFixed(2)} at checkout</span>
+          </div>
+
+          {tier.capacity > 0 && (
+            <div className="space-y-1.5 text-left">
+              <div className="flex justify-between font-mono text-[10px] font-bold uppercase">
+                <span className={stock.soldOut ? 'text-text-muted' : stock.low ? 'text-danger' : 'text-success'}>
+                  {stock.soldOut ? 'Sold out' : stock.low ? `Only ${stock.left} left` : 'Available'}
+                </span>
+                <span className="text-text-muted">{Number(tier.capacity).toLocaleString('en-IN')} passes</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${Math.max(stock.pctSold, 3)}%`, background: stock.low ? 'linear-gradient(90deg,#FB923C,#EF4444)' : `linear-gradient(90deg, ${accent}, ${theme.b})` }} />
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={stock.soldOut}
+            onClick={onBook}
+            className="w-full min-h-12 inline-flex items-center justify-center gap-1.5 rounded-xl font-comic text-xl tracking-wide border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            style={{ background: accent }}
+          >
+            {stock.soldOut ? 'SOLD OUT' : <>GET YOUR PASS <ArrowRight className="w-5 h-5 shrink-0" /></>}
+          </button>
+          <span className="inline-flex items-center justify-center gap-1.5 font-mono text-[10px] text-text-muted">
+            <Clock className="w-3.5 h-3.5" /> 30-second UPI checkout
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInquiry }) {
   const navigate = useNavigate();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
@@ -264,12 +368,15 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
             <div className="border-t-2 border-white/10 p-4 sm:p-6 xl:p-8 bg-[#0B0B16]">
               <div className="flex flex-wrap items-end justify-between gap-2 mb-5">
                 <div>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">Pick your experience</span>
-                  <h3 className="font-comic text-2xl sm:text-3xl text-white uppercase tracking-wide">Choose your pass tier</h3>
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">{tiers.length === 1 ? 'Your ticket' : 'Pick your experience'}</span>
+                  <h3 className="font-comic text-2xl sm:text-3xl text-white uppercase tracking-wide">{tiers.length === 1 ? 'One pass, all in' : 'Choose your pass tier'}</h3>
                 </div>
-                <span className="text-[11px] font-mono text-text-muted">VIP perks, green rooms & stage access</span>
+                <span className="text-[11px] font-mono text-text-muted">{tiers.length === 1 ? 'Instant QR • works offline at the gate' : 'VIP perks, green rooms & stage access'}</span>
               </div>
 
+              {tiers.length === 1 ? (
+                <SoloTierTicket tier={tiers[0]} ev={ev} theme={theme} onBook={() => navigate(`/buy?eventId=${ev.eventId}&tier=${tiers[0].tierId}${refQuery}`)} />
+              ) : (
               <div className="ticket-tier-grid grid gap-4">
                 {tiers.map((tier, tIdx) => {
                   const tt = tier.tierId === 'vip' ? TIER_THEMES[1] : TIER_THEMES[tIdx % TIER_THEMES.length];
@@ -345,6 +452,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   );
                 })}
               </div>
+              )}
             </div>
           )}
 
