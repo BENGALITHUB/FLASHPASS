@@ -677,6 +677,7 @@ export default function CheckoutPage() {
                                     type="text"
                                     autoComplete={isLead ? 'name' : 'off'}
                                     placeholder={isLead ? 'e.g. Sourav Mukherjee' : `Friend #${idx + 1} name`}
+                                    maxLength={60}
                                     value={att.name}
                                     onChange={(e) => handleAttendeeChange(idx, 'name', e.target.value)}
                                     className={`${fieldCls} pl-10 ${errors[`attendee_${idx}_name`] ? 'border-danger ring-2 ring-danger/40' : 'border-white/10'}`}

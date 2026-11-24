@@ -1,0 +1,48 @@
+import test, { afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { createOrder } from '../src/controllers/order.controller.js';
+import { AdminSettings } from '../src/models/AdminSettings.js';
+
+const response = () => ({ status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } });
+const guest = (name, phone = '9876543210') => ({ name, phone });
+const order = async body => {
+  const res = response();
+  await createOrder({ body: { name: 'Rahul Das', phone: '9876543210', ...body } }, res);
+  return res;
+};
+afterEach(() => test.mock.restoreAll());
+
+test('a group booking is refused before any lookup when a guest name or mobile is missing or bad', async t => {
+  // Bad input must be turned away before the order touches settings or the database.
+  const lookups = t.mock.method(AdminSettings, 'getSettings', async () => { throw new Error('Must not be reached'); });
+  const cases = [
+    [{ attendees: [guest('Rahul Das'), {}] }, 'INVALID_NAME'],
+    [{ attendees: [guest('Rahul Das'), guest('   ')] }, 'INVALID_NAME'],
+    [{ attendees: [guest('Rahul Das'), guest('x'.repeat(61))] }, 'INVALID_NAME'],
+    [{ attendees: [guest('Rahul Das'), guest(42)] }, 'INVALID_NAME'],
+    [{ attendees: [guest('Rahul Das'), guest('Priya Sen', '12345')] }, 'INVALID_PHONE'],
+    [{ attendees: [guest('Rahul Das'), { name: 'Priya Sen' }] }, 'INVALID_PHONE'],
+    [{ attendees: Array.from({ length: 9 }, () => guest('Rahul Das')) }, 'INVALID_QUANTITY'],
+    [{ attendees: [] }, 'INVALID_QUANTITY'],
+    [{ attendees: 'everyone' }, 'INVALID_QUANTITY']
+  ];
+  for (const [body, code] of cases) {
+    const res = await order({ isGroupBooking: true, ...body });
+    assert.equal(res.statusCode, 400, code);
+    assert.equal(res.body.error.code, code);
+  }
+  const longLead = await order({ name: 'x'.repeat(61) });
+  assert.equal(longLead.body.error.code, 'INVALID_NAME');
+  const numberLead = await order({ name: 12345 });
+  assert.equal(numberLead.body.error.code, 'INVALID_NAME');
+  assert.equal(lookups.mock.callCount(), 0);
+});
+
+test('a valid group of eight passes the guest checks', async t => {
+  // Reaching settings means every guest check passed; stop the order there.
+  const lookups = t.mock.method(AdminSettings, 'getSettings', async () => { throw new Error('stop here'); });
+  const res = await order({ isGroupBooking: true, attendees: Array.from({ length: 8 }, (_, i) => guest(`Guest ${i + 1}`, '+91 98765-43210')) });
+  assert.equal(lookups.mock.callCount(), 1);
+  assert.notEqual(res.body?.error?.code, 'INVALID_NAME');
+  assert.notEqual(res.body?.error?.code, 'INVALID_PHONE');
+});

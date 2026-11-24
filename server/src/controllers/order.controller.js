@@ -27,6 +27,26 @@ import { ORDER_STATUS, ORDER_CHANNELS, PASS_STATUS } from '../constants/index.js
  * POST /api/v1/orders/validate-coupon
  * Validate discount code against active event coupons
  */
+const MAX_NAME_LENGTH = 60;
+// The checkout offers groups of 2 to 8.
+const MAX_GROUP_TICKETS = 8;
+const checkAttendees = attendees => {
+  if (!Array.isArray(attendees) || attendees.length < 1 || attendees.length > MAX_GROUP_TICKETS) {
+    return { code: 'INVALID_QUANTITY', message: `A group booking can have up to ${MAX_GROUP_TICKETS} tickets` };
+  }
+  for (let i = 0; i < attendees.length; i++) {
+    const a = attendees[i];
+    const name = typeof a?.name === 'string' ? a.name.trim() : '';
+    if (name.length < 2 || name.length > MAX_NAME_LENGTH) {
+      return { code: 'INVALID_NAME', message: `Enter a name of 2 to ${MAX_NAME_LENGTH} characters for attendee #${i + 1}` };
+    }
+    if (!/^[6-9]\d{9}$/.test(String(a.phone ?? '').replace(/\D/g, '').slice(-10))) {
+      return { code: 'INVALID_PHONE', message: `Enter a valid 10-digit mobile number for attendee #${i + 1}` };
+    }
+  }
+  return null;
+};
+
 export const validateCoupon = async (req, res) => {
   try {
     const { code, eventId } = req.body;
@@ -95,13 +115,21 @@ export const createOrder = async (req, res) => {
       affiliateCode = null
     } = req.body;
 
-    if (!name || name.trim().length < 2) {
+    if (typeof name !== 'string' || name.trim().length < 2) {
       return errorResponse(res, 'Please enter a valid full name', 'INVALID_NAME', 400);
     }
 
     const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       return errorResponse(res, 'Enter a valid 10-digit mobile number', 'INVALID_PHONE', 400);
+    }
+    if (name.trim().length > MAX_NAME_LENGTH) {
+      return errorResponse(res, `Name must be ${MAX_NAME_LENGTH} characters or fewer`, 'INVALID_NAME', 400);
+    }
+    // Every guest's name and mobile go on their own pass, so check them here as well as in the form.
+    if (isGroupBooking) {
+      const attendeeError = checkAttendees(attendees);
+      if (attendeeError) return errorResponse(res, attendeeError.message, attendeeError.code, 400);
     }
 
     const targetEventId = eventId ? String(eventId).trim().toLowerCase() : 'comics-carnival';
