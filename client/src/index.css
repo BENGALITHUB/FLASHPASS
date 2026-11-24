@@ -408,9 +408,10 @@ select:-webkit-autofill {
 }
 .kck-shine::after { transform: translateX(-130%) skewX(-20deg); }
 
-/* The river under the Howrah Bridge: ripple lines drifting with the current */
-@keyframes kck-drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-10px); } }
-.kck-drift { animation: kck-drift 7s ease-in-out infinite; }
-/* Current lines sliding downstream along their own curves */
-@keyframes kck-flow { to { stroke-dashoffset: var(--flow); } }
-.kck-flow { animation: kck-flow 6s linear infinite; }
+/* The river under the Howrah Bridge: swells flowing out from under it towards the viewer */
+@keyframes kck-toward {
+  0% { transform: translateY(0) scaleX(0.4); opacity: 0; }
+  20% { opacity: 0.55; }
+  100% { transform: translateY(40px) scaleX(1.6); opacity: 0; }
+}
+.kck-toward { transform-box: view-box; animation: kck-toward 6s linear infinite; }

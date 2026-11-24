@@ -207,21 +207,24 @@ const RIPPLES = [
   [230, 208, 40], [372, 211, 28], [600, 210, 58], [735, 214, 34], [310, 216, 50], [520, 196, 24]
 ];
 
-// Current lines across the river: gentle S-curves at height y.
-const currentPath = (y, amp, len) => {
-  let d = `M-40 ${y}`;
-  for (let x = -40; x < 1040; x += len) d += ` q${len / 4} ${-amp} ${len / 2} 0 t${len / 2} 0`;
+// A swell on the water: a short wavy line centred on cx, `half` wide each side, just below the
+// waterline. CSS moves it towards the viewer (down) while it widens, like water coming closer.
+const swellPath = (cx, half, amp) => {
+  const y = 178;
+  const seg = half / 3;
+  let d = `M${cx - half} ${y}`;
+  for (let i = 0; i < 6; i++) d += ` q${seg / 2} ${i % 2 ? amp : -amp} ${seg} 0`;
   return d;
 };
-const FLOWS = [
-  { y: 181, amp: 1.6, len: 70, dash: 46, gap: 70, dur: 5, op: 0.45, w: 1.3 },
-  { y: 186, amp: 2.2, len: 90, dash: 70, gap: 110, dur: 7, op: 0.3, w: 1.1 },
-  { y: 192, amp: 2.6, len: 80, dash: 38, gap: 90, dur: 6, op: 0.38, w: 1.2 },
-  { y: 198, amp: 3, len: 110, dash: 90, gap: 130, dur: 9, op: 0.24, w: 1 },
-  { y: 204, amp: 3.2, len: 95, dash: 52, gap: 100, dur: 8, op: 0.3, w: 1.1 },
-  { y: 211, amp: 3.6, len: 120, dash: 80, gap: 150, dur: 11, op: 0.2, w: 1 },
-  { y: 216, amp: 3.8, len: 130, dash: 60, gap: 120, dur: 10, op: 0.16, w: 0.9 }
-];
+// Several lanes of swells, staggered so the river keeps flowing out from under the bridge.
+const TOWARD = Array.from({ length: 12 }, (_, i) => ({
+  cx: [500, 430, 570, 360, 640, 500][i % 6],
+  half: [70, 46, 46, 38, 38, 90][i % 6],
+  amp: 1.6,
+  dur: 6,
+  delay: -(i * 0.5),
+  color: i % 3 === 0 ? '#FFE3A8' : '#FFB56B'
+}));
 
 function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit = 'xMidYMax slice' }) {
   const ink = '#0A0A0A';
@@ -332,26 +335,24 @@ function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit
         <g filter={`url(#${id('ripple')})`} mask={`url(#${id('fadeMask')})`}>
           <use href={`#${id('city')}`} transform={`translate(0 ${WATER * 2}) scale(1 -1)`} />
         </g>
-        {/* Winding current lines: light caught on the water, flowing downstream */}
-        {FLOWS.map(({ y, amp, len, dash, gap, dur, op, w }, i) => (
+        {/* The current coming out from under the bridge towards the viewer: wavy swells start
+            small and faint at the far water, then widen, brighten and sink as they near. */}
+        {TOWARD.map(({ cx, half, amp, dur, delay, color }, i) => (
           <path
-            key={`flow-${i}`}
-            d={currentPath(y, amp, len)}
+            key={`toward-${i}`}
+            d={swellPath(cx, half, amp)}
             fill="none"
-            stroke={i % 2 ? '#FFD9A0' : '#FFB56B'}
-            strokeOpacity={op}
-            strokeWidth={w}
+            stroke={color}
+            strokeWidth="1.3"
             strokeLinecap="round"
-            className={animate ? 'kck-flow' : undefined}
-            style={{ strokeDasharray: `${dash} ${gap}`, '--flow': `-${dash + gap}`, animationDuration: `${dur}s` }}
+            className={animate ? 'kck-toward' : undefined}
+            style={{ transformOrigin: `${cx}px ${WATER + 2}px`, animationDuration: `${dur}s`, animationDelay: `${delay}s`, opacity: animate ? undefined : 0.35 - i * 0.03 }}
           />
         ))}
-        {/* Fine ripple lines catching the light, drifting gently */}
-        <g className={animate ? 'kck-drift' : undefined}>
-          {RIPPLES.map(([x, y, len], i) => (
-            <path key={i} d={`M${x} ${y} h${len}`} stroke={i % 3 === 0 ? '#FFE7B8' : '#FFB067'} strokeOpacity={0.18 + (i % 4) * 0.06} strokeWidth="0.9" strokeLinecap="round" />
-          ))}
-        </g>
+        {/* Still ripples catching the light */}
+        {RIPPLES.map(([x, y, len], i) => (
+          <path key={i} d={`M${x} ${y} h${len}`} stroke={i % 3 === 0 ? '#FFE7B8' : '#FFB067'} strokeOpacity={0.14 + (i % 4) * 0.05} strokeWidth="0.8" strokeLinecap="round" />
+        ))}
         {/* Haze where the water meets the sky */}
         <rect x="0" y={WATER} width="1000" height="3" fill="#FFC27A" opacity="0.25" />
       </g>
