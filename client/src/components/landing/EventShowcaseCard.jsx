@@ -177,17 +177,23 @@ const BURST_POINTS = Array.from({ length: 36 }, (_, i) => {
   const radius = i % 2 ? 41 : 50;
   return `${(50 + radius * Math.cos(angle)).toFixed(2)},${(50 + radius * Math.sin(angle)).toFixed(2)}`;
 }).join(' ');
-function PriceBurst({ color, rupees, size = 'lg' }) {
+function PriceBurst({ color, rupees, size = 'lg', ribbon = null }) {
   const whole = Number(rupees);
   const label = Number.isFinite(whole) ? (whole % 1 ? whole.toFixed(2) : String(whole)) : rupees;
   return (
     <div className={`relative grid place-items-center shrink-0 ${size === 'lg' ? 'w-28 h-28 lg:w-40 lg:h-40 lg:my-2' : 'w-28 h-28 lg:w-32 lg:h-32'}`}>
-      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full drop-shadow-[4px_4px_0_#000]" aria-hidden="true">
+      <svg viewBox="0 0 100 100" className="kck-sway absolute inset-0 w-full h-full drop-shadow-[4px_4px_0_#000]" aria-hidden="true">
         <polygon points={BURST_POINTS} fill={color} stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
+        <polygon points={BURST_POINTS} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1" transform="translate(50 50) scale(0.86) translate(-50 -50)" />
       </svg>
       <span className={`relative font-display text-black leading-none flex items-start ${size === 'lg' ? 'text-5xl lg:text-7xl' : 'text-5xl lg:text-6xl'}`}>
         {label}<span className="text-[0.5em] mt-[0.12em] ml-0.5">₹</span>
       </span>
+      {ribbon && (
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rotate-[-6deg] whitespace-nowrap rounded-md border-2 border-black bg-[#E10600] px-2 py-0.5 font-display text-[11px] lg:text-xs tracking-[0.14em] text-white shadow-[2px_2px_0_#000]">
+          {ribbon}
+        </span>
+      )}
     </div>
   );
 }
@@ -579,6 +585,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 full-width button below. Tablets: one row. Laptops: the ticket's torn-off stub. */}
             <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 overflow-hidden ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {skin && <StubBackdrop skin={skin} />}
+              {skin && <span className="kck-foil absolute inset-x-0 top-0 h-1 pointer-events-none" style={{ background: 'linear-gradient(90deg, #FF2E88, #FFD60A, #22D3EE, #FF2E88)', backgroundSize: '200% 100%' }} aria-hidden="true" />}
 
               {/* Ticket header: what this is and when (phones and laptops) */}
               <div className="relative col-span-2 flex md:hidden lg:flex w-full items-center justify-between gap-2 lg:mb-4 pb-3 border-b border-dashed border-white/15">
@@ -593,7 +600,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
               <div className="event-price min-w-0 shrink-0 flex flex-col items-center">
                 <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white/70' : 'text-text-muted'}`}>Passes from</span>
-                {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} /> : (
+                {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS` : null} /> : (
                   <div className="font-comic text-5xl lg:text-6xl leading-none mt-1 lg:my-2" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>₹{priceLabel}</div>
                 )}
               </div>
@@ -614,8 +621,8 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   type="button"
                   disabled={soldOut}
                   onClick={book}
-                  className={`event-book-button min-h-12 w-full inline-flex items-center justify-center gap-1.5 px-5 py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${skin ? 'rounded-2xl font-display text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
-                  style={skin ? { background: skin.colors.button } : undefined}
+                  className={`event-book-button relative overflow-hidden ${skin ? 'kck-shine' : ''} min-h-12 w-full inline-flex items-center justify-center gap-1.5 px-5 py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${skin ? 'rounded-2xl font-display text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
+                  style={skin ? { background: `linear-gradient(180deg, #FFD54A, ${skin.colors.button} 55%, #F2A900)` } : undefined}
                 >
                   {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-5 h-5 shrink-0" /></>}
                 </button>
@@ -628,8 +635,10 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 {/* What you get, at a glance */}
                 <div className="relative mt-4 grid grid-cols-3 gap-1.5 md:hidden lg:grid">
                   {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
-                    <span key={label} className="flex flex-col items-center gap-1 rounded-xl bg-white/[0.04] border border-white/10 px-1 py-2 font-mono text-[9px] font-bold uppercase tracking-wide text-white/75 text-center leading-tight">
-                      <Icon className="w-4 h-4" style={{ color: theme.a }} /> {label}
+                    <span key={label} className="rounded-xl p-px" style={{ background: `linear-gradient(140deg, ${theme.a}88, transparent 45%, ${theme.b}88)` }}>
+                      <span className="h-full flex flex-col items-center gap-1 rounded-[11px] bg-[#141414] px-1 py-2 font-mono text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">
+                        <Icon className="w-4 h-4" style={{ color: theme.a }} /> {label}
+                      </span>
                     </span>
                   ))}
                 </div>

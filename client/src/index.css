@@ -379,3 +379,31 @@ select:-webkit-autofill {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Premium ticket touches: a light sweep across buttons, a gentle sway, a moving foil */
+@keyframes kck-shine {
+  0%, 55% { transform: translateX(-130%) skewX(-20deg); }
+  100% { transform: translateX(230%) skewX(-20deg); }
+}
+@keyframes kck-sway {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.04); }
+}
+@keyframes kck-foil {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.kck-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kck-shine::after { animation: kck-shine 3.2s ease-in-out infinite; }
+  .kck-sway { animation: kck-sway 5s ease-in-out infinite; }
+  .kck-foil { animation: kck-foil 6s linear infinite; }
+}
+.kck-shine::after { transform: translateX(-130%) skewX(-20deg); }
