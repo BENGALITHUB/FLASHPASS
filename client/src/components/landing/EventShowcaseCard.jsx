@@ -6,6 +6,7 @@ import {
   Shirt, Coffee, Car, ShoppingBag, ChevronDown
 } from 'lucide-react';
 import { stockInfo } from '../../utils/stock';
+import { skinFor } from './eventSkins';
 
 // Merch tile icon per add-on category
 const ADDON_ICONS = { MERCH: Shirt, FOOD: Coffee, PARKING: Car, VIP_PERK: Crown };
@@ -79,7 +80,8 @@ function initials(name = '') {
 
 // The organizer's description, as they wrote it: blank lines start new paragraphs. The first
 // paragraph leads in brighter type; the rest fold away behind "Read more" when it runs long.
-function EventDescription({ text, accent }) {
+// With `band` set (an event's own colour) it sits on that colour in black type, as on a poster.
+function EventDescription({ text, accent, band = null }) {
   const [open, setOpen] = useState(false);
   const paragraphs = String(text).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   const [lead, ...rest] = paragraphs;
@@ -87,10 +89,13 @@ function EventDescription({ text, accent }) {
   const shown = !long || open ? rest : rest.slice(0, 1);
 
   return (
-    <div className="max-w-2xl space-y-2.5 font-sans">
-      <p className="text-sm sm:text-base text-white/90 leading-relaxed whitespace-pre-line">{lead}</p>
+    <div
+      className={`max-w-2xl space-y-2.5 font-sans ${band ? 'rounded-2xl border-2 border-black p-4 sm:p-5 shadow-[4px_4px_0_#000]' : ''}`}
+      style={band ? { background: band } : undefined}
+    >
+      <p className={`text-sm sm:text-base leading-relaxed whitespace-pre-line ${band ? 'text-black font-semibold tracking-[0.02em]' : 'text-white/90'}`}>{lead}</p>
       {shown.map((p, i) => (
-        <p key={i} className="text-[13px] sm:text-sm text-text-muted leading-relaxed whitespace-pre-line">{p}</p>
+        <p key={i} className={`text-[13px] sm:text-sm leading-relaxed whitespace-pre-line ${band ? 'text-black/80 tracking-[0.02em]' : 'text-text-muted'}`}>{p}</p>
       ))}
       {long && (
         <button
@@ -98,7 +103,7 @@ function EventDescription({ text, accent }) {
           onClick={() => setOpen(o => !o)}
           aria-expanded={open}
           className="inline-flex items-center gap-1 font-mono text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer"
-          style={{ color: accent }}
+          style={{ color: band ? '#000' : accent }}
         >
           {open ? 'Show less' : 'Read more'}
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -108,10 +113,31 @@ function EventDescription({ text, accent }) {
   );
 }
 
+// The price in a jagged starburst, like a poster price sticker.
+const BURST_POINTS = Array.from({ length: 36 }, (_, i) => {
+  const angle = (Math.PI * 2 * i) / 36 - Math.PI / 2;
+  const radius = i % 2 ? 41 : 50;
+  return `${(50 + radius * Math.cos(angle)).toFixed(2)},${(50 + radius * Math.sin(angle)).toFixed(2)}`;
+}).join(' ');
+function PriceBurst({ color, rupees, size = 'lg' }) {
+  const whole = Number(rupees);
+  const label = Number.isFinite(whole) ? (whole % 1 ? whole.toFixed(2) : String(whole)) : rupees;
+  return (
+    <div className={`relative grid place-items-center shrink-0 ${size === 'lg' ? 'w-28 h-28 lg:w-40 lg:h-40 lg:my-2' : 'w-28 h-28 lg:w-32 lg:h-32'}`}>
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full drop-shadow-[4px_4px_0_#000]" aria-hidden="true">
+        <polygon points={BURST_POINTS} fill={color} stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+      <span className={`relative font-display text-black leading-none flex items-start ${size === 'lg' ? 'text-5xl lg:text-7xl' : 'text-5xl lg:text-6xl'}`}>
+        {label}<span className="text-[0.5em] mt-[0.12em] ml-0.5">₹</span>
+      </span>
+    </div>
+  );
+}
+
 // With a single ticket type there is nothing to compare, so instead of one card stretched across
 // the row the pass is shown as a full ticket: details on the left, a torn-off price stub on the right.
-function SoloTierTicket({ tier, ev, theme, onBook }) {
-  const accent = '#22D3EE';
+function SoloTierTicket({ tier, theme, onBook, skin = null }) {
+  const accent = skin ? skin.colors.burst : '#22D3EE';
   const price = tier.pricePaise / 100;
   const fee = (tier.platformFeePaise ?? 200) / 100;
   const stock = stockInfo(tier.capacity, tier.soldCount);
@@ -120,11 +146,11 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
   const showBar = tier.capacity > 0 && (stock.low || stock.soldOut || stock.pctSold >= 50);
 
   return (
-    <div className="relative rounded-3xl p-[2px] shadow-[6px_6px_0_#000]" style={{ background: `linear-gradient(120deg, ${accent}, ${theme.b} 60%, ${theme.a})` }}>
-      <div className="relative grid md:grid-cols-[minmax(0,1fr)_280px] rounded-[calc(1.5rem-2px)] bg-[#11112A] overflow-hidden">
+    <div className="relative rounded-3xl p-[2px] shadow-[6px_6px_0_#000]" style={{ background: skin ? `linear-gradient(120deg, ${skin.colors.orange}, ${skin.colors.burst})` : `linear-gradient(120deg, ${accent}, ${theme.b} 60%, ${theme.a})` }}>
+      <div className="relative grid md:grid-cols-[minmax(0,1fr)_280px] rounded-[calc(1.5rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#11112A' }}>
         {/* Ticket body */}
         <div className="relative min-w-0 p-5 sm:p-7 overflow-hidden flex flex-col justify-center">
-          <div className="absolute inset-0 opacity-[0.16] pointer-events-none" style={{ background: `radial-gradient(circle at 0% 0%, ${accent}, transparent 50%), radial-gradient(circle at 90% 120%, ${theme.b}, transparent 55%)` }} />
+          <div className="absolute inset-0 opacity-[0.16] pointer-events-none" style={{ background: skin ? `radial-gradient(circle at 100% 120%, ${skin.colors.orange}, transparent 55%)` : `radial-gradient(circle at 0% 0%, ${accent}, transparent 50%), radial-gradient(circle at 90% 120%, ${theme.b}, transparent 55%)` }} />
           <div className="absolute inset-0 bg-halftone opacity-30 pointer-events-none" />
           <Ticket className="absolute -right-6 -bottom-8 w-48 h-48 rotate-[-18deg] pointer-events-none" style={{ color: accent, opacity: 0.06 }} aria-hidden="true" />
 
@@ -138,7 +164,7 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
               </span>
             </div>
 
-            <h4 className="mt-3 font-comic text-3xl sm:text-4xl text-white leading-tight uppercase [overflow-wrap:anywhere]" style={{ textShadow: `3px 3px 0 #000` }}>
+            <h4 className={`mt-3 text-white leading-tight uppercase [overflow-wrap:anywhere] ${skin ? 'font-display text-4xl sm:text-5xl tracking-[0.04em]' : 'font-comic text-3xl sm:text-4xl'}`} style={{ textShadow: `3px 3px 0 #000` }}>
               {tier.name}
             </h4>
 
@@ -161,11 +187,13 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
           <span className="hidden md:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-[#0B0B16]" aria-hidden="true" />
           <span className="hidden md:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-[#0B0B16]" aria-hidden="true" />
 
-          <div>
+          <div className="flex flex-col items-center">
             <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Per person</span>
+            {skin ? <PriceBurst color={skin.colors.burst} rupees={price} size="sm" /> : (
             <div className="font-comic text-5xl sm:text-6xl leading-none mt-1" style={{ color: accent, textShadow: '3px 3px 0 #000' }}>
               ₹{price.toFixed(price % 1 ? 2 : 0)}
             </div>
+            )}
             <span className="block mt-1.5 font-mono text-[10px] text-text-muted">+ ₹{fee.toFixed(2)} fee • ₹{(price + fee).toFixed(2)} at checkout</span>
           </div>
 
@@ -190,8 +218,8 @@ function SoloTierTicket({ tier, ev, theme, onBook }) {
             type="button"
             disabled={stock.soldOut}
             onClick={onBook}
-            className="w-full min-h-12 inline-flex items-center justify-center gap-1.5 rounded-xl font-comic text-xl tracking-wide border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-            style={{ background: accent }}
+            className={`w-full min-h-12 inline-flex items-center justify-center gap-1.5 border-2 ${skin ? 'rounded-2xl font-display text-2xl tracking-[0.12em]' : 'rounded-xl font-comic text-xl tracking-wide'}  border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0`}
+            style={{ background: skin ? skin.colors.button : accent }}
           >
             {stock.soldOut ? 'SOLD OUT' : <>GET YOUR PASS <ArrowRight className="w-5 h-5 shrink-0" /></>}
           </button>
@@ -208,7 +236,9 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
   const navigate = useNavigate();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const detailsId = useId();
-  const theme = THEMES[index % THEMES.length];
+  // An event with its own look (eventSkins.js) keeps the same card, in its own colours and logo.
+  const skin = skinFor(ev.eventId);
+  const theme = skin ? { a: skin.colors.burst, b: skin.colors.orange, text: skin.colors.burst } : THEMES[index % THEMES.length];
   const dateRange = formatDateRange(ev.eventDays);
   const dayCount = ev.eventDays?.length || 0;
   const tiers = ev.ticketTiers || [];
@@ -234,24 +264,24 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
         className="relative rounded-[1.75rem] p-[2px] shadow-[8px_8px_0_#000]"
         style={{ background: `linear-gradient(135deg, ${theme.a}, ${theme.b} 55%, ${theme.a})` }}
       >
-        <div className="relative rounded-[calc(1.75rem-2px)] bg-[#0D0D1A] overflow-hidden">
+        <div className="relative rounded-[calc(1.75rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#0D0D1A' }}>
           {/* ===== Ticket body + stub ===== */}
           <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_300px]">
             {/* Event body */}
             <div className="relative min-w-0 p-4 sm:p-6 xl:p-8 overflow-hidden">
               {/* Themed art: gradient wash, halftone, giant watermark */}
               <div
-                className="absolute inset-0 opacity-[0.18]"
-                style={{ background: `radial-gradient(circle at 15% 0%, ${theme.a}, transparent 55%), radial-gradient(circle at 100% 100%, ${theme.b}, transparent 50%)` }}
+                className={`absolute inset-0 ${skin ? 'opacity-[0.22]' : 'opacity-[0.18]'}`}
+                style={{ background: skin ? `radial-gradient(circle at 100% 100%, ${skin.colors.orange}, transparent 45%)` : `radial-gradient(circle at 15% 0%, ${theme.a}, transparent 55%), radial-gradient(circle at 100% 100%, ${theme.b}, transparent 50%)` }}
               />
-              <div className="absolute inset-0 bg-halftone opacity-40" />
-              <div
+              <div className={`absolute inset-0 bg-halftone ${skin ? 'opacity-20' : 'opacity-40'}`} />
+              {!skin && <div
                 className="absolute -right-4 -bottom-10 font-comic text-[11rem] sm:text-[14rem] leading-none select-none pointer-events-none opacity-[0.07]"
                 style={{ color: theme.a }}
                 aria-hidden="true"
               >
                 {initials(ev.name)}
-              </div>
+              </div>}
 
               <div className="relative space-y-3 sm:space-y-4">
                 {/* Status + meta chips */}
@@ -284,15 +314,30 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   )}
                 </div>
 
-                {/* Title */}
+                {/* Title: the event's own logo when it has one */}
+                {skin ? (
+                  <div>
+                    <h2 className="flex items-end gap-2 sm:gap-3">
+                      <span className="sr-only">{ev.name}</span>
+                      <img src={skin.logo} alt="" width="772" height="508" className="h-24 sm:h-32 xl:h-36 w-auto drop-shadow-[0_0_1px_rgba(255,255,255,0.6)]" />
+                      {skin.edition && (
+                        <span aria-hidden="true" className="font-display text-5xl sm:text-7xl leading-[0.8] pb-1" style={{ color: skin.colors.red, WebkitTextStroke: '1.5px #fff', textShadow: '4px 4px 0 #000' }}>{skin.edition}</span>
+                      )}
+                    </h2>
+                    {skin.tagline && (
+                      <p className="mt-3 font-display text-[15px] min-[400px]:text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
+                    )}
+                  </div>
+                ) : (
                 <h2
                   className="event-title font-comic tracking-wide leading-tight uppercase [overflow-wrap:anywhere]"
                   style={{ color: theme.text, textShadow: `3px 3px 0 #000, 6px 6px 0 ${theme.b}55` }}
                 >
                   {ev.name}
                 </h2>
+                )}
 
-                <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} />
+                <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} band={skin?.colors.orange} />
 
                 {/* One ticket type: on phones its perks sit here, so there is no separate options panel to open. */}
                 {soloTier?.perks?.length > 0 && (
@@ -301,7 +346,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     <ul className="flex flex-wrap gap-1.5">
                       {soloTier.perks.map((perk, i) => (
                         <li key={i} className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 border border-white/10 px-2.5 py-1.5 font-mono text-[11px] text-text">
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-info" /> {perk}
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: skin ? theme.a : '#22D3EE' }} /> {perk}
                         </li>
                       ))}
                     </ul>
@@ -342,25 +387,33 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
             </div>
 
             {/* Price stub with perforation */}
-            <div className="event-booking relative min-w-0 border-t-2 lg:border-t-0 lg:border-l-2 border-dashed border-white/15 bg-[#121224] p-4 sm:p-6 lg:p-7 grid grid-cols-[minmax(0,1fr)_minmax(7.25rem,0.85fr)] items-center gap-x-3 gap-y-2 lg:flex lg:flex-col lg:justify-center lg:gap-0 lg:text-center">
+            <div className={`event-booking relative min-w-0 border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-4 sm:p-6 lg:p-7 grid grid-cols-[minmax(0,1fr)_minmax(7.25rem,0.85fr)] items-center gap-x-3 gap-y-2 lg:flex lg:flex-col lg:justify-center lg:gap-0 lg:text-center ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {/* Ticket notches (desktop) */}
               <span className="hidden lg:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
               <span className="hidden lg:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
 
+              {skin ? (
+                <div className="event-price min-w-0 flex flex-col items-start lg:items-center">
+                  <span className="block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">Passes from</span>
+                  <PriceBurst color={skin.colors.burst} rupees={ev.basePriceRupees} />
+                </div>
+              ) : (
               <div className="event-price min-w-0">
                 <span className="block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted">Passes from</span>
                 <div className="font-comic text-4xl lg:text-6xl leading-none mt-1 lg:my-2 [overflow-wrap:anywhere]" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>
                   ₹{ev.basePriceRupees}
                 </div>
               </div>
-              <span className="col-span-2 font-mono text-[10px] text-text-muted">
+              )}
+              <span className={`col-span-2 font-mono text-[10px] ${skin ? 'text-white/70' : 'text-text-muted'}`}>
                 + ₹{ev.platformFeeRupees} platform fee at checkout
               </span>
 
               <button
                 type="button"
                 onClick={() => navigate(`/buy?eventId=${ev.eventId}${refQuery}`)}
-                className="event-book-button col-start-2 row-start-1 lg:mt-5 min-h-12 min-w-0 w-full inline-flex items-center justify-center gap-1.5 font-comic text-lg sm:text-xl tracking-wide px-2 sm:px-5 py-3 rounded-xl border-2 border-black bg-primary text-black shadow-[4px_4px_0_#000] hover:bg-primary-dark hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer"
+                className={`event-book-button col-start-2 row-start-1 lg:mt-5 min-h-12 min-w-0 w-full inline-flex items-center justify-center gap-1.5 px-2 sm:px-5 py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer ${skin ? 'rounded-2xl font-display text-xl sm:text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-lg sm:text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
+                style={skin ? { background: skin.colors.button } : undefined}
               >
                 <span>BOOK PASS</span> <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               </button>
@@ -413,7 +466,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
               </div>
 
               {tiers.length === 1 ? (
-                <SoloTierTicket tier={tiers[0]} ev={ev} theme={theme} onBook={() => navigate(`/buy?eventId=${ev.eventId}&tier=${tiers[0].tierId}${refQuery}`)} />
+                <SoloTierTicket tier={tiers[0]} theme={theme} skin={skin} onBook={() => navigate(`/buy?eventId=${ev.eventId}&tier=${tiers[0].tierId}${refQuery}`)} />
               ) : (
               <div className="ticket-tier-grid grid gap-4">
                 {tiers.map((tier, tIdx) => {
@@ -555,16 +608,16 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           </div>
 
           {/* ===== Sponsor / stall strip ===== */}
-          <div className="border-t-2 border-white/10 px-4 sm:px-6 xl:px-8 py-4 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 flex flex-wrap items-center justify-between gap-3">
+          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-black' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: skin.colors.orange } : undefined}>
             <div className="hidden md:flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0_#000] shrink-0">
                 <HeartHandshake className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-comic text-lg text-white uppercase tracking-wide leading-tight">
+                <div className={`uppercase leading-tight ${skin ? 'font-display text-2xl tracking-[0.08em] text-black' : 'font-comic text-lg text-white tracking-wide'}`}>
                   Sponsor this event or book a stall
                 </div>
-                <div className="text-[11px] font-mono text-text-muted">Prime brand presence & vendor spaces — talk to the organizers directly.</div>
+                <div className={`text-[11px] font-mono ${skin ? 'text-black/75' : 'text-text-muted'}`}>Prime brand presence & vendor spaces — talk to the organizers directly.</div>
               </div>
             </div>
             <div className="grid grid-cols-2 md:flex w-full md:w-auto items-center gap-2">
@@ -578,7 +631,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
               <button
                 type="button"
                 onClick={() => onInquiry('STALL', ev.eventId)}
-                className="min-h-11 px-2 sm:px-3.5 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white font-mono text-[10px] sm:text-xs font-bold border-2 border-black shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-1.5 hover:-translate-y-0.5 cursor-pointer"
+                className={`min-h-11 px-2 sm:px-3.5 py-2 rounded-xl ${skin ? 'bg-black hover:bg-[#1a1a1a]' : 'bg-accent hover:bg-accent-hover'} text-white font-mono text-[10px] sm:text-xs font-bold border-2 border-black shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-1.5 hover:-translate-y-0.5 cursor-pointer`}
               >
                 <Store className="w-4 h-4" /> BOOK A STALL
               </button>

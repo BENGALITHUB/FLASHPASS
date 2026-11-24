@@ -34,6 +34,7 @@ export default {
       },
       fontFamily: {
         comic: ['Bangers', 'cursive'],
+        display: ['"Bebas Neue"', 'Impact', 'sans-serif'],
         heading: ['Space Grotesk', 'sans-serif'],
         sans: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
