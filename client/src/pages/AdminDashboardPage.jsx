@@ -6,6 +6,7 @@ import ComicButton from '../components/common/ComicButton';
 import ComicCard from '../components/common/ComicCard';
 import ComicBadge from '../components/common/ComicBadge';
 import { playSuccessChime } from '../utils/audioFeedback';
+import EventRemovalDialog from '../components/admin/EventRemovalDialog';
 import './AdminDashboard.css';
 import {
   LayoutDashboard, Calendar, Ticket, Shield, DollarSign, Users,
@@ -123,6 +124,9 @@ export default function AdminDashboardPage() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [platformOverview, setPlatformOverview] = useState(null);
   const [eventsList, setEventsList] = useState([]);
+  // Super Admin delete / archive / restore of one event: { event, mode }
+  const [eventAction, setEventAction] = useState(null);
+  const [eventsNotice, setEventsNotice] = useState('');
   const [staffUsersList, setStaffUsersList] = useState([]);
   const [securityKey, setSecurityKey] = useState(0); // re-checks the demo-PIN banner after a PIN change
   const [loading, setLoading] = useState(true);
@@ -1657,13 +1661,20 @@ export default function AdminDashboardPage() {
                 </ComicButton>
               </div>
 
+              {eventsNotice && (
+                <div role="status" className="flex items-center justify-between gap-3 rounded-2xl border border-success/40 bg-success/10 px-4 py-3 font-mono text-xs text-success">
+                  <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0" /> {eventsNotice}</span>
+                  <button type="button" onClick={() => setEventsNotice('')} className="adm-icon-btn shrink-0" aria-label="Dismiss"><X className="h-4 w-4" /></button>
+                </div>
+              )}
+
               {/* Events Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {eventsList.map((ev) => (
                   <div key={ev._id} className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000] flex flex-col justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-success/20 text-success border border-success/40">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${ev.status === 'ARCHIVED' ? 'bg-white/5 text-text-muted border-white/20' : 'bg-success/20 text-success border-success/40'}`}>
                           {ev.status}
                         </span>
                         <span className="font-mono text-xs text-text-muted">Slug: {ev.eventId}</span>
@@ -1715,6 +1726,17 @@ export default function AdminDashboardPage() {
                     >
                       MANAGE THIS EVENT →
                     </ComicButton>
+                    {/* The main event runs the box office, so it cannot be archived or deleted. */}
+                    {ev.eventId !== 'comics-carnival' && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm justify-center" onClick={() => setEventAction({ event: ev, mode: ev.status === 'ARCHIVED' ? 'restore' : 'archive' })}>
+                          {ev.status === 'ARCHIVED' ? <><Eye className="h-3.5 w-3.5" /> Restore</> : <><EyeOff className="h-3.5 w-3.5" /> Archive</>}
+                        </button>
+                        <button type="button" className="adm-btn adm-btn-danger adm-btn-sm justify-center" onClick={() => setEventAction({ event: ev, mode: 'delete' })}>
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -4045,6 +4067,26 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {eventAction && (
+        <EventRemovalDialog
+          event={eventAction.event}
+          mode={eventAction.mode}
+          onClose={() => setEventAction(null)}
+          onDone={async (message) => {
+            const removedId = eventAction.event.eventId;
+            setEventAction(null);
+            setEventsNotice(message);
+            const events = await api.adminListEvents().catch(() => null);
+            if (events) setEventsList(events);
+            // Stop showing a deleted event's data.
+            if (selectedEventScope === removedId && events && !events.some(e => e.eventId === removedId)) {
+              setSelectedEventScope('ALL');
+              loadAllData('ALL');
+            }
+          }}
+        />
       )}
 
       {/* 4. MODAL: + CREATE NEW EVENT & PROVISION ADMIN (Super Admin Only) */}

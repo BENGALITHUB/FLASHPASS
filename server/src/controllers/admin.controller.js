@@ -9,6 +9,9 @@ import { User } from '../models/User.js';
 import { Event } from '../models/Event.js';
 import { Shift } from '../models/Shift.js';
 import { Session } from '../models/Session.js';
+import { Payout } from '../models/Payout.js';
+import { SettlementRequest } from '../models/SettlementRequest.js';
+import { endUserSessions } from '../services/session.service.js';
 import { pinProblem } from './staff.controller.js';
 import { getCurrentEventDay, getISTNow } from '../utils/date.utils.js';
 import { emitEmergencyEvacuation, emitLiveAnnouncement } from '../services/socket.service.js';
@@ -924,6 +927,90 @@ export const getPlatformOverview = async (req, res) => {
     });
   } catch (error) {
     return errorResponse(res, error.message, 'PLATFORM_OVERVIEW_ERROR', 500);
+  }
+};
+
+// The counter, cash tokens and the fallback event page all run on this event.
+const DEFAULT_EVENT_ID = 'comics-carnival';
+// Anything that holds money or attendee history for the event keeps it from being deleted.
+const eventHasRecords = async eventId => {
+  const found = await Promise.all([Order, Pass, LedgerEntry, Payout, SettlementRequest].map(model => model.exists({ eventId })));
+  return found.some(Boolean);
+};
+const findManagedEvent = async (req, res) => {
+  const eventId = String(req.params.eventId || '').trim().toLowerCase();
+  if (eventId === DEFAULT_EVENT_ID) {
+    errorResponse(res, 'The main event runs the box office and cannot be deleted or archived.', 'DEFAULT_EVENT', 400);
+    return null;
+  }
+  const event = await Event.findOne({ eventId });
+  if (!event) errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
+  return event;
+};
+const auditEvent = (req, action, event, reason) => AuditLog.create({
+  actorId: req.user._id, actorName: req.user.name || req.user.username, action, target: `Event ${event.eventId}`, reason
+});
+
+/**
+ * DELETE /api/v1/admin/events/:eventId
+ * Super Admin removes an event that never sold anything. An event with orders, passes or
+ * settlement records is archived instead, so its money trail stays intact.
+ * Body: { confirmEventId } must repeat the event's ID.
+ */
+export const deleteEvent = async (req, res) => {
+  try {
+    const event = await findManagedEvent(req, res);
+    if (!event) return;
+    if (String(req.body?.confirmEventId || '').trim().toLowerCase() !== event.eventId) {
+      return errorResponse(res, `Type the event ID "${event.eventId}" to confirm.`, 'CONFIRMATION_MISMATCH', 400);
+    }
+    if (await eventHasRecords(event.eventId)) {
+      return errorResponse(res, 'This event has orders or passes, so it cannot be deleted. Archive it instead to hide it and stop sales.', 'EVENT_HAS_SALES', 409);
+    }
+    // Its organizer and staff lose access; their accounts stay for the audit history. They keep
+    // their event link: an event admin with none would see every event if switched back on.
+    const staff = await User.find({ assignedEventId: event.eventId });
+    for (const user of staff) {
+      user.active = false;
+      await user.save();
+      await endUserSessions(user._id, 'Event deleted');
+    }
+    await Event.deleteOne({ _id: event._id });
+    clearConfigCache();
+    await auditEvent(req, 'DELETE_EVENT', event, `Deleted "${event.name}"; ${staff.length} staff account(s) switched off`);
+    return successResponse(res, { message: `"${event.name}" was deleted.`, eventId: event.eventId, staffSwitchedOff: staff.length });
+  } catch (error) {
+    return errorResponse(res, error.message, 'EVENT_DELETE_ERROR', 500);
+  }
+};
+
+/**
+ * POST /api/v1/admin/events/:eventId/archive   { archived: true | false }
+ * Archiving hides the event from the public site and stops online and cash sales. Orders,
+ * passes and settlements are kept. Restoring makes it visible again with sales still off,
+ * for the organizer to switch back on.
+ */
+export const setEventArchived = async (req, res) => {
+  try {
+    const event = await findManagedEvent(req, res);
+    if (!event) return;
+    const archived = req.body?.archived !== false;
+    if (archived) {
+      event.status = 'ARCHIVED';
+      event.onlineSalesEnabled = false;
+      event.cashSalesEnabled = false;
+    } else {
+      event.status = 'ACTIVE';
+    }
+    await event.save();
+    clearConfigCache();
+    await auditEvent(req, archived ? 'ARCHIVE_EVENT' : 'RESTORE_EVENT', event, archived ? `Archived "${event.name}"; sales stopped` : `Restored "${event.name}"; sales still off`);
+    return successResponse(res, {
+      message: archived ? `"${event.name}" is archived. It is hidden and sales are stopped.` : `"${event.name}" is restored. Switch sales back on in its settings.`,
+      event
+    });
+  } catch (error) {
+    return errorResponse(res, error.message, 'EVENT_ARCHIVE_ERROR', 500);
   }
 };
 

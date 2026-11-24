@@ -208,7 +208,8 @@ const eventSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['ACTIVE', 'PAUSED', 'COMPLETED'],
+    // ARCHIVED: hidden from the public and closed to sales, records kept.
+    enum: ['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'],
     default: 'ACTIVE',
     index: true
   }

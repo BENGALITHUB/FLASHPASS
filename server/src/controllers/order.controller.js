@@ -145,7 +145,7 @@ export const createOrder = async (req, res) => {
 
     // Online sales switched off by the admin, or no working way to take the money
     const onlineSalesOn = event ? event.onlineSalesEnabled !== false : settings.onlineSalesEnabled !== false;
-    if (!onlineSalesOn || event?.emergencyLockdown || event?.paymentGateway?.enabled === false) {
+    if (!onlineSalesOn || event?.status === 'ARCHIVED' || event?.emergencyLockdown || event?.paymentGateway?.enabled === false) {
       return errorResponse(res, 'Online ticket sales are closed right now. Passes are available at the venue Cash Desk.', 'ONLINE_SALES_CLOSED', 400);
     }
     const gatewayProvider = (event?.paymentGateway?.provider || 'PAYU').toUpperCase();

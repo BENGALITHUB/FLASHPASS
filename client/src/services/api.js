@@ -302,6 +302,25 @@ export const api = {
     return handleResponse(res);
   },
 
+  // Super Admin only. A delete is refused for an event that has sold anything (EVENT_HAS_SALES).
+  adminDeleteEvent: async (eventId, confirmEventId, adminPin) => {
+    const res = await fetch(`${BASE_URL}/admin/events/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(null, adminPin),
+      body: JSON.stringify({ confirmEventId })
+    });
+    return handleResponse(res);
+  },
+
+  adminSetEventArchived: async (eventId, archived, adminPin) => {
+    const res = await fetch(`${BASE_URL}/admin/events/${encodeURIComponent(eventId)}/archive`, {
+      method: 'POST',
+      headers: getHeaders(null, adminPin),
+      body: JSON.stringify({ archived })
+    });
+    return handleResponse(res);
+  },
+
   adminCreateEvent: async (payload) => {
     const res = await fetch(`${BASE_URL}/admin/events`, {
       method: 'POST',

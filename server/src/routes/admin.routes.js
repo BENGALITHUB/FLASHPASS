@@ -12,6 +12,8 @@ import {
   exportCSV,
   listEvents,
   createEvent,
+  deleteEvent,
+  setEventArchived,
   getPlatformOverview,
   triggerEmergencyEvacuation,
   postLiveAnnouncement,
@@ -73,6 +75,8 @@ router.get('/executive-report', getExecutiveReport);
 
 // Platform Super Admin only routes
 router.post('/events', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), createEvent);
+router.delete('/events/:eventId', requireRole(ROLES.SUPER_ADMIN), verifyAdminPin, deleteEvent);
+router.post('/events/:eventId/archive', requireRole(ROLES.SUPER_ADMIN), verifyAdminPin, setEventArchived);
 router.get('/platform/overview', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), getPlatformOverview);
 
 export default router;
