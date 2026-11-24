@@ -426,7 +426,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
               <div className="relative space-y-3 sm:space-y-4">
                 {/* Status + meta chips */}
-                <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar items-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px] font-bold [&>span]:shrink-0 [&>span]:whitespace-nowrap">
+                <div className="relative z-10 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar items-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px] font-bold [&>span]:shrink-0 [&>span]:whitespace-nowrap">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 border-black shadow-[2px_2px_0_#000] ${salesOpen ? 'bg-success text-white' : 'bg-warning text-black'}`}>
                     <span className="relative flex w-2 h-2">
                       {salesOpen && <span className="absolute inline-flex w-full h-full rounded-full bg-white opacity-75 animate-ping" />}
@@ -460,13 +460,27 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   <div>
                     <h2 className="flex items-end gap-2 sm:gap-3">
                       <span className="sr-only">{ev.name}</span>
-                      <img src={skin.logo} alt="" width="772" height="508" className="h-24 sm:h-32 xl:h-36 w-auto drop-shadow-[0_0_1px_rgba(255,255,255,0.6)]" />
+                      <span className="relative shrink-0 isolate">
+                        {/* Sunlight behind the logo: slowly turning rays and a bright core */}
+                        <span className="absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 w-[260%] aspect-square pointer-events-none" aria-hidden="true">
+                          <span
+                            className="absolute inset-0 rounded-full motion-safe:animate-[spin_40s_linear_infinite]"
+                            style={{
+                              background: `repeating-conic-gradient(from 0deg, ${skin.colors.burst}66 0deg 4deg, transparent 4deg 12deg)`,
+                              WebkitMaskImage: 'radial-gradient(circle, #000 8%, rgba(0,0,0,0.55) 30%, transparent 62%)',
+                              maskImage: 'radial-gradient(circle, #000 8%, rgba(0,0,0,0.55) 30%, transparent 62%)'
+                            }}
+                          />
+                          <span className="absolute inset-[30%] rounded-full blur-2xl opacity-90" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
+                        </span>
+                        <img src={skin.logo} alt="" width="772" height="508" className="relative h-24 sm:h-32 xl:h-36 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
+                      </span>
                       {skin.edition && (
                         <span aria-hidden="true" className="font-display text-5xl sm:text-7xl leading-[0.8] pb-1" style={{ color: skin.colors.red, WebkitTextStroke: '1.5px #fff', textShadow: '4px 4px 0 #000' }}>{skin.edition}</span>
                       )}
                     </h2>
                     {skin.tagline && (
-                      <p className="mt-3 font-display text-[15px] min-[400px]:text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
+                      <p className="relative z-10 mt-3 font-display text-[15px] min-[400px]:text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
                     )}
                   </div>
                 ) : (
