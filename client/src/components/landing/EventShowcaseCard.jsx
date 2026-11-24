@@ -287,7 +287,7 @@ function SkinBackdrop({ skin }) {
         }}
       />
       {/* The logo as a faint stamp, above the skyline */}
-      <img src={skin.logo} alt="" className="absolute right-2 top-[28%] w-[20rem] max-w-[70%] rotate-[-8deg] opacity-[0.09] select-none" />
+      <img src={skin.logo} alt="" className="absolute right-2 top-[28%] w-[20rem] max-w-[70%] rotate-[-8deg] opacity-[0.16] select-none" />
       <KolkataSkyline orange={orange} red={red} />
     </div>
   );
