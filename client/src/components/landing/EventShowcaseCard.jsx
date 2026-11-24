@@ -143,16 +143,16 @@ function SkinBackdrop({ skin }) {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       {/* Logo-colour glows */}
-      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.22]" style={{ background: red }} />
-      <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.16]" style={{ background: '#1E5BFF' }} />
-      <div className="absolute -bottom-28 left-1/4 w-96 h-80 rounded-full blur-3xl opacity-[0.14]" style={{ background: '#7ED957' }} />
+      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.32]" style={{ background: red }} />
+      <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.26]" style={{ background: '#1E5BFF' }} />
+      <div className="absolute -bottom-28 left-1/4 w-96 h-80 rounded-full blur-3xl opacity-[0.22]" style={{ background: '#7ED957' }} />
       {/* Speed rays from behind the logo */}
       <div
-        className="absolute inset-0 opacity-[0.55]"
+        className="absolute inset-0 opacity-90"
         style={{
-          background: `repeating-conic-gradient(from 0deg at 22% 18%, ${orange}1f 0deg 5deg, transparent 5deg 14deg)`,
-          WebkitMaskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 70%)',
-          maskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 70%)'
+          background: `repeating-conic-gradient(from 0deg at 22% 18%, ${orange}33 0deg 5deg, transparent 5deg 14deg)`,
+          WebkitMaskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 80%)',
+          maskImage: 'radial-gradient(circle at 22% 18%, #000 0%, transparent 80%)'
         }}
       />
       {/* Halftone dots, densest at the lower right */}
@@ -163,11 +163,11 @@ function SkinBackdrop({ skin }) {
           backgroundSize: '13px 13px',
           WebkitMaskImage: 'linear-gradient(135deg, transparent 35%, #000 100%)',
           maskImage: 'linear-gradient(135deg, transparent 35%, #000 100%)',
-          opacity: 0.35
+          opacity: 0.55
         }}
       />
       {/* The logo as a faint stamp */}
-      <img src={skin.logo} alt="" className="absolute -right-10 -bottom-6 w-[26rem] max-w-[90%] rotate-[-8deg] opacity-[0.07] select-none" />
+      <img src={skin.logo} alt="" className="absolute -right-10 -bottom-6 w-[26rem] max-w-[90%] rotate-[-8deg] opacity-[0.13] select-none" />
     </div>
   );
 }
