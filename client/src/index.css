@@ -407,3 +407,15 @@ select:-webkit-autofill {
   .kck-foil { animation: kck-foil 6s linear infinite; }
 }
 .kck-shine::after { transform: translateX(-130%) skewX(-20deg); }
+
+/* The river under the Howrah Bridge: waves rolling, glints twinkling */
+@keyframes kck-wave { from { transform: translateX(0); } to { transform: translateX(-40px); } }
+@keyframes kck-wave-rev { from { transform: translateX(-40px); } to { transform: translateX(0); } }
+@keyframes kck-glint { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.85; } }
+.kck-glint { opacity: 0.5; }
+@media (prefers-reduced-motion: no-preference) {
+  .kck-wave { animation: kck-wave 3s linear infinite; }
+  .kck-wave-rev { animation: kck-wave-rev 4.5s linear infinite; }
+  .kck-wave-slow { animation: kck-wave 7s linear infinite; }
+  .kck-glint { animation: kck-glint 2.4s ease-in-out infinite; }
+}

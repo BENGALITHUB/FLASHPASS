@@ -201,6 +201,14 @@ function PriceBurst({ color, rupees, size = 'lg', ribbon = null }) {
 // Backdrop for an event with its own look: a Kolkata dusk. A warm sky and a setting sun behind
 // the Howrah Bridge and Victoria Memorial in silhouette along the bottom, a halftone screen,
 // soft glows in the logo's colours and the logo as a faint stamp. Decorative, on every screen size.
+// A row of small waves at height y, one 40-unit period repeated past both edges, so sliding it
+// by one period loops without a seam.
+const wavePath = (y) => {
+  let d = `M-80 ${y}`;
+  for (let x = -80; x < 1080; x += 40) d += ` q10 -3 20 0 t20 0`;
+  return d;
+};
+
 function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit = 'xMidYMax slice' }) {
   const ink = '#0A0A0A';
   // Howrah Bridge: two lattice towers, cantilever arms and the suspended middle span.
@@ -264,10 +272,22 @@ function KolkataSkyline({ orange, red, className, viewBox = '150 0 760 220', fit
         <rect x="940" y="136" width="10" height="16" />
       </g>
 
-      {/* Ground and the river catching the sunset */}
-      <rect x="0" y="174" width="1000" height="10" fill={ink} />
-      <rect x="0" y="184" width="1000" height="36" fill="url(#kck-river)" />
-      <path d="M380 192 h240 M420 202 h160 M455 211 h90" stroke="#FFD23A" strokeOpacity="0.35" strokeWidth="2" strokeLinecap="round" />
+      {/* The Hooghly under the bridge: dusk water, rolling waves and the sun's glints */}
+      <rect x="0" y="176" width="1000" height="44" fill="#0E1A2B" />
+      <rect x="0" y="176" width="1000" height="44" fill="url(#kck-river)" />
+      {[
+        { y: 182, cls: 'kck-wave', op: 0.55, w: 2 },
+        { y: 194, cls: 'kck-wave-rev', op: 0.4, w: 1.6 },
+        { y: 207, cls: 'kck-wave-slow', op: 0.3, w: 1.4 }
+      ].map(({ y, cls, op, w }) => (
+        <path key={y} className={cls} d={wavePath(y)} fill="none" stroke="#FFD23A" strokeOpacity={op} strokeWidth={w} strokeLinecap="round" />
+      ))}
+      {/* Sun glints on the water, twinkling under the sun */}
+      {[[400, 188, 120, 0], [430, 199, 90, 0.6], [462, 211, 60, 1.2], [560, 192, 70, 0.9], [520, 204, 50, 0.3]].map(([x, y, len, delay]) => (
+        <path key={`${x}-${y}`} className="kck-glint" style={{ animationDelay: `${delay}s` }} d={`M${x} ${y} h${len}`} stroke="#FFF1A8" strokeWidth="2.2" strokeLinecap="round" />
+      ))}
+      {/* River banks either side of the bridge */}
+      <path fill={ink} d="M0 172 H246 L262 180 H0 Z M1000 172 H754 L738 180 H1000 Z" />
     </svg>
   );
 }
