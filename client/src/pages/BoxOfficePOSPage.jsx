@@ -138,7 +138,8 @@ export default function BoxOfficePOSPage() {
 
   // Copies the pass image (with QR) to the clipboard, then opens the buyer's chat in the
   // cashier's own WhatsApp with a message typed in. WhatsApp links cannot carry files, so
-  // the cashier presses Ctrl+V in the chat and sends the image.
+  // the cashier presses Ctrl+V in the chat and sends the image. A group sale saves one
+  // picture per guest instead, for the cashier to attach together.
   const sendWhatsApp = async () => {
     if (!receipt || !isMobile(waPhone) || waBusy) return;
     const name = receipt.pass?.holderName || 'there';
@@ -156,7 +157,34 @@ export default function BoxOfficePOSPage() {
       `Order ID: ${receipt.orderId}`
     ].join('\n');
     setWaBusy(true);
-    const image = import('../utils/exportPass').then(({ passesImageBlob }) => passesImageBlob(passes));
+    const imageModule = import('../utils/exportPass');
+    if (passes.length > 1) {
+      // A clipboard holds one image, so a group gets one named picture per guest in Downloads.
+      // The cashier selects them all in the chat's attach menu and sends them together.
+      const baseName = (receipt.pass?.holderName || 'Guest').trim().replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Guest';
+      let saved = 0;
+      try {
+        const { passImageBlob } = await imageModule;
+        for (let i = 0; i < passes.length; i++) {
+          const url = URL.createObjectURL(await passImageBlob(passes[i], i, passes.length));
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `FlashPass_${baseName}_${i + 1}-of-${passes.length}.png`;
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          saved++;
+          // Browsers drop downloads started in the same instant.
+          if (i < passes.length - 1) await new Promise(resolve => setTimeout(resolve, 250));
+        }
+      } catch { /* the message still carries the ticket link */ }
+      window.open(`https://wa.me/91${waPhone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+      notify(saved === passes.length
+        ? `${saved} ticket pictures saved to Downloads, one per guest. Attach all ${saved} in the WhatsApp chat, then Send.`
+        : 'Could not save every ticket picture. The message has the ticket link; open the tickets to share the rest.', saved === passes.length ? 'success' : 'error');
+      setWaBusy(false);
+      return;
+    }
+    const image = imageModule.then(({ passImageBlob }) => passImageBlob(passes[0]));
     let copied = false;
     try {
       // The clipboard must be written while this tab still has focus, so before WhatsApp opens.
@@ -335,6 +363,15 @@ export default function BoxOfficePOSPage() {
                 <label htmlFor="pos-wa-phone">Send ticket on WhatsApp</label>
                 <div className="pos-lookup-row"><div className="pos-phone-input"><span>+91</span><input id="pos-wa-phone" type="tel" inputMode="numeric" placeholder="10-digit mobile number" autoComplete="off" maxLength={10} value={waPhone} aria-invalid={Boolean(waPhone) && !isMobile(waPhone)} onChange={e => setWaPhone(e.target.value.replace(/\D/g, ''))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendWhatsApp(); } }} /></div><button type="button" className="pos-button pos-button-secondary" disabled={!isMobile(waPhone) || waBusy} onClick={sendWhatsApp}>{waBusy ? <Loader2 size={16} className="pos-spin" /> : <MessageCircle size={16} />} Send ticket on WhatsApp</button></div>
                 {waPhone && !isMobile(waPhone) && <p className="pos-field-error">Enter 10 digits starting with 6, 7, 8 or 9.</p>}
+                {receipt.quantity > 1 ? <ol className="pos-wa-steps">
+                  <li>Check the buyer's number and click <strong>Send ticket on WhatsApp</strong>. One picture per guest ({receipt.quantity} in all, named with the buyer's name) is saved to Downloads.</li>
+                  <li>The buyer's chat opens with a message. Click the attach (<strong>+</strong>) button, choose <strong>Photos &amp; videos</strong>, and select all {receipt.quantity} <strong>FlashPass_…</strong> pictures in Downloads.</li>
+                  <li>Tap <strong>Send</strong>. The buyer can forward each guest their own picture.</li>
+                </ol> : <ol className="pos-wa-steps">
+                  <li>Check the guest's number and click <strong>Send ticket on WhatsApp</strong>.</li>
+                  <li>The guest's chat opens with a message. Click in the message box and press <kbd>Ctrl</kbd>+<kbd>V</kbd> to add the ticket picture with the QR (on a phone: press and hold, then Paste).</li>
+                  <li>Tap <strong>Send</strong>. If nothing pastes, attach the ticket picture from Downloads.</li>
+                </ol>}
               </div>
               <div className="pos-receipt-actions"><a className="pos-button pos-button-secondary" href={`/pass/${receipt.orderId}`} target="_blank" rel="noreferrer"><Ticket size={16} /> {receipt.quantity > 1 ? `Open all ${receipt.quantity} tickets` : 'Open ticket'} <ArrowUpRight size={15} /></a><button type="button" className="pos-button pos-button-primary" onClick={() => reset()}>Next guest <ArrowRight size={16} /></button></div>
             </div> : <>

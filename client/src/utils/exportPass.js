@@ -215,15 +215,16 @@ const loadImage = src => new Promise((resolve, reject) => {
 });
 
 /**
- * One PNG with every pass in the order stacked (name, badge, days, QR, pass ID), the same
- * details as the PDF. Made for pasting into a WhatsApp chat.
+ * One PNG for one pass (name, badge, days, QR, pass ID), the same details as the PDF.
+ * Made for sending in a WhatsApp chat. A group gets one image per guest, so every QR stays
+ * full size and each guest's pass can be forwarded on its own.
  */
-export const passesImageBlob = async (passes) => {
+export const passImageBlob = async (p, index = 0, total = 1) => {
   const W = 720;
   const H = 900;
   const canvas = document.createElement('canvas');
   canvas.width = W;
-  canvas.height = H * passes.length;
+  canvas.height = H;
   const ctx = canvas.getContext('2d');
   const fit = (text, max) => {
     let t = String(text || '');
@@ -238,40 +239,34 @@ export const passesImageBlob = async (passes) => {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  for (let i = 0; i < passes.length; i++) {
-    const p = passes[i];
-    ctx.save();
-    ctx.translate(0, H * i);
-    ctx.fillStyle = '#0B0B14';
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = '#FFD60A';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(20, 20, W - 40, H - 40);
+  ctx.fillStyle = '#0B0B14';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#FFD60A';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(20, 20, W - 40, H - 40);
 
-    center('3-DAY COMICS CARNIVAL', 80, 'bold 44px Arial, sans-serif', '#FFD60A');
-    center('12-14 DEC 2026 • KOLKATA', 128, 'bold 24px Arial, sans-serif', '#F5F5FA');
-    ctx.fillStyle = '#FF2E88';
-    ctx.beginPath();
-    ctx.roundRect(110, 155, W - 220, 50, 12);
-    ctx.fill();
-    center(p.badge || '3-DAY ALL ACCESS', 181, 'bold 26px Arial, sans-serif', '#FFFFFF');
+  center('3-DAY COMICS CARNIVAL', 80, 'bold 44px Arial, sans-serif', '#FFD60A');
+  center('12-14 DEC 2026 • KOLKATA', 128, 'bold 24px Arial, sans-serif', '#F5F5FA');
+  ctx.fillStyle = '#FF2E88';
+  ctx.beginPath();
+  ctx.roundRect(110, 155, W - 220, 50, 12);
+  ctx.fill();
+  center(p.badge || '3-DAY ALL ACCESS', 181, 'bold 26px Arial, sans-serif', '#FFFFFF');
 
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - 220, 230, 440, 440, 18);
-    ctx.fill();
-    if (p.qrToken) {
-      const qr = await loadImage(await QRCode.toDataURL(p.qrToken, { width: 400, margin: 1, color: { dark: '#000000', light: '#FFFFFF' } }));
-      ctx.drawImage(qr, W / 2 - 200, 250, 400, 400);
-    }
-
-    center(String(p.holderName || 'Guest').toUpperCase(), 712, 'bold 38px Arial, sans-serif', '#FFFFFF');
-    const days = p.validDays?.length ? p.validDays.map(d => `[DAY ${d}]`).join('  ') : '[ALL DAYS]';
-    center(days, 760, 'bold 28px Arial, sans-serif', '#22D3EE');
-    center(`Pass ID: ${p.orderId}`, 808, 'bold 28px Arial, sans-serif', '#FFD60A');
-    center(passes.length > 1 ? `Pass ${i + 1} of ${passes.length} • Show this QR at the gate` : 'Show this QR at the gate', 852, 'italic 20px Arial, sans-serif', '#A3A3C2');
-    ctx.restore();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.roundRect(W / 2 - 220, 230, 440, 440, 18);
+  ctx.fill();
+  if (p.qrToken) {
+    const qr = await loadImage(await QRCode.toDataURL(p.qrToken, { width: 400, margin: 1, color: { dark: '#000000', light: '#FFFFFF' } }));
+    ctx.drawImage(qr, W / 2 - 200, 250, 400, 400);
   }
+
+  center(String(p.holderName || 'Guest').toUpperCase(), 712, 'bold 38px Arial, sans-serif', '#FFFFFF');
+  const days = p.validDays?.length ? p.validDays.map(d => `[DAY ${d}]`).join('  ') : '[ALL DAYS]';
+  center(days, 760, 'bold 28px Arial, sans-serif', '#22D3EE');
+  center(`Pass ID: ${p.orderId}`, 808, 'bold 28px Arial, sans-serif', '#FFD60A');
+  center(total > 1 ? `Pass ${index + 1} of ${total} • Show this QR at the gate` : 'Show this QR at the gate', 852, 'italic 20px Arial, sans-serif', '#A3A3C2');
 
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Could not make the image'))), 'image/png'));
 };

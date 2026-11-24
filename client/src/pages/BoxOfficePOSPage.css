@@ -214,6 +214,9 @@
 .pos-receipt-whatsapp { text-align: left; margin: 0 0 17px; }
 .pos-receipt-whatsapp label { display: block; color: #a3a3c2; font-size: 11px; margin-bottom: 8px; }
 .pos-receipt-whatsapp .pos-phone-input { flex: 1; min-width: 0; }
+.pos-wa-steps { margin: 10px 0 0; padding-left: 18px; color: #a3a3c2; font-size: 11px; line-height: 1.6; }
+.pos-wa-steps strong { color: #eaeaf3; }
+.pos-wa-steps kbd { font-size: 10px; padding: 0 4px; border: 1px solid #424258; border-radius: 4px; }
 .pos-receipt-whatsapp input { width: 100%; min-width: 0; padding: 11px 12px; color: inherit; font-size: 15px; outline: none; }
 .pos-undo-dialog { background: #171726; color: #eaeaf3; border: 1px solid #424258; border-radius: 16px; padding: 26px; width: min(430px, calc(100vw - 32px)); box-shadow: 0 25px 100px #0008; }
 .pos-undo-dialog::backdrop { background: #06060bc9; backdrop-filter: blur(5px); }
