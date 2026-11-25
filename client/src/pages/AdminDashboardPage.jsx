@@ -1844,7 +1844,9 @@ export default function AdminDashboardPage() {
           {/* ======================================================== */}
           {activeTab === 'PASSES' && (() => {
             const totalAttendees = searchResults.length;
-            const insideCount = searchResults.filter(r => r.presence === 'INSIDE').length;
+            // A pass counts as checked in once it is scanned in today. Hand-stamp events
+            // never scan people out, so presence alone stays OUTSIDE there.
+            const insideCount = searchResults.filter(r => r.presence === 'INSIDE' || r.cameToday).length;
             const onlineCount = searchResults.filter(r => (r.channel || 'ONLINE') === 'ONLINE').length;
             const counterCount = totalAttendees - onlineCount;
             const totalAmountRupees = (searchResults.reduce((sum, r) => sum + (Number(r.amountPaise) || 0), 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
@@ -1893,12 +1895,24 @@ export default function AdminDashboardPage() {
                 </span>
               );
             };
-            const PresenceChip = ({ presence }) => (
-              <span className={`adm-chip ${presence === 'INSIDE' ? 'adm-chip-success' : ''}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${presence === 'INSIDE' ? 'bg-success animate-pulse shadow-[0_0_8px_#22c55e]' : 'bg-text-muted/60'}`} />
-                {presence === 'INSIDE' ? 'Inside' : 'Outside'}
-              </span>
-            );
+            const scanTime = (at) => at ? new Date(at).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '';
+            const presenceOf = (p) => {
+              const when = p.lastScan?.at ? ` at ${scanTime(p.lastScan.at)}${p.lastScan.gateId ? ` via ${p.lastScan.gateId}` : ''}` : '';
+              if (p.presence === 'INSIDE') return { label: 'Inside', cls: 'adm-chip-success', dot: 'bg-success animate-pulse shadow-[0_0_8px_#22c55e]', title: `Scanned in${when}` };
+              if (p.cameToday && p.stampMode) return { label: 'Came in', cls: 'adm-chip-success', dot: 'bg-success shadow-[0_0_8px_#22c55e]', title: `Scanned in today${when} — hand-stamp mode, no exit scans` };
+              if (p.cameToday) return { label: 'Exited', cls: 'adm-pa-presence-exited', dot: 'bg-warning', title: `Came in today, scanned out${when}` };
+              if (p.everCame) return { label: 'Not today', cls: '', dot: 'bg-text-muted/60', title: `Came on an earlier day; last scan${when}` };
+              return { label: 'Not arrived', cls: '', dot: 'bg-text-muted/40', title: 'Not scanned at the gate yet' };
+            };
+            const PresenceChip = ({ pass }) => {
+              const st = presenceOf(pass);
+              return (
+                <span className={`adm-chip ${st.cls}`} title={st.title}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                  {st.label}
+                </span>
+              );
+            };
             const StatusChip = ({ status }) => (
               <span className={`adm-chip ${status === 'ACTIVE' ? 'adm-pa-status-active' : 'adm-chip-danger'}`}>
                 {status === 'ACTIVE' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
@@ -1931,7 +1945,7 @@ export default function AdminDashboardPage() {
                   <div className="adm-meter h-1.5 rounded-full mt-3 overflow-hidden">
                     <div className="adm-meter-fill h-full rounded-full transition-all duration-700" style={{ width: `${checkInPct}%` }} />
                   </div>
-                  <p className="text-[11px] font-mono text-text-muted mt-2">{(totalAttendees - insideCount).toLocaleString('en-IN')} yet to arrive</p>
+                  <p className="text-[11px] font-mono text-text-muted mt-2">{(totalAttendees - insideCount).toLocaleString('en-IN')} yet to arrive today</p>
                 </div>
 
                 <div className="adm-kpi adm-pa-stat adm-tone-magenta rounded-2xl p-4 sm:p-5 relative overflow-hidden">
@@ -2177,7 +2191,7 @@ export default function AdminDashboardPage() {
                                   <span className="font-bold text-primary">₹{((p.amountPaise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                                 </div>
                               </td>
-                              <td className="py-4 px-4"><PresenceChip presence={p.presence} /></td>
+                              <td className="py-4 px-4"><PresenceChip pass={p} /></td>
                               <td className="py-4 px-4"><StatusChip status={p.status} /></td>
                               <td className="py-4 px-5 text-right">
                                 <button
@@ -2213,7 +2227,7 @@ export default function AdminDashboardPage() {
                           <div className="flex flex-wrap items-center gap-1.5 mt-3">
                             <OrderIdChip id={p.orderId} />
                             <ChannelChip channel={p.channel} />
-                            <PresenceChip presence={p.presence} />
+                            <PresenceChip pass={p} />
                             <StatusChip status={p.status} />
                           </div>
                           <div className="grid grid-cols-[1fr_auto] items-end gap-3 mt-3 pt-3 border-t border-white/[0.06] font-mono text-xs">

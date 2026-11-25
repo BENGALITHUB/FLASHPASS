@@ -464,3 +464,4 @@
 .adm-btn-primary:disabled { filter: grayscale(0.6) brightness(0.7); box-shadow: 2px 2px 0 #000; transform: none; }
 .adm-cred { border: 1px solid #22c55e4d; background: linear-gradient(160deg, #22c55e12, #0b0b14 60%); }
 @media (prefers-reduced-motion: reduce) { .adm-modal { animation: none; } }
+.adm-pa-presence-exited { color: var(--adm-orange); background: #fb923c14; border-color: #fb923c40; }

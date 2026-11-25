@@ -18,7 +18,7 @@ import { emitEmergencyEvacuation, emitLiveAnnouncement } from '../services/socke
 import { clearConfigCache } from '../services/configCache.js';
 import { gatewaySettingsForAdmin, mergeGatewaySettings } from '../services/gateway.service.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
-import { PRESENCE, PASS_STATUS, ORDER_STATUS, ORDER_CHANNELS, SCAN_RESULTS, LEDGER_TYPES, ROLES } from '../constants/index.js';
+import { PRESENCE, PASS_STATUS, ORDER_STATUS, ORDER_CHANNELS, SCAN_RESULTS, LEDGER_TYPES, ROLES, REENTRY_MODES } from '../constants/index.js';
 
 // An event admin sees only their own event. One with no event set matches nothing,
 // rather than falling back to some other event's data.
@@ -314,20 +314,30 @@ export const getAttendees = async (req, res) => {
 
     const baseOrderIds = [...new Set(passes.map(p => String(p.orderId || '').replace(/-P\d+$/, '')))];
     const eventIds = [...new Set(passes.map(p => p.eventId || 'comics-carnival'))];
-    const [orders, events] = await Promise.all([
+    const [orders, events, settings] = await Promise.all([
       Order.find({ orderId: { $in: baseOrderIds } })
         .select('orderId channel email amountPaise paidAt gateway.provider isGroupBooking tierName')
         .lean(),
-      Event.find({ eventId: { $in: eventIds } }).select('eventId name').lean()
+      Event.find({ eventId: { $in: eventIds } }).select('eventId name eventDays reentryMode').lean(),
+      AdminSettings.getSettings()
     ]);
 
     const orderById = Object.fromEntries(orders.map(o => [o.orderId, o]));
     const eventById = Object.fromEntries(events.map(e => [e.eventId, e.name]));
+    // "Today" and the gate mode are per event, worked out the same way the gate scanner does.
+    const gateInfoById = Object.fromEntries(events.map(e => [e.eventId, {
+      today: getCurrentEventDay(e.eventDays?.length ? e.eventDays : settings.eventDays) || 1,
+      stampMode: (e.reentryMode || settings.reentryMode || REENTRY_MODES.IN_OUT) === REENTRY_MODES.WRISTBAND
+    }]));
 
     let rows = passes.map(p => {
       const baseId = String(p.orderId || '').replace(/-P\d+$/, '');
       const o = orderById[baseId];
       const evId = p.eventId || 'comics-carnival';
+      const gate = gateInfoById[evId] || {
+        today: getCurrentEventDay(settings.eventDays) || 1,
+        stampMode: settings.reentryMode === REENTRY_MODES.WRISTBAND
+      };
       return {
         _id: p._id,
         orderId: p.orderId,
@@ -345,6 +355,12 @@ export const getAttendees = async (req, res) => {
         isGroupPass: Boolean(p.isGroupPass),
         status: p.status,
         presence: p.presence,
+        // Hand-stamp mode never scans people out, so presence stays OUTSIDE there;
+        // cameToday / lastScan say whether the pass was actually scanned in.
+        cameToday: (p.firstEntryDays || []).includes(gate.today),
+        everCame: (p.firstEntryDays || []).length > 0,
+        stampMode: gate.stampMode,
+        lastScan: p.lastScan ? { at: p.lastScan.at, gateId: p.lastScan.gateId, direction: p.lastScan.direction } : null,
         bookedAt: o?.paidAt || p.createdAt
       };
     });
