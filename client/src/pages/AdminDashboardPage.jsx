@@ -464,7 +464,7 @@ export default function AdminDashboardPage() {
     setAttendeesLoading(true);
     try {
       const effectiveScope = isEventAdmin
-        ? (user.assignedEventId || '__no-event__')
+        ? (currentUser?.assignedEventId || '__no-event__')
         : (scopeOverride !== undefined ? scopeOverride : (selectedEventScope || 'ALL'));
       const res = await api.adminGetAttendees({
         eventId: effectiveScope,
@@ -479,10 +479,10 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'PASSES' && user) {
+    if (activeTab === 'PASSES' && currentUser?.role) {
       loadAttendees();
     }
-  }, [activeTab, selectedEventScope]);
+  }, [activeTab, selectedEventScope, currentUser?.role]);
 
   const handleSearch = async (e) => {
     e?.preventDefault();

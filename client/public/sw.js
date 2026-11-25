@@ -9,7 +9,7 @@
  * - API calls are never cached here. The pass page keeps its own copy of the
  *   pass in localStorage and draws the QR on the phone.
  */
-const VERSION = 'flashpass-v4';
+const VERSION = 'flashpass-v5';
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 const FONTS = `${VERSION}-fonts`;

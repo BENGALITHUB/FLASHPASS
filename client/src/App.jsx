@@ -7,8 +7,18 @@ import { trackPageView } from './utils/analytics';
 // panel, gate scanner or POS (SRS NFR-PF-02).
 import LandingPage from './pages/LandingPage';
 
-// A failed page download (weak network) retries once, then reloads the app
-const page = (load) => lazy(() => load().catch(() => new Promise(r => setTimeout(r, 1500)).then(load)));
+// A failed page download (weak network or new deployment) reloads once to fetch fresh manifest
+const page = (load) => lazy(() =>
+  load().catch((err) => {
+    const key = 'fp_chunk_reload';
+    if (typeof window !== 'undefined' && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      window.location.reload();
+      return new Promise(() => {});
+    }
+    throw err;
+  })
+);
 
 const CheckoutPage = page(() => import('./pages/CheckoutPage'));
 const PaymentConfirmingPage = page(() => import('./pages/PaymentConfirmingPage'));
@@ -36,6 +46,7 @@ export default function App() {
 
   // SPA page views for analytics (no-op unless VITE_GA_ID is configured)
   useEffect(() => {
+    sessionStorage.removeItem('fp_chunk_reload');
     trackPageView(location.pathname + location.search);
   }, [location.pathname, location.search]);
 
