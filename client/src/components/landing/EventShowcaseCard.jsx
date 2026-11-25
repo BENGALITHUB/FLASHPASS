@@ -772,17 +772,17 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     <h2 className="flex items-end gap-2 sm:gap-3">
                       <span className="sr-only">{ev.name}</span>
                       <span className="relative shrink-0 isolate">
-                        {/* Sunlight behind the logo: slowly turning rays and a bright core */}
-                        <span className="absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 w-[260%] aspect-square pointer-events-none" aria-hidden="true">
+                        {/* Sunlight behind the logo: very subtle rays and soft halo */}
+                        <span className="absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 w-[190%] aspect-square pointer-events-none opacity-30" aria-hidden="true">
                           <span
                             className="absolute inset-0 rounded-full motion-safe:animate-[spin_40s_linear_infinite]"
                             style={{
-                              background: `repeating-conic-gradient(from 0deg, ${skin.colors.burst}38 0deg 4deg, transparent 4deg 12deg)`,
-                              WebkitMaskImage: 'radial-gradient(circle, #000 8%, rgba(0,0,0,0.45) 28%, transparent 58%)',
-                              maskImage: 'radial-gradient(circle, #000 8%, rgba(0,0,0,0.45) 28%, transparent 58%)'
+                              background: `repeating-conic-gradient(from 0deg, ${skin.colors.burst}1f 0deg 4deg, transparent 4deg 12deg)`,
+                              WebkitMaskImage: 'radial-gradient(circle, #000 5%, rgba(0,0,0,0.35) 22%, transparent 45%)',
+                              maskImage: 'radial-gradient(circle, #000 5%, rgba(0,0,0,0.35) 22%, transparent 45%)'
                             }}
                           />
-                          <span className="absolute inset-[32%] rounded-full blur-2xl opacity-55" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
+                          <span className="absolute inset-[34%] rounded-full blur-2xl opacity-25" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 45%, transparent 72%)` }} />
                         </span>
                         {skin.logo ? (
                           <img src={skin.logo} alt="" width="441" height="176" className="relative h-20 sm:h-24 xl:h-28 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
