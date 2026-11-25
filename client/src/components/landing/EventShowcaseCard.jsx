@@ -95,7 +95,7 @@ function BrandedDescription({ text, band, guide, eventName }) {
 
   return (
     <section
-      className="relative max-w-xl !mt-3 rounded-2xl border-2 p-3 pt-3.5 sm:p-3.5 sm:pt-4 backdrop-blur-sm font-sans"
+      className="relative max-w-xl !mt-2.5 sm:!mt-3 rounded-2xl border-2 p-2.5 pt-3 sm:p-3.5 sm:pt-4 backdrop-blur-sm font-sans"
       style={{ borderColor: band, background: 'linear-gradient(160deg, rgba(255,122,26,0.12), rgba(10,10,10,0.62) 48%)', boxShadow: `4px 4px 0 ${band}` }}
     >
       <span className="absolute -top-2.5 left-3.5 px-2 py-0.5 rounded-md border-2 border-black font-display text-xs tracking-[0.16em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
@@ -132,7 +132,7 @@ function BrandedDescription({ text, band, guide, eventName }) {
         </button>
       )}
 
-      <div className="mt-3 pt-2.5 border-t border-white/15">
+      <div className="mt-2 pt-2 sm:mt-3 sm:pt-2.5 border-t border-white/15">
         <EventGuideSection guide={guide} band={band} eventName={eventName} inline />
       </div>
     </section>
@@ -343,12 +343,12 @@ function PriceBurst({ color, rupees, size = 'lg', ribbon = null }) {
   const whole = Number(rupees);
   const label = Number.isFinite(whole) ? (whole % 1 ? whole.toFixed(2) : String(whole)) : rupees;
   return (
-    <div className={`relative grid place-items-center shrink-0 ${size === 'lg' ? 'w-28 h-28 lg:w-40 lg:h-40 lg:my-2' : 'w-28 h-28 lg:w-32 lg:h-32'}`}>
+    <div className={`relative grid place-items-center shrink-0 ${size === 'lg' ? 'w-24 h-24 sm:w-28 sm:h-28 lg:w-40 lg:h-40 lg:my-2' : 'w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32'}`}>
       <svg viewBox="0 0 100 100" className="kck-sway absolute inset-0 w-full h-full drop-shadow-[4px_4px_0_#000]" aria-hidden="true">
         <polygon points={BURST_POINTS} fill={color} stroke="#000" strokeWidth="1.5" strokeLinejoin="round" />
         <polygon points={BURST_POINTS} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1" transform="translate(50 50) scale(0.86) translate(-50 -50)" />
       </svg>
-      <span className={`relative font-display text-black leading-none flex items-start ${size === 'lg' ? 'text-5xl lg:text-7xl' : 'text-5xl lg:text-6xl'}`}>
+      <span className={`relative font-display text-black leading-none flex items-start ${size === 'lg' ? 'text-4xl sm:text-5xl lg:text-7xl' : 'text-4xl sm:text-5xl lg:text-6xl'}`}>
         {label}<span className="text-[0.5em] mt-[0.12em] ml-0.5">₹</span>
       </span>
       {ribbon && (
@@ -718,7 +718,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           {/* ===== Ticket body + stub ===== */}
           <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px]">
             {/* Event body */}
-            <div className="relative min-w-0 p-4 sm:p-5 xl:p-6 overflow-hidden">
+            <div className="relative min-w-0 p-3 sm:p-5 xl:p-6 overflow-hidden">
               {/* Themed art: gradient wash, halftone, giant watermark */}
               {skin ? <SkinBackdrop skin={skin} /> : <>
                 <div
@@ -735,7 +735,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 {initials(ev.name)}
               </div>}
 
-              <div className="relative space-y-2.5 sm:space-y-3">
+              <div className="relative space-y-2 sm:space-y-3">
                 {/* Status + meta chips */}
                 <div className="relative z-10 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar items-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px] font-bold [&>span]:shrink-0 [&>span]:whitespace-nowrap">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 border-black shadow-[2px_2px_0_#000] ${salesOpen ? 'bg-success text-white' : 'bg-warning text-black'}`}>
@@ -785,7 +785,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                           <span className="absolute inset-[34%] rounded-full blur-2xl opacity-25" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 45%, transparent 72%)` }} />
                         </span>
                         {skin.logo ? (
-                          <img src={skin.logo} alt="" width="441" height="176" className="relative h-20 sm:h-24 xl:h-28 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
+                          <img src={skin.logo} alt="" width="441" height="176" className="relative h-16 sm:h-24 xl:h-28 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
                         ) : (
                           <span
                             className="relative block font-display text-4xl sm:text-6xl xl:text-7xl leading-[0.9] tracking-wide uppercase [overflow-wrap:anywhere]"
@@ -800,7 +800,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                       )}
                     </h2>
                     {skin.tagline && (
-                      <p className="relative z-10 mt-2 font-display text-[15px] min-[400px]:text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
+                      <p className="relative z-10 mt-1.5 sm:mt-2 font-display text-[14px] min-[400px]:text-base sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
                     )}
                   </div>
                 ) : (
@@ -835,12 +835,12 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                         return (
                           <div
                             key={`${label}-${idx}`}
-                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-1.5 backdrop-blur-sm ${valLen > 20 ? 'col-span-2 sm:col-span-3' : isLong ? 'col-span-2' : ''}`}
+                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-1 sm:py-1.5 backdrop-blur-sm ${valLen > 20 ? 'col-span-2 sm:col-span-3' : isLong ? 'col-span-2' : ''}`}
                           >
                             <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
                               <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
                             </div>
-                            <div className={`font-comic text-lg sm:text-xl tracking-wider text-white leading-tight ${isLong ? 'break-words' : 'truncate'}`}>
+                            <div className={`font-comic text-base sm:text-xl tracking-wider text-white leading-tight ${isLong ? 'break-words' : 'truncate'}`}>
                               {value}
                             </div>
                           </div>
@@ -880,12 +880,12 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
             {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
                 full-width button below. Tablets: one row. Laptops: the ticket's torn-off stub. */}
-            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-3.5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {skin && <StubBackdrop skin={skin} />}
               {skin && <span className="kck-foil absolute inset-x-0 top-0 h-1 pointer-events-none" style={{ background: 'linear-gradient(90deg, #FF2E88, #FFD60A, #22D3EE, #FF2E88)', backgroundSize: '200% 100%' }} aria-hidden="true" />}
 
               {/* Ticket header: what this is and when (phones and laptops) */}
-              <div className="relative col-span-2 flex md:hidden lg:flex w-full items-center justify-between gap-2 lg:mb-4 pb-3 border-b border-dashed border-white/15">
+              <div className="relative col-span-2 flex md:hidden lg:flex w-full items-center justify-between gap-2 lg:mb-4 pb-2 sm:pb-3 border-b border-dashed border-white/15">
                 <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: theme.a }}>
                   <Ticket className="w-3.5 h-3.5" /> Entry pass
                 </span>
@@ -914,22 +914,22 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   type="button"
                   disabled={soldOut}
                   onClick={book}
-                  className={`event-book-button relative overflow-hidden ${skin ? 'kck-shine' : ''} min-h-12 w-full inline-flex items-center justify-center gap-1.5 px-5 py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${skin ? 'rounded-2xl font-display text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
+                  className={`event-book-button relative overflow-hidden ${skin ? 'kck-shine' : ''} min-h-10 sm:min-h-12 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:px-5 sm:py-3 border-2 border-black text-black shadow-[4px_4px_0_#000] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[2px_2px_0_#000] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${skin ? 'rounded-2xl font-display text-xl sm:text-2xl tracking-[0.12em] hover:brightness-105' : 'rounded-xl font-comic text-lg sm:text-xl tracking-wide bg-primary hover:bg-primary-dark'}`}
                   style={skin ? { background: `linear-gradient(180deg, #FFD54A, ${skin.colors.button} 55%, #F2A900)` } : undefined}
                 >
                   {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-5 h-5 shrink-0" /></>}
                 </button>
                 <Link
                   to={`/cash?eventId=${ev.eventId}`}
-                  className="mt-2.5 inline-flex items-center justify-center gap-1.5 text-xs font-mono text-text-muted hover:text-warning transition-colors"
+                  className="mt-1.5 sm:mt-2.5 inline-flex items-center justify-center gap-1.5 text-xs font-mono text-text-muted hover:text-warning transition-colors"
                 >
                   <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
                 </Link>
                 {/* What you get, at a glance */}
-                <div className="relative mt-4 grid grid-cols-3 gap-1.5 md:hidden lg:grid">
+                <div className="relative mt-2.5 sm:mt-4 grid grid-cols-3 gap-1.5 md:hidden lg:grid">
                   {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
                     <span key={label} className="rounded-xl p-px" style={{ background: `linear-gradient(140deg, ${theme.a}88, transparent 45%, ${theme.b}88)` }}>
-                      <span className="h-full flex flex-col items-center gap-1 rounded-[11px] bg-[#141414] px-1 py-2 font-mono text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">
+                      <span className="h-full flex flex-col items-center gap-1 rounded-[11px] bg-[#141414] px-1 py-1.5 sm:py-2 font-mono text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">
                         <Icon className="w-4 h-4" style={{ color: theme.a }} /> {label}
                       </span>
                     </span>
