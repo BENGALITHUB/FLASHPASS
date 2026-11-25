@@ -565,6 +565,21 @@ function StubBackdrop({ skin }) {
   const { burst, orange } = skin.colors;
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {skin.stubImage && (
+        <>
+          <img
+            src={skin.stubImage}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-55"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(12,12,18,0.45) 0%, rgba(12,12,18,0.32) 45%, rgba(12,12,18,0.78) 100%)'
+            }}
+          />
+        </>
+      )}
       <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 w-[140%] aspect-square">
         <div
           className="absolute inset-0 opacity-60"

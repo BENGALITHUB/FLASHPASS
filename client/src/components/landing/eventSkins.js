@@ -6,6 +6,7 @@ export const EVENT_SKINS = {
   'kolkata-comics-karnival-7-0': {
     logo: '/events/kolkata-comics-karnival-7-0/kck7-logo.png',
     watermarkLogo: '/events/kolkata-comics-karnival-7-0/logo.png',
+    stubImage: '/events/kolkata-comics-karnival-7-0/stub-bg.jpg',
     tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
     colors: {
       ink: '#0A0A0A',      // banner black
@@ -26,6 +27,7 @@ export const skinFor = (evOrId) => {
     return {
       logo: tpl.logoUrl || preset?.logo || null,
       watermarkLogo: tpl.watermarkUrl || preset?.watermarkLogo || tpl.logoUrl || preset?.logo || null,
+      stubImage: preset?.stubImage || null,
       tagline: tpl.tagline?.length ? tpl.tagline : (preset?.tagline || []),
       colors: {
         ink: '#0A0A0A',
