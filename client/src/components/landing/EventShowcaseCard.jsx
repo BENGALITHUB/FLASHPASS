@@ -932,7 +932,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 </span>
               </div>
 
-              <div className="col-span-2 w-full md:w-56 lg:w-full lg:max-w-[300px] lg:mx-auto shrink-0 flex flex-col items-stretch lg:mt-5">
+              <div className="col-span-2 w-full md:w-56 lg:w-full lg:max-w-[300px] lg:mx-auto shrink-0 flex flex-col items-stretch lg:mt-14 xl:mt-16">
                 <button
                   ref={bookButtonRef}
                   type="button"
