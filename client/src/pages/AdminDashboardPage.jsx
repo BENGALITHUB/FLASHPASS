@@ -3580,7 +3580,8 @@ export default function AdminDashboardPage() {
                     )}
                   </div>
 
-                  {/* Card 5: Card Visual Template & Reusable Presets */}
+                  {/* Card 5: Card Visual Template & Reusable Presets (hidden for now) */}
+                  {false && (
                   <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000] space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -3778,6 +3779,7 @@ export default function AdminDashboardPage() {
                       );
                     })()}
                   </div>
+                  )}
 
                   {/* Save Section */}
                   <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000] flex flex-wrap items-center justify-between gap-4">
