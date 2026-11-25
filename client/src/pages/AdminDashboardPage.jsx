@@ -179,6 +179,10 @@ export default function AdminDashboardPage() {
   const [newEventStatus, setNewEventStatus] = useState({ state: 'idle' }); // idle | saving | error | done
   const [showNewEventPin, setShowNewEventPin] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+  const [savedTemplates, setSavedTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('kck-7-master');
+  const [templateNameInput, setTemplateNameInput] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   // New Staff Modal state
   const [newStaffModal, setNewStaffModal] = useState(false);
@@ -211,6 +215,14 @@ export default function AdminDashboardPage() {
       showDailyCap: false,
       showTiers: false,
       customFields: []
+    },
+    cardTemplate: {
+      layout: 'standard',
+      templateName: '',
+      logoUrl: '',
+      watermarkUrl: '',
+      tagline: [],
+      colors: { ink: '#0A0A0A', orange: '#FF7A1A', burst: '#F2FF00', button: '#FFC21A', red: '#E10600' }
     }
   });
 
@@ -387,6 +399,14 @@ export default function AdminDashboardPage() {
             showDailyCap: false,
             showTiers: false,
             customFields: []
+          },
+          cardTemplate: data.settings.cardTemplate || {
+            layout: cfgEventId === 'kolkata-comics-karnival-7-0' ? 'kolkata-dusk' : 'standard',
+            templateName: '',
+            logoUrl: '',
+            watermarkUrl: '',
+            tagline: cfgEventId === 'kolkata-comics-karnival-7-0' ? ['Comics', 'Gaming', 'Collectibles', 'Cosplay'] : [],
+            colors: { ink: '#0A0A0A', orange: '#FF7A1A', burst: '#F2FF00', button: '#FFC21A', red: '#E10600' }
           }
         });
 
@@ -435,8 +455,12 @@ export default function AdminDashboardPage() {
       setEventsList(events);
 
       if (user.role === 'SUPER_ADMIN') {
-        const overview = await api.adminGetPlatformOverview().catch(() => null);
+        const [overview, tpls] = await Promise.all([
+          api.adminGetPlatformOverview().catch(() => null),
+          api.adminGetTemplates().catch(() => ({ templates: [] }))
+        ]);
         setPlatformOverview(overview);
+        setSavedTemplates(tpls?.templates || []);
       }
 
       // Load Inquiries strictly respecting effective event scope
@@ -557,7 +581,8 @@ export default function AdminDashboardPage() {
         cashSalesEnabled: Boolean(settingsForm.cashSalesEnabled),
         gateOpenTime: settingsForm.gateOpenTime,
         gateCloseTime: settingsForm.gateCloseTime,
-        cardDisplay: settingsForm.cardDisplay
+        cardDisplay: settingsForm.cardDisplay,
+        cardTemplate: settingsForm.cardTemplate
       }, adminPin);
 
       alert('Event settings & CMS updated successfully!');
@@ -828,7 +853,20 @@ export default function AdminDashboardPage() {
     setNewEventStatus({ state: 'saving' });
     try {
       const { startDate, dayCount, ...eventFields } = newEventForm;
-      const res = await api.adminCreateEvent({ ...eventFields, ...(startDate ? { eventDates: eventDatesFrom(startDate, dayCount || 3) } : {}) });
+      const chosenTpl = savedTemplates.find(t => t.templateId === selectedTemplateId);
+      const tplPayload = chosenTpl ? {
+        cardTemplate: {
+          layout: chosenTpl.layout || 'kolkata-dusk',
+          templateName: chosenTpl.name,
+          logoUrl: chosenTpl.logoUrl || '',
+          watermarkUrl: chosenTpl.watermarkUrl || '',
+          tagline: chosenTpl.tagline || [],
+          colors: chosenTpl.colors || {}
+        },
+        cardDisplay: chosenTpl.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] },
+        ...(chosenTpl.announcementText ? { announcementText: chosenTpl.announcementText } : {})
+      } : {};
+      const res = await api.adminCreateEvent({ ...eventFields, ...tplPayload, ...(startDate ? { eventDates: eventDatesFrom(startDate, dayCount || 3) } : {}) });
       // Show the credentials once inside the modal so they can be handed to the client
       setNewEventStatus({
         state: 'done',
@@ -3510,6 +3548,147 @@ export default function AdminDashboardPage() {
                     )}
                   </div>
 
+                  {/* Card 5: Card Visual Template & Reusable Presets */}
+                  <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000] space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-comic text-lg text-accent flex items-center gap-2">
+                          <span>✨ 5. CARD VISUAL TEMPLATE &amp; THEME</span>
+                        </h4>
+                        <p className="text-[11px] font-mono text-text-muted">
+                          Switch between Standard Neon or the KCK 7.0 Kolkata Dusk &amp; Starburst template and customize colors, tagline, or logos.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { id: 'standard', title: '⚡ Standard Neon Card', hint: 'Clean dark card with neon gradients' },
+                        { id: 'kolkata-dusk', title: '🌅 Kolkata Dusk & Starburst', hint: 'KCK 7.0 style with Howrah Bridge, rays & burst price' }
+                      ].map(opt => {
+                        const active = (settingsForm.cardTemplate?.layout || 'standard') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setSettingsForm({
+                              ...settingsForm,
+                              cardTemplate: { ...(settingsForm.cardTemplate || {}), layout: opt.id }
+                            })}
+                            className={`rounded-2xl p-3.5 text-left font-mono border-2 transition-all cursor-pointer ${
+                              active ? 'bg-accent/15 border-accent text-white shadow-[3px_3px_0_#000]' : 'bg-surface-2 border-border text-text-muted hover:border-white/30'
+                            }`}
+                          >
+                            <span className="block text-xs font-bold text-white">{opt.title}</span>
+                            <span className="block text-[10px] mt-0.5 opacity-80">{opt.hint}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {settingsForm.cardTemplate?.layout === 'kolkata-dusk' && (
+                      <div className="space-y-3 pt-2 border-t border-border/60">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-mono uppercase text-text-muted block mb-1">Tagline Chips (comma-separated)</label>
+                            <input
+                              type="text"
+                              placeholder="Comics, Gaming, Collectibles, Cosplay"
+                              value={(settingsForm.cardTemplate?.tagline || []).join(', ')}
+                              onChange={(e) => setSettingsForm({
+                                ...settingsForm,
+                                cardTemplate: {
+                                  ...settingsForm.cardTemplate,
+                                  tagline: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                                }
+                              })}
+                              className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2 font-mono text-xs text-text"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-mono uppercase text-text-muted block mb-1">Custom Title Logo URL (optional)</label>
+                            <input
+                              type="text"
+                              placeholder="/events/.../logo.png (leave blank for event name)"
+                              value={settingsForm.cardTemplate?.logoUrl || ''}
+                              onChange={(e) => setSettingsForm({
+                                ...settingsForm,
+                                cardTemplate: { ...settingsForm.cardTemplate, logoUrl: e.target.value }
+                              })}
+                              className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2 font-mono text-xs text-text"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { key: 'orange', label: 'Sky & Band Color', def: '#FF7A1A' },
+                            { key: 'burst', label: 'Starburst Price', def: '#F2FF00' },
+                            { key: 'button', label: 'Book Button', def: '#FFC21A' }
+                          ].map(c => (
+                            <label key={c.key} className="flex items-center gap-2.5 bg-surface-2 border border-border rounded-xl px-3 py-2 cursor-pointer">
+                              <input
+                                type="color"
+                                value={settingsForm.cardTemplate?.colors?.[c.key] || c.def}
+                                onChange={(e) => setSettingsForm({
+                                  ...settingsForm,
+                                  cardTemplate: {
+                                    ...settingsForm.cardTemplate,
+                                    colors: { ...(settingsForm.cardTemplate?.colors || {}), [c.key]: e.target.value }
+                                  }
+                                })}
+                                className="w-7 h-7 rounded cursor-pointer bg-transparent border-0"
+                              />
+                              <span className="font-mono text-[10px] text-text">{c.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Super Admin: Save current event design as a reusable template */}
+                    {isSuperAdmin && (
+                      <div className="pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="Template name (e.g. KCK 7.0 Master)"
+                          value={templateNameInput}
+                          onChange={(e) => setTemplateNameInput(e.target.value)}
+                          className="flex-1 min-w-[200px] bg-surface-2 border border-border rounded-xl px-3 py-2 font-mono text-xs text-text"
+                        />
+                        <button
+                          type="button"
+                          disabled={savingTemplate || !templateNameInput.trim()}
+                          onClick={async () => {
+                            setSavingTemplate(true);
+                            try {
+                              const res = await api.adminSaveTemplate({
+                                name: templateNameInput.trim(),
+                                layout: settingsForm.cardTemplate?.layout || 'kolkata-dusk',
+                                logoUrl: settingsForm.cardTemplate?.logoUrl || '',
+                                watermarkUrl: settingsForm.cardTemplate?.watermarkUrl || '',
+                                tagline: settingsForm.cardTemplate?.tagline || [],
+                                colors: settingsForm.cardTemplate?.colors || {},
+                                cardDisplay: settingsForm.cardDisplay || {},
+                                announcementText: settingsForm.announcementText || ''
+                              });
+                              setSavedTemplates(res.templates || []);
+                              setTemplateNameInput('');
+                              alert('Template saved! You can now select it whenever creating a new event.');
+                            } catch (err) {
+                              alert(err.message || 'Could not save template');
+                            } finally {
+                              setSavingTemplate(false);
+                            }
+                          }}
+                          className="px-4 py-2 rounded-xl bg-primary text-black border-2 border-black font-mono text-xs font-bold shadow-[2px_2px_0_#000] hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {savingTemplate ? 'SAVING...' : '💾 SAVE AS TEMPLATE'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Save Section */}
                   <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000] flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -4723,6 +4902,22 @@ export default function AdminDashboardPage() {
                       <div className="flex items-center gap-2.5">
                         <span className="adm-step-num adm-step-num-yellow">1</span>
                         <span className="font-comic text-lg tracking-wide text-white">Event details</span>
+                      </div>
+                      <div>
+                        <label htmlFor="ne-template" className="adm-label">🎨 Card Template <span className="text-info normal-case">(customizable anytime)</span></label>
+                        <select
+                          id="ne-template"
+                          value={selectedTemplateId}
+                          onChange={(e) => setSelectedTemplateId(e.target.value)}
+                          className="adm-input"
+                        >
+                          <option value="standard">⚡ Standard Neon Card (Default)</option>
+                          {savedTemplates.map(tpl => (
+                            <option key={tpl.templateId} value={tpl.templateId}>
+                              ✨ {tpl.name} ({tpl.layout === 'kolkata-dusk' ? 'Kolkata Dusk & Starburst' : 'Standard'})
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>

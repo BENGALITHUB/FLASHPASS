@@ -219,6 +219,21 @@ const eventSchema = new mongoose.Schema({
       }
     ]
   },
+  // 10. Event Card Visual Template & Colors (standard or kolkata-dusk)
+  cardTemplate: {
+    layout: { type: String, enum: ['standard', 'kolkata-dusk'], default: 'standard' },
+    templateName: { type: String, trim: true, default: '' },
+    logoUrl: { type: String, trim: true, default: '' },
+    watermarkUrl: { type: String, trim: true, default: '' },
+    tagline: [{ type: String, trim: true }],
+    colors: {
+      ink: { type: String, default: '#0A0A0A' },
+      orange: { type: String, default: '#FF7A1A' },
+      burst: { type: String, default: '#F2FF00' },
+      button: { type: String, default: '#FFC21A' },
+      red: { type: String, default: '#E10600' }
+    }
+  },
   status: {
     type: String,
     // ARCHIVED: hidden from the public and closed to sales, records kept.

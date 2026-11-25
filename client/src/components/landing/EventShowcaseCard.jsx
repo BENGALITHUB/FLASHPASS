@@ -384,11 +384,13 @@ function SkinBackdrop({ skin }) {
         }}
       />
       {/* The logo as a faint stamp, centred and enlarged in the background. */}
-      <img
-        src={skin.watermarkLogo || skin.logo}
-        alt=""
-        className="absolute left-1/2 -translate-x-1/2 top-[52%] -translate-y-1/2 w-[92%] rotate-[-6deg] opacity-[0.20] md:top-[46%] md:w-[34rem] lg:w-[40rem] md:max-w-[95%] md:opacity-[0.18] select-none"
-      />
+      {(skin.watermarkLogo || skin.logo) && (
+        <img
+          src={skin.watermarkLogo || skin.logo}
+          alt=""
+          className="absolute left-1/2 -translate-x-1/2 top-[52%] -translate-y-1/2 w-[92%] rotate-[-6deg] opacity-[0.20] md:top-[46%] md:w-[34rem] lg:w-[40rem] md:max-w-[95%] md:opacity-[0.18] select-none"
+        />
+      )}
       {/* Tablets and up: the skyline across the foot of the panel. Phones get it as its own strip. */}
       <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[180px] lg:h-[195px]" />
     </div>
@@ -467,7 +469,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const detailsId = useId();
   // An event with its own look (eventSkins.js) keeps the same card, in its own colours and logo.
-  const skin = skinFor(ev.eventId);
+  const skin = skinFor(ev);
   const theme = skin ? { a: skin.colors.burst, b: skin.colors.orange, text: skin.colors.burst } : THEMES[index % THEMES.length];
   const dateRange = formatDateRange(ev.eventDays);
   const dayCount = ev.eventDays?.length || 0;
@@ -606,7 +608,16 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                           />
                           <span className="absolute inset-[32%] rounded-full blur-2xl opacity-55" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
                         </span>
-                        <img src={skin.logo} alt="" width="441" height="176" className="relative h-24 sm:h-28 xl:h-32 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
+                        {skin.logo ? (
+                          <img src={skin.logo} alt="" width="441" height="176" className="relative h-24 sm:h-28 xl:h-32 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
+                        ) : (
+                          <span
+                            className="relative block font-display text-4xl sm:text-6xl xl:text-7xl leading-[0.9] tracking-wide uppercase [overflow-wrap:anywhere]"
+                            style={{ color: skin.colors.burst, WebkitTextStroke: '1.5px #000', textShadow: `4px 4px 0 #000, 7px 7px 0 ${skin.colors.orange}88` }}
+                          >
+                            {ev.name}
+                          </span>
+                        )}
                       </span>
                       {skin.edition && (
                         <span aria-hidden="true" className="font-display text-5xl sm:text-7xl leading-[0.8] pb-1" style={{ color: skin.colors.red, WebkitTextStroke: '1.5px #fff', textShadow: '4px 4px 0 #000' }}>{skin.edition}</span>

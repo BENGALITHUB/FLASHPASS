@@ -342,6 +342,30 @@ export const api = {
     return handleResponse(res);
   },
 
+  adminGetTemplates: async () => {
+    const res = await fetch(`${BASE_URL}/admin/templates`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  adminSaveTemplate: async (payload) => {
+    const res = await fetch(`${BASE_URL}/admin/templates`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+    return handleResponse(res);
+  },
+
+  adminDeleteTemplate: async (templateId) => {
+    const res = await fetch(`${BASE_URL}/admin/templates/${encodeURIComponent(templateId)}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
   adminGetPlatformOverview: async () => {
     const res = await fetch(`${BASE_URL}/admin/platform/overview`, {
       headers: getHeaders()

@@ -19,7 +19,10 @@ import {
   triggerEmergencyEvacuation,
   postLiveAnnouncement,
   getExecutiveReport,
-  listShifts
+  listShifts,
+  listCardTemplates,
+  saveCardTemplate,
+  deleteCardTemplate
 } from '../controllers/admin.controller.js';
 import {
   listSettlements,
@@ -77,6 +80,9 @@ router.get('/executive-report', getExecutiveReport);
 
 // Platform Super Admin only routes
 router.post('/events', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), createEvent);
+router.get('/templates', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), listCardTemplates);
+router.post('/templates', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), saveCardTemplate);
+router.delete('/templates/:templateId', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), deleteCardTemplate);
 router.delete('/events/:eventId', requireRole(ROLES.SUPER_ADMIN), verifyAdminPin, deleteEvent);
 router.post('/events/:eventId/archive', requireRole(ROLES.SUPER_ADMIN), verifyAdminPin, setEventArchived);
 router.get('/platform/overview', requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN), getPlatformOverview);

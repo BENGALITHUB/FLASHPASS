@@ -17,4 +17,27 @@ export const EVENT_SKINS = {
   }
 };
 
-export const skinFor = eventId => EVENT_SKINS[eventId] || null;
+export const skinFor = (evOrId) => {
+  if (!evOrId) return null;
+  if (typeof evOrId === 'string') return EVENT_SKINS[evOrId] || null;
+  const preset = EVENT_SKINS[evOrId.eventId] || null;
+  const tpl = evOrId.cardTemplate;
+  if (tpl?.layout === 'kolkata-dusk') {
+    return {
+      logo: tpl.logoUrl || preset?.logo || null,
+      watermarkLogo: tpl.watermarkUrl || preset?.watermarkLogo || tpl.logoUrl || preset?.logo || null,
+      tagline: tpl.tagline?.length ? tpl.tagline : (preset?.tagline || []),
+      colors: {
+        ink: '#0A0A0A',
+        orange: '#FF7A1A',
+        burst: '#F2FF00',
+        button: '#FFC21A',
+        red: '#E10600',
+        ...(preset?.colors || {}),
+        ...(tpl.colors || {})
+      }
+    };
+  }
+  if (tpl?.layout === 'standard') return null;
+  return preset;
+};

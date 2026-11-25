@@ -281,6 +281,7 @@ export const getDashboardMetrics = async (req, res) => {
         liveAnnouncements: cfgEvent?.liveAnnouncements || [],
         emergencyEvacuation: cfgEvent?.emergencyEvacuation || { active: false },
         cardDisplay: cfgEvent?.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] },
+        cardTemplate: cfgEvent?.cardTemplate || null,
         paymentGateway: gatewaySettingsForAdmin(cfgEvent)
       }
     });
@@ -591,7 +592,7 @@ export const updateSettings = async (req, res) => {
       onePassPerPhone, cashPriceMode, allowReentry, maxReentriesPerDay,
       emergencyLockdown, cashSalesEnabled, onlineSalesEnabled,
       reentryMode, gateOpenTime, gateCloseTime, eventId,
-      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates, cardDisplay
+      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates, cardDisplay, cardTemplate
     } = req.body;
 
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
@@ -676,6 +677,29 @@ export const updateSettings = async (req, res) => {
           event.paymentGateway = merged.value;
         }
 
+        // Event Card Visual Template & Colors
+        if (cardTemplate && typeof cardTemplate === 'object') {
+          const prevT = event.cardTemplate || {};
+          const prevC = prevT.colors || {};
+          const inC = cardTemplate.colors || {};
+          event.cardTemplate = {
+            layout: ['standard', 'kolkata-dusk'].includes(cardTemplate.layout) ? cardTemplate.layout : (prevT.layout || 'standard'),
+            templateName: cardTemplate.templateName !== undefined ? String(cardTemplate.templateName).trim().slice(0, 60) : (prevT.templateName || ''),
+            logoUrl: cardTemplate.logoUrl !== undefined ? String(cardTemplate.logoUrl).trim().slice(0, 300) : (prevT.logoUrl || ''),
+            watermarkUrl: cardTemplate.watermarkUrl !== undefined ? String(cardTemplate.watermarkUrl).trim().slice(0, 300) : (prevT.watermarkUrl || ''),
+            tagline: Array.isArray(cardTemplate.tagline)
+              ? cardTemplate.tagline.map(t => String(t || '').trim()).filter(Boolean).slice(0, 6)
+              : (prevT.tagline || []),
+            colors: {
+              ink: inC.ink || prevC.ink || '#0A0A0A',
+              orange: inC.orange || prevC.orange || '#FF7A1A',
+              burst: inC.burst || prevC.burst || '#F2FF00',
+              button: inC.button || prevC.button || '#FFC21A',
+              red: inC.red || prevC.red || '#E10600'
+            }
+          };
+        }
+
         await event.save();
         clearConfigCache();
 
@@ -708,6 +732,7 @@ export const updateSettings = async (req, res) => {
             affiliates: event.affiliates,
             zones: event.zones,
             cardDisplay: event.cardDisplay,
+            cardTemplate: event.cardTemplate,
             paymentGateway: gatewaySettingsForAdmin(event)
           }
         });
@@ -883,7 +908,9 @@ export const createEvent = async (req, res) => {
       adminPin = '123456',
       adminEmail,
       adminPhone,
-      eventDates
+      eventDates,
+      cardTemplate,
+      cardDisplay
     } = req.body;
 
     if (!name || !venue || !adminUsername) {
@@ -928,6 +955,8 @@ export const createEvent = async (req, res) => {
     // 2. Create Event with dedicated event-specific tiers, add-ons and zones
     const newEvent = await Event.create({
       eventId: slug,
+      ...(cardTemplate && typeof cardTemplate === 'object' ? { cardTemplate } : {}),
+      ...(cardDisplay && typeof cardDisplay === 'object' ? { cardDisplay } : {}),
       name: name.trim(),
       venue: venue.trim(),
       announcementText: announcementText ? announcementText.trim() : `Welcome to ${name.trim()}!`,
@@ -1613,6 +1642,95 @@ export const postLiveAnnouncement = async (req, res) => {
  * GET /api/v1/admin/executive-report
  * Compile comprehensive audited executive post-event report for tax / GST / audit
  */
+const DEFAULT_KCK_TEMPLATE = {
+  templateId: 'kck-7-master',
+  name: 'KCK 7.0 Kolkata Dusk Template',
+  layout: 'kolkata-dusk',
+  logoUrl: '',
+  watermarkUrl: '/events/kolkata-comics-karnival-7-0/logo.png',
+  tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
+  colors: {
+    ink: '#0A0A0A',
+    orange: '#FF7A1A',
+    burst: '#F2FF00',
+    button: '#FFC21A',
+    red: '#E10600'
+  },
+  cardDisplay: {
+    showDays: true,
+    showDailyCap: false,
+    showTiers: false,
+    customFields: []
+  },
+  announcementText: "Get ready for city's biggest comics and pop-culture event uniting all geeks, nerds and fans under one roof.\n\n3 days of unlimited fun with just one single ticket."
+};
+
+export const listCardTemplates = async (req, res) => {
+  try {
+    const settings = await AdminSettings.getSettings();
+    if (!settings.savedCardTemplates || settings.savedCardTemplates.length === 0) {
+      settings.savedCardTemplates = [DEFAULT_KCK_TEMPLATE];
+      await settings.save();
+    }
+    return successResponse(res, { templates: settings.savedCardTemplates });
+  } catch (error) {
+    return errorResponse(res, error.message, 'TEMPLATES_FETCH_ERROR', 500);
+  }
+};
+
+export const saveCardTemplate = async (req, res) => {
+  try {
+    const { name, layout = 'kolkata-dusk', logoUrl = '', watermarkUrl = '', tagline = [], colors = {}, cardDisplay = {}, announcementText = '' } = req.body;
+    if (!name || String(name).trim().length < 2) {
+      return errorResponse(res, 'Template name is required (min 2 chars)', 'INVALID_NAME', 400);
+    }
+    const settings = await AdminSettings.getSettings();
+    if (!settings.savedCardTemplates || settings.savedCardTemplates.length === 0) {
+      settings.savedCardTemplates = [DEFAULT_KCK_TEMPLATE];
+    }
+    const slug = String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `tpl-${Date.now()}`;
+    const entry = {
+      templateId: `${slug}-${Date.now().toString(36)}`,
+      name: String(name).trim().slice(0, 60),
+      layout: ['standard', 'kolkata-dusk'].includes(layout) ? layout : 'kolkata-dusk',
+      logoUrl: String(logoUrl || '').trim().slice(0, 300),
+      watermarkUrl: String(watermarkUrl || '').trim().slice(0, 300),
+      tagline: Array.isArray(tagline) ? tagline.map(t => String(t || '').trim()).filter(Boolean).slice(0, 6) : [],
+      colors: {
+        ink: colors.ink || '#0A0A0A',
+        orange: colors.orange || '#FF7A1A',
+        burst: colors.burst || '#F2FF00',
+        button: colors.button || '#FFC21A',
+        red: colors.red || '#E10600'
+      },
+      cardDisplay: {
+        showDays: cardDisplay.showDays !== false,
+        showDailyCap: Boolean(cardDisplay.showDailyCap),
+        showTiers: Boolean(cardDisplay.showTiers),
+        customFields: Array.isArray(cardDisplay.customFields) ? cardDisplay.customFields.slice(0, 8) : []
+      },
+      announcementText: String(announcementText || '').trim().slice(0, 1000)
+    };
+    settings.savedCardTemplates.push(entry);
+    await settings.save();
+    return successResponse(res, { template: entry, templates: settings.savedCardTemplates }, 201);
+  } catch (error) {
+    return errorResponse(res, error.message, 'TEMPLATE_SAVE_ERROR', 500);
+  }
+};
+
+export const deleteCardTemplate = async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const settings = await AdminSettings.getSettings();
+    settings.savedCardTemplates = (settings.savedCardTemplates || []).filter(t => t.templateId !== templateId);
+    await settings.save();
+    return successResponse(res, { templates: settings.savedCardTemplates });
+  } catch (error) {
+    return errorResponse(res, error.message, 'TEMPLATE_DELETE_ERROR', 500);
+  }
+};
+
 export const getExecutiveReport = async (req, res) => {
   try {
     const { eventId } = req.query;
