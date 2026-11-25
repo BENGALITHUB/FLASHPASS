@@ -73,7 +73,7 @@ const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new E
 
 async function pageRequest(request) {
   try {
-    const res = await Promise.race([fetch(request), timeout(5000)]);
+    const res = await Promise.race([fetch(request, { cache: 'no-store' }), timeout(5000)]);
     if (res.ok && (res.headers.get('content-type') || '').includes('text/html')) {
       // Every page is the same SPA shell; keep the newest copy (and its files) for offline use
       const copy = res.clone();
@@ -96,7 +96,8 @@ async function cacheFirst(request, cacheName) {
   const cached = await caches.match(request, MATCH);
   if (cached) return cached;
   const res = await fetch(request);
-  if (res.ok || res.type === 'opaque') {
+  const ct = res.headers.get('content-type') || '';
+  if ((res.ok && !ct.includes('text/html')) || res.type === 'opaque') {
     const copy = res.clone();
     caches.open(cacheName).then(c => c.put(request, copy)).catch(() => {});
   }
@@ -109,7 +110,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   if (url.origin === self.location.origin) {
-    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io')) return; // live data only
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io') || url.pathname === '/version.json') return; // live data only
     if (request.mode === 'navigate') return event.respondWith(pageRequest(request));
     if (url.pathname.startsWith('/assets/')) return event.respondWith(cacheFirst(request, ASSETS));
     if (url.pathname === '/favicon.svg' || url.pathname === '/manifest.webmanifest') {

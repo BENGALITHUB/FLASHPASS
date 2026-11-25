@@ -13,6 +13,16 @@ export default defineConfig(({ mode }) => {
       {
         name: 'flashpass-site-url',
         transformIndexHtml: (html) => html.replaceAll('%SITE_URL%', siteUrl)
+      },
+      {
+        name: 'flashpass-build-version',
+        generateBundle() {
+          this.emitFile({
+            type: 'asset',
+            fileName: 'version.json',
+            source: JSON.stringify({ buildId: String(Date.now()) })
+          })
+        }
       }
     ],
     server: {

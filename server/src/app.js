@@ -66,13 +66,22 @@ app.use('/api/v1/inquiries', inquiryRoutes);
 // If client/dist exists, Express will serve the React frontend seamlessly
 const clientDistPath = path.join(__dirname, '../../client/dist');
 if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  app.use(express.static(clientDistPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html') || filePath.endsWith('sw.js') || filePath.endsWith('version.json')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
 
-  // Catch-all for React Client Routing (excluding /api routes)
+  // Catch-all for React Client Routing (excluding /api and missing static /assets/ chunks)
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/assets/') || req.path === '/version.json') {
       return next();
     }
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
