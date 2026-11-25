@@ -919,7 +919,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
               <span className="hidden lg:block absolute -left-[13px] -top-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
               <span className="hidden lg:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
 
-              <div className={`event-price relative z-20 min-w-0 shrink-0 flex flex-col items-center ${skin?.stubImage ? 'lg:self-start lg:-ml-24' : ''}`}>
+              <div className={`event-price relative z-20 min-w-0 shrink-0 flex flex-col items-center ${skin?.stubImage ? 'lg:self-start lg:-ml-7 lg:-translate-x-1/2' : ''}`}>
                 <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white/70' : 'text-text-muted'}`}>Passes from</span>
                 {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS INCLUSIVE` : null} /> : (
                   <div className="font-comic text-5xl lg:text-6xl leading-none mt-1 lg:my-2" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>₹{priceLabel}</div>
