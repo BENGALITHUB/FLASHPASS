@@ -560,8 +560,6 @@ function SkinBackdrop({ skin }) {
           className="absolute left-1/2 -translate-x-1/2 top-[52%] -translate-y-1/2 w-[92%] rotate-[-6deg] opacity-[0.20] md:top-[46%] md:w-[34rem] lg:w-[40rem] md:max-w-[95%] md:opacity-[0.18] select-none"
         />
       )}
-      {/* Tablets and up: the skyline across the foot of the panel. Phones get it as its own strip. */}
-      <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[180px] lg:h-[195px]" />
     </div>
   );
 }
@@ -734,7 +732,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           {/* ===== Ticket body + stub ===== */}
           <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px]">
             {/* Event body */}
-            <div className={`relative min-w-0 p-4 sm:p-5 xl:p-6 overflow-hidden ${skin ? 'md:pb-36 lg:pb-40 xl:pb-44' : ''}`}>
+            <div className="relative min-w-0 p-4 sm:p-5 xl:p-6 overflow-hidden">
               {/* Themed art: gradient wash, halftone, giant watermark */}
               {skin ? <SkinBackdrop skin={skin} /> : <>
                 <div
@@ -892,14 +890,6 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 )}
 
               </div>
-
-              {/* Phones: the Kolkata skyline as its own full-width strip under the details, edge to edge */}
-              {skin && (
-                <div className="md:hidden relative -mx-4 -mb-4 mt-5 aspect-[700/195] overflow-hidden" aria-hidden="true">
-                  <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent, ${skin.colors.orange}33 60%, ${skin.colors.orange}55)` }} />
-                  <KolkataSkyline orange={skin.colors.orange} red={skin.colors.red} viewBox="205 28 700 195" fit="xMidYMax meet" className="absolute inset-0 w-full h-full" />
-                </div>
-              )}
             </div>
 
             {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
