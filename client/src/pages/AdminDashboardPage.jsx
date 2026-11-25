@@ -15,7 +15,8 @@ import {
   CheckCircle2, XCircle, ArrowRight, ArrowLeft, Menu, X, Download, ShieldAlert,
   Sliders, Lock, Eye, Check, ChevronRight, Zap, BarChart3, TrendingUp, Activity, PieChart, Radio, Building2, Sparkles, ChevronDown,
   Bell, Tag, ShoppingBag, HeartHandshake, FileText, Printer, Volume2, Store, Phone, Mail, Send, MessageSquare, Trash2, ExternalLink, Clock,
-  Shirt, Coffee, Car, Crown, Pencil, EyeOff, CreditCard, Key
+  Shirt, Coffee, Car, Crown, Pencil, EyeOff, CreditCard, Key,
+  Copy, IndianRupee, FileSpreadsheet, ShieldCheck
 } from 'lucide-react';
 import IngressVelocityChart from '../components/analytics/IngressVelocityChart';
 import GateCongestionHeatmap from '../components/analytics/GateCongestionHeatmap';
@@ -153,6 +154,7 @@ export default function AdminDashboardPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [attendeesChannel, setAttendeesChannel] = useState('');
   const [attendeesLoading, setAttendeesLoading] = useState(false);
+  const [copiedOrderId, setCopiedOrderId] = useState(null);
   const [selectedPass, setSelectedPass] = useState(null);
   const [passDetail, setPassDetail] = useState(null);
   const [forceResetReason, setForceResetReason] = useState('');
@@ -1850,258 +1852,384 @@ export default function AdminDashboardPage() {
               ? (settingsForm.eventName || 'Your Event')
               : (selectedEventScope === 'ALL' ? 'All Events' : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope));
 
+            const checkInPct = totalAttendees ? Math.round((insideCount / totalAttendees) * 100) : 0;
+            const onlinePct = totalAttendees ? Math.round((onlineCount / totalAttendees) * 100) : 0;
+            const CHANNEL_META = {
+              ONLINE: { label: 'Online', cls: 'adm-pa-ch-online', Icon: Globe },
+              POS_WALKIN: { label: 'Box Office', cls: 'adm-pa-ch-pos', Icon: Store },
+              CASH_TOKEN: { label: 'Token', cls: 'adm-pa-ch-token', Icon: Tag }
+            };
+            const AVATAR_TONES = ['adm-pa-av-yellow', 'adm-pa-av-magenta', 'adm-pa-av-cyan', 'adm-pa-av-green', 'adm-pa-av-orange'];
+            const avatarTone = (name = '') => AVATAR_TONES[[...name].reduce((h, c) => h + c.charCodeAt(0), 0) % AVATAR_TONES.length];
+            const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('') || '?';
+            const copyOrderId = (id) => {
+              if (!navigator.clipboard) return;
+              navigator.clipboard.writeText(id).then(() => {
+                setCopiedOrderId(id);
+                setTimeout(() => setCopiedOrderId(cur => (cur === id ? null : cur)), 1500);
+              }).catch(() => {});
+            };
+            const showSkeleton = attendeesLoading && searchResults.length === 0;
+
+            const OrderIdChip = ({ id }) => (
+              <button
+                type="button"
+                onClick={() => copyOrderId(id)}
+                title="Copy order ID"
+                className="adm-pa-order group"
+              >
+                <span>{id}</span>
+                {copiedOrderId === id
+                  ? <Check className="w-3 h-3 text-success" />
+                  : <Copy className="w-3 h-3 opacity-40 group-hover:opacity-100 transition-opacity" />}
+              </button>
+            );
+            const ChannelChip = ({ channel }) => {
+              const meta = CHANNEL_META[channel || 'ONLINE'] || CHANNEL_META.ONLINE;
+              return (
+                <span className={`adm-pa-ch ${meta.cls}`}>
+                  <meta.Icon className="w-3 h-3" />
+                  {meta.label}
+                </span>
+              );
+            };
+            const PresenceChip = ({ presence }) => (
+              <span className={`adm-chip ${presence === 'INSIDE' ? 'adm-chip-success' : ''}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${presence === 'INSIDE' ? 'bg-success animate-pulse shadow-[0_0_8px_#22c55e]' : 'bg-text-muted/60'}`} />
+                {presence === 'INSIDE' ? 'Inside' : 'Outside'}
+              </span>
+            );
+            const StatusChip = ({ status }) => (
+              <span className={`adm-chip ${status === 'ACTIVE' ? 'adm-pa-status-active' : 'adm-chip-danger'}`}>
+                {status === 'ACTIVE' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                {status === 'ACTIVE' ? 'Active' : status}
+              </span>
+            );
+
             return (
             <div className="space-y-5">
               {/* 1. KPI Summary Strip */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <div className="adm-stat adm-tone-cyan rounded-2xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="adm-eyebrow text-info">Total Attendees</span>
-                    <Users className="w-4 h-4 text-info/80" />
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="adm-kpi adm-pa-stat adm-kpi-highlight adm-tone-cyan rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="adm-pa-eyebrow">Total Attendees</span>
+                    <span className="adm-pa-kpi-icon"><Users className="w-4 h-4" /></span>
                   </div>
-                  <div className="adm-kpi-value font-comic text-3xl text-white mt-1.5">{totalAttendees}</div>
-                  <p className="text-[11px] font-mono text-text-muted mt-1 truncate">{activeEventLabel}</p>
+                  <div className="adm-kpi-value font-comic text-3xl sm:text-4xl mt-2 leading-none">{totalAttendees.toLocaleString('en-IN')}</div>
+                  <p className="text-[11px] font-mono text-text-muted mt-2 truncate" title={activeEventLabel}>{activeEventLabel}</p>
                 </div>
 
-                <div className="adm-stat adm-tone-green rounded-2xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="adm-eyebrow text-success">Checked In</span>
-                    <CheckCircle2 className="w-4 h-4 text-success/80" />
+                <div className="adm-kpi adm-pa-stat adm-tone-success rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="adm-pa-eyebrow">Checked In</span>
+                    <span className="adm-pa-kpi-icon"><CheckCircle2 className="w-4 h-4" /></span>
                   </div>
-                  <div className="adm-kpi-value font-comic text-3xl text-white mt-1.5">{insideCount}</div>
-                  <p className="text-[11px] font-mono text-text-muted mt-1">{totalAttendees - insideCount} yet to arrive</p>
+                  <div className="flex items-baseline gap-2 mt-2">
+                    <span className="adm-kpi-value font-comic text-3xl sm:text-4xl leading-none">{insideCount.toLocaleString('en-IN')}</span>
+                    <span className="font-mono text-[11px] font-bold text-text-muted">{checkInPct}%</span>
+                  </div>
+                  <div className="adm-meter h-1.5 rounded-full mt-3 overflow-hidden">
+                    <div className="adm-meter-fill h-full rounded-full transition-all duration-700" style={{ width: `${checkInPct}%` }} />
+                  </div>
+                  <p className="text-[11px] font-mono text-text-muted mt-2">{(totalAttendees - insideCount).toLocaleString('en-IN')} yet to arrive</p>
                 </div>
 
-                <div className="adm-stat adm-tone-magenta rounded-2xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="adm-eyebrow text-accent">Booking Channels</span>
-                    <Globe className="w-4 h-4 text-accent/80" />
+                <div className="adm-kpi adm-pa-stat adm-tone-magenta rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="adm-pa-eyebrow">Booking Channels</span>
+                    <span className="adm-pa-kpi-icon"><Globe className="w-4 h-4" /></span>
                   </div>
-                  <div className="adm-kpi-value font-comic text-3xl text-white mt-1.5">{onlineCount} <span className="text-sm font-mono text-text-muted">vs</span> {counterCount}</div>
-                  <p className="text-[11px] font-mono text-text-muted mt-1">Online • Counter / Token</p>
+                  <div className="flex items-baseline gap-2 mt-2 font-comic text-3xl sm:text-4xl leading-none">
+                    <span className="text-info">{onlineCount}</span>
+                    <span className="text-xs font-mono text-text-muted">vs</span>
+                    <span className="text-warning">{counterCount}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full mt-3 overflow-hidden flex bg-white/[0.06]">
+                    <div className="h-full bg-info shadow-[0_0_8px_#22d3ee] transition-all duration-700" style={{ width: `${onlinePct}%` }} />
+                    <div className="h-full bg-warning transition-all duration-700" style={{ width: `${totalAttendees ? 100 - onlinePct : 0}%` }} />
+                  </div>
+                  <p className="text-[11px] font-mono text-text-muted mt-2">
+                    <span className="text-info">Online</span> • <span className="text-warning">Counter / Token</span>
+                  </p>
                 </div>
 
-                <div className="adm-stat adm-tone-gold rounded-2xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="adm-eyebrow text-primary">Total Value</span>
-                    <DollarSign className="w-4 h-4 text-primary/80" />
+                <div className="adm-kpi adm-pa-stat adm-kpi-highlight adm-tone-yellow rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="adm-pa-eyebrow">Total Value</span>
+                    <span className="adm-pa-kpi-icon"><IndianRupee className="w-4 h-4" /></span>
                   </div>
-                  <div className="adm-kpi-value font-comic text-3xl text-primary mt-1.5">₹{totalAmountRupees}</div>
-                  <p className="text-[11px] font-mono text-text-muted mt-1">Across listed passes</p>
+                  <div className="adm-kpi-value adm-number-glow font-comic text-3xl sm:text-4xl mt-2 leading-none">₹{totalAmountRupees}</div>
+                  <p className="text-[11px] font-mono text-text-muted mt-2">
+                    Avg ₹{totalAttendees ? Math.round(searchResults.reduce((s, r) => s + (Number(r.amountPaise) || 0), 0) / 100 / totalAttendees).toLocaleString('en-IN') : 0} per pass
+                  </p>
                 </div>
               </div>
 
-              {/* 2. Search, Channel Pills & Export Command Bar */}
-              <div className="adm-card rounded-3xl p-5 sm:p-6 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <span className="adm-eyebrow text-info block">LIVE DIRECTORY • {activeEventLabel}</span>
-                    <h3 className="font-comic text-2xl sm:text-3xl text-white tracking-wide mt-0.5">ATTENDEES &amp; TICKET BUYERS</h3>
+              {/* 2. Directory header: title, exports, search & channel filter */}
+              <div className="adm-hero rounded-3xl p-5 sm:p-6 relative overflow-hidden">
+                <div className="adm-hero-glow absolute inset-0 pointer-events-none" />
+                <div className="relative space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="adm-icon-tile adm-icon-tile-cyan w-12 h-12 rounded-2xl flex-shrink-0">
+                        <Ticket className="w-6 h-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-info">
+                          <span className="w-1.5 h-1.5 rounded-full bg-info animate-pulse shadow-[0_0_8px_#22d3ee]" />
+                          Live directory
+                          <span className="text-text-muted normal-case tracking-normal font-semibold truncate">• {activeEventLabel}</span>
+                        </span>
+                        <h3 className="font-comic text-2xl sm:text-3xl text-white tracking-wide mt-0.5 leading-tight">
+                          ATTENDEES &amp; <span className="text-primary">TICKET BUYERS</span>
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* Export suite */}
+                    <div className="adm-pa-segment">
+                      <span className="hidden sm:inline px-2.5 font-mono text-[10px] font-bold uppercase tracking-wider text-text-muted">Export</span>
+                      <button
+                        type="button"
+                        disabled={searchResults.length === 0}
+                        onClick={() => exportAttendeesCSV(searchResults, activeEventLabel)}
+                        className="adm-pa-export"
+                      >
+                        <Download className="w-3.5 h-3.5" /> CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={searchResults.length === 0}
+                        onClick={() => exportAttendeesExcel(searchResults, activeEventLabel)}
+                        className="adm-pa-export adm-pa-export-green"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={searchResults.length === 0}
+                        onClick={() => exportAttendeesPDF(searchResults, activeEventLabel)}
+                        className="adm-pa-export adm-pa-export-magenta"
+                      >
+                        <FileText className="w-3.5 h-3.5" /> PDF
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Export Suite */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={searchResults.length === 0}
-                      onClick={() => exportAttendeesCSV(searchResults, activeEventLabel)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-primary/15 border border-white/10 hover:border-primary/50 text-xs font-mono font-bold text-text hover:text-primary transition-all cursor-pointer disabled:opacity-40"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      CSV
+                  <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3">
+                    <div className="adm-pa-search relative flex-1">
+                      <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-info pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search name, mobile, email or order ID…"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full h-12 bg-[#0B0B14] border border-[#2e2e4d] rounded-2xl pl-11 pr-11 font-mono text-xs sm:text-sm text-white placeholder:text-[#6e6e8f]"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => { setSearchQuery(''); loadAttendees(undefined, '', undefined); }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center rounded-lg text-text-muted hover:text-white hover:bg-white/[0.06] cursor-pointer"
+                          title="Clear search"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="adm-pa-segment overflow-x-auto">
+                      {[
+                        { id: '', label: 'All', Icon: Users },
+                        { id: 'ONLINE', label: 'Online', Icon: Globe },
+                        { id: 'POS_WALKIN', label: 'Box Office', Icon: Store },
+                        { id: 'CASH_TOKEN', label: 'Token', Icon: Tag }
+                      ].map(ch => (
+                        <button
+                          key={ch.id || 'ALL'}
+                          type="button"
+                          onClick={() => {
+                            setAttendeesChannel(ch.id);
+                            loadAttendees(undefined, undefined, ch.id);
+                          }}
+                          className={`adm-pa-pill ${attendeesChannel === ch.id ? 'adm-pa-pill-active' : ''}`}
+                        >
+                          <ch.Icon className="w-3.5 h-3.5" />
+                          {ch.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button type="submit" className="adm-btn adm-btn-primary adm-btn-lg h-12 justify-center px-6 shrink-0 cursor-pointer" disabled={attendeesLoading}>
+                      {attendeesLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      {attendeesLoading ? 'SEARCHING' : 'SEARCH'}
                     </button>
-                    <button
-                      type="button"
-                      disabled={searchResults.length === 0}
-                      onClick={() => exportAttendeesExcel(searchResults, activeEventLabel)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-success/10 hover:bg-success/20 border border-success/35 text-xs font-mono font-bold text-success transition-all cursor-pointer disabled:opacity-40"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Excel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={searchResults.length === 0}
-                      onClick={() => exportAttendeesPDF(searchResults, activeEventLabel)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/35 text-xs font-mono font-bold text-accent transition-all cursor-pointer disabled:opacity-40"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      PDF
-                    </button>
-                  </div>
+                  </form>
                 </div>
-
-                <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-info" />
-                    <input
-                      type="text"
-                      placeholder="Search by Name, 10-digit Mobile, Email or Order ID (e.g. souravdeyhalder@gmail.com)"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-[#0B0B14]/80 border border-white/15 rounded-2xl pl-11 pr-10 py-3 font-mono text-xs sm:text-sm text-white placeholder-text-muted/50 focus:border-info focus:ring-2 focus:ring-info/20 focus:outline-none transition-all"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => { setSearchQuery(''); loadAttendees(undefined, '', undefined); }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white p-1"
-                        title="Clear search"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5 bg-[#0B0B14]/70 border border-white/10 rounded-2xl p-1.5">
-                    {[
-                      { id: '', label: 'All' },
-                      { id: 'ONLINE', label: 'Online' },
-                      { id: 'POS_WALKIN', label: 'Box Office' },
-                      { id: 'CASH_TOKEN', label: 'Token' }
-                    ].map(ch => (
-                      <button
-                        key={ch.id || 'ALL'}
-                        type="button"
-                        onClick={() => {
-                          setAttendeesChannel(ch.id);
-                          loadAttendees(undefined, undefined, ch.id);
-                        }}
-                        className={`px-3 py-1.5 rounded-xl font-mono text-[11px] font-bold transition-all cursor-pointer ${
-                          attendeesChannel === ch.id
-                            ? 'bg-info text-black shadow-[0_0_12px_rgba(34,211,238,0.35)]'
-                            : 'text-text-muted hover:text-white hover:bg-white/[0.05]'
-                        }`}
-                      >
-                        {ch.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <ComicButton variant="info" size="md" type="submit" className="shrink-0">
-                    {attendeesLoading ? 'LOADING...' : 'SEARCH'}
-                  </ComicButton>
-                </form>
               </div>
 
-              {/* 3. Premium Attendees Table */}
-              <div className="adm-card rounded-3xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-text-muted">
-                    Showing <strong className="text-white">{searchResults.length}</strong> Verified Buyer Records
-                  </span>
+              {/* 3. Attendee records */}
+              <div className="adm-panel rounded-3xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-white/[0.03] to-transparent">
+                  <div className="flex items-center gap-2.5">
+                    <span className="adm-chip adm-chip-cyan">
+                      <ShieldCheck className="w-3 h-3" />
+                      {searchResults.length.toLocaleString('en-IN')} verified
+                    </span>
+                    <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-text-muted">Buyer records</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => loadAttendees()}
-                    className="inline-flex items-center gap-1.5 font-mono text-[11px] text-info hover:underline cursor-pointer"
+                    className="adm-btn adm-btn-sm adm-btn-cyan cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${attendeesLoading ? 'animate-spin' : ''}`} />
                     Refresh
                   </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left font-mono text-xs">
-                    <thead>
-                      <tr className="border-b border-white/[0.08] bg-black/25 text-[10px] uppercase tracking-wider text-text-muted">
-                        <th className="py-3.5 px-4">Order ID</th>
-                        <th className="py-3.5 px-4">Attendee</th>
-                        <th className="py-3.5 px-4">Mobile</th>
-                        <th className="py-3.5 px-4">Email Address</th>
-                        <th className="py-3.5 px-4">Tier &amp; Channel</th>
-                        <th className="py-3.5 px-4">Presence</th>
-                        <th className="py-3.5 px-4">Status</th>
-                        <th className="py-3.5 px-4 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.05]">
-                      {searchResults.length === 0 ? (
-                        <tr>
-                          <td colSpan="8" className="py-14 text-center">
-                            <Users className="w-8 h-8 text-text-muted/40 mx-auto mb-2" />
-                            <p className="text-sm font-mono text-text-muted">
-                              {attendeesLoading ? 'Fetching attendee records...' : 'No attendee records match this filter.'}
-                            </p>
-                          </td>
-                        </tr>
-                      ) : (
-                        searchResults.map(p => (
-                          <tr key={p._id} className="hover:bg-white/[0.03] transition-colors">
-                            <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span className="font-bold text-primary bg-primary/10 border border-primary/25 px-2.5 py-1 rounded-lg">
-                                {p.orderId}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-text">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-info/25 to-accent/25 border border-white/15 flex items-center justify-center text-xs text-white flex-shrink-0 font-bold shadow-sm">
-                                  {p.holderName ? p.holderName.charAt(0).toUpperCase() : '?'}
+                {showSkeleton ? (
+                  <div className="divide-y divide-white/[0.05]">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className="flex items-center gap-4 px-5 py-4 animate-pulse">
+                        <div className="h-7 w-28 rounded-lg bg-white/[0.06]" />
+                        <div className="w-9 h-9 rounded-xl bg-white/[0.06]" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 w-1/3 rounded bg-white/[0.07]" />
+                          <div className="h-2.5 w-1/4 rounded bg-white/[0.04]" />
+                        </div>
+                        <div className="hidden md:block h-7 w-24 rounded-full bg-white/[0.05]" />
+                      </div>
+                    ))}
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="py-16 px-6 text-center">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center mb-4">
+                      <Users className="w-7 h-7 text-text-muted/60" />
+                    </div>
+                    <p className="font-comic text-xl text-white tracking-wide">NO RECORDS FOUND</p>
+                    <p className="text-xs font-mono text-text-muted mt-1.5">
+                      {searchQuery || attendeesChannel ? 'Nothing matches this search or channel filter.' : 'Passes will appear here as soon as they are booked.'}
+                    </p>
+                    {(searchQuery || attendeesChannel) && (
+                      <button
+                        type="button"
+                        onClick={() => { setSearchQuery(''); setAttendeesChannel(''); loadAttendees(undefined, '', ''); }}
+                        className="adm-btn adm-btn-sm adm-btn-ghost mt-4 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" /> Clear filters
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left font-mono text-xs">
+                        <thead>
+                          <tr className="border-b border-white/[0.08] bg-black/30 text-[10px] uppercase tracking-[0.12em] text-text-muted">
+                            <th className="py-3.5 px-5 font-bold">Order</th>
+                            <th className="py-3.5 px-4 font-bold">Attendee</th>
+                            <th className="py-3.5 px-4 font-bold">Contact</th>
+                            <th className="py-3.5 px-4 font-bold">Pass</th>
+                            <th className="py-3.5 px-4 font-bold">Presence</th>
+                            <th className="py-3.5 px-4 font-bold">Status</th>
+                            <th className="py-3.5 px-5 font-bold text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.05]">
+                          {searchResults.map(p => (
+                            <tr key={p._id} className="adm-pa-row">
+                              <td className="py-4 px-5 whitespace-nowrap">
+                                <OrderIdChip id={p.orderId} />
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-3">
+                                  <div className={`adm-pa-avatar ${avatarTone(p.holderName)}`}>
+                                    {initials(p.holderName)}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-sans font-bold text-white block text-[13px] leading-tight">{p.holderName || '—'}</span>
+                                    {isSuperAdmin && selectedEventScope === 'ALL' && p.eventName && (
+                                      <span className="text-[10px] text-text-muted">{p.eventName}</span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="font-bold text-white block text-[13px]">{p.holderName}</span>
-                                  {isSuperAdmin && selectedEventScope === 'ALL' && (
-                                    <span className="text-[10px] text-text-muted">{p.eventName}</span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="space-y-1">
+                                  <a href={`tel:${p.phone}`} className="flex items-center gap-1.5 text-white hover:text-primary transition-colors whitespace-nowrap">
+                                    <Phone className="w-3 h-3 text-text-muted" />{p.phone}
+                                  </a>
+                                  {p.email ? (
+                                    <a href={`mailto:${p.email}`} className="flex items-center gap-1.5 text-info/90 hover:text-info hover:underline break-all" title={p.email}>
+                                      <Mail className="w-3 h-3 text-text-muted flex-shrink-0" />{p.email}
+                                    </a>
+                                  ) : (
+                                    <span className="flex items-center gap-1.5 text-text-muted/50"><Mail className="w-3 h-3" />—</span>
                                   )}
                                 </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <span className="block text-white font-semibold font-sans text-[13px] leading-snug">{p.tierName || p.badge}</span>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <ChannelChip channel={p.channel} />
+                                  <span className="font-bold text-primary">₹{((p.amountPaise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4"><PresenceChip presence={p.presence} /></td>
+                              <td className="py-4 px-4"><StatusChip status={p.status} /></td>
+                              <td className="py-4 px-5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => openPassDetail(p)}
+                                  className="adm-pa-view"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  View
+                                  <ChevronRight className="w-3.5 h-3.5 -mr-1" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden p-3 space-y-3">
+                      {searchResults.map(p => (
+                        <div key={p._id} className="adm-pa-card rounded-2xl p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`adm-pa-avatar ${avatarTone(p.holderName)}`}>{initials(p.holderName)}</div>
+                              <div className="min-w-0">
+                                <span className="font-bold text-white block text-sm truncate">{p.holderName || '—'}</span>
+                                <span className="text-[11px] font-mono text-text-muted truncate block">{p.tierName || p.badge}</span>
                               </div>
-                            </td>
-                            <td className="py-3.5 px-4 whitespace-nowrap">
-                              <a href={`tel:${p.phone}`} className="text-white hover:text-primary transition-colors">{p.phone}</a>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              {p.email ? (
-                                <a href={`mailto:${p.email}`} className="text-info hover:underline">{p.email}</a>
-                              ) : (
-                                <span className="text-text-muted/50">—</span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className="block text-white font-semibold">{p.tierName || p.badge}</span>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                  p.channel === 'POS_WALKIN' ? 'bg-warning/15 text-warning'
-                                    : p.channel === 'CASH_TOKEN' ? 'bg-accent/15 text-accent'
-                                    : 'bg-info/15 text-info'
-                                }`}>
-                                  {p.channel || 'ONLINE'}
-                                </span>
-                                <span className="text-[10px] text-text-muted">₹{((p.amountPaise || 0) / 100).toFixed(0)}</span>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] ${
-                                p.presence === 'INSIDE'
-                                  ? 'bg-success/15 text-success border border-success/30'
-                                  : 'bg-white/[0.05] text-text-muted border border-white/10'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${p.presence === 'INSIDE' ? 'bg-success animate-pulse' : 'bg-text-muted/60'}`} />
-                                {p.presence}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                p.status === 'ACTIVE'
-                                  ? 'bg-primary/15 text-primary border border-primary/30'
-                                  : 'bg-danger/15 text-danger border border-danger/30'
-                              }`}>
-                                {p.status}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => openPassDetail(p)}
-                                className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-info hover:text-black border border-white/15 hover:border-info text-[11px] font-bold text-white transition-all cursor-pointer"
-                              >
-                                View Details
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                            </div>
+                            <span className="font-comic text-xl text-primary leading-none flex-shrink-0">₹{((p.amountPaise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                            <OrderIdChip id={p.orderId} />
+                            <ChannelChip channel={p.channel} />
+                            <PresenceChip presence={p.presence} />
+                            <StatusChip status={p.status} />
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto] items-end gap-3 mt-3 pt-3 border-t border-white/[0.06] font-mono text-xs">
+                            <div className="space-y-1 min-w-0">
+                              <a href={`tel:${p.phone}`} className="flex items-center gap-1.5 text-white"><Phone className="w-3 h-3 text-text-muted" />{p.phone}</a>
+                              {p.email && <a href={`mailto:${p.email}`} className="flex items-center gap-1.5 text-info truncate"><Mail className="w-3 h-3 text-text-muted flex-shrink-0" /><span className="truncate">{p.email}</span></a>}
+                            </div>
+                            <button type="button" onClick={() => openPassDetail(p)} className="adm-pa-view">
+                              <Eye className="w-3.5 h-3.5" /> View
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             );
