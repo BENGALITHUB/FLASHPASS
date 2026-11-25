@@ -60,10 +60,11 @@ export const createInquiry = async (req, res) => {
       ? 'FlashPass Platform'
       : targetEventId === 'comics-carnival' ? '3-Day Comics Carnival' : targetEventId;
 
-    // A stall's price comes from the fixed price list, never from the request
+    // A stall's price comes from the fixed price list for Kolkata Comics Karnival
     const isStall = type.toUpperCase() === 'STALL';
-    const stall = isStall ? STALL_OPTIONS.find(s => s.id === String(stallType || '').trim()) : null;
-    if (isStall && !stall) {
+    const usesFixedStallList = targetEventId === 'platform' || targetEventId.includes('comics-karnival');
+    const stall = isStall && usesFixedStallList ? STALL_OPTIONS.find(s => s.id === String(stallType || '').trim()) : null;
+    if (isStall && usesFixedStallList && !stall) {
       return errorResponse(res, 'Please choose a stall size', 'INVALID_STALL_TYPE', 400);
     }
 
@@ -79,8 +80,8 @@ export const createInquiry = async (req, res) => {
       phone: cleanPhone,
       email: email.trim().toLowerCase(),
       category: category ? String(category).trim() : 'GENERAL',
-      stallType: stall ? stall.id : undefined,
-      stallLabel: stall ? stall.label : undefined,
+      stallType: stall ? stall.id : (isStall && stallType ? String(stallType).trim().slice(0, 80) : undefined),
+      stallLabel: stall ? stall.label : (isStall && stallType ? String(stallType).trim().slice(0, 80) : undefined),
       stallPriceRupees: stall ? stall.priceRupees : undefined,
       priceNote: isStall && priceNote ? String(priceNote).trim().slice(0, 500) : undefined,
       sponsorshipTier: sponsorshipTier ? String(sponsorshipTier).trim() : undefined,

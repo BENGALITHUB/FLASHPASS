@@ -50,6 +50,7 @@ export default function InquiryModal({
   const TypeIcon = theme.icon;
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
   const stall = findStall(form.stallType) || STALL_OPTIONS[0];
+  const isKckEvent = !selectedEventId || selectedEventId === 'platform' || String(selectedEventId).toLowerCase().includes('comics-karnival');
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -299,28 +300,52 @@ export default function InquiryModal({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_190px] gap-3">
-                        <Field label="Stall size / booth type" icon={Store} chevron required>
-                          <select value={stall.id} onChange={set('stallType')} className={`${inputCls} pr-9 cursor-pointer appearance-none`}>
-                            {STALL_OPTIONS.map((s) => (
-                              <option key={s.id} value={s.id}>{s.emoji} {s.label} — {formatRupees(s.priceRupees)}</option>
-                            ))}
-                          </select>
-                        </Field>
-                        <Field label="Stall price" icon={IndianRupee} hint="Fixed">
-                          <input
-                            type="text"
-                            readOnly
-                            tabIndex={-1}
-                            aria-readonly="true"
-                            value={stall.priceRupees.toLocaleString('en-IN')}
-                            title="Price is set by the organizer for this stall size"
-                            className={`${inputCls} pr-9 font-comic text-lg tracking-wide cursor-not-allowed select-none border-dashed`}
-                            style={{ color: theme.a, background: 'rgba(0,0,0,0.35)' }}
-                          />
-                          <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-                        </Field>
-                      </div>
+                      {isKckEvent ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_190px] gap-3">
+                          <Field label="Stall size / booth type" icon={Store} chevron required>
+                            <select value={stall.id} onChange={set('stallType')} className={`${inputCls} pr-9 cursor-pointer appearance-none`}>
+                              {STALL_OPTIONS.map((s) => (
+                                <option key={s.id} value={s.id}>{s.emoji} {s.label}</option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="Stall price" icon={IndianRupee} hint="Fixed">
+                            <input
+                              type="text"
+                              readOnly
+                              tabIndex={-1}
+                              aria-readonly="true"
+                              value={stall.priceRupees.toLocaleString('en-IN')}
+                              title="Price is set by the organizer for this stall size"
+                              className={`${inputCls} pr-9 font-sans font-extrabold text-base tracking-wide text-white cursor-not-allowed select-none border-dashed`}
+                              style={{ background: 'rgba(0,0,0,0.35)' }}
+                            />
+                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                          </Field>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Field label="Stall size / booth type" icon={Store} required>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. Standard Booth (10×5 ft) / Food Stall"
+                              value={form.stallType || ''}
+                              onChange={set('stallType')}
+                              className={inputCls}
+                            />
+                          </Field>
+                          <Field label="Expected budget" icon={IndianRupee}>
+                            <input
+                              type="text"
+                              placeholder="e.g. ₹10,000 or Negotiable"
+                              value={form.budget || ''}
+                              onChange={set('budget')}
+                              className={inputCls}
+                            />
+                          </Field>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Field label="Merchandise category" icon={Tag}>
                           <input type="text" placeholder="e.g. Anime posters, manga, props" value={form.category} onChange={set('category')} className={inputCls} />
