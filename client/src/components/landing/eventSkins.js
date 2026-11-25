@@ -5,7 +5,7 @@ export const EVENT_SKINS = {
   // Kolkata Comics Karnival 7.0: black and orange with a yellow price burst, as on its banner.
   'kolkata-comics-karnival-7-0': {
     logo: '/events/kolkata-comics-karnival-7-0/kck7-logo.png',
-    watermarkLogo: '/events/kolkata-comics-karnival-7-0/logo.png',
+    watermarkLogo: null,
     mainBgImage: '/events/kolkata-comics-karnival-7-0/comic-bg.jpg',
     stubImage: '/events/kolkata-comics-karnival-7-0/stub-bg.jpg',
     tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
@@ -27,7 +27,7 @@ export const skinFor = (evOrId) => {
   if (tpl?.layout === 'kolkata-dusk') {
     return {
       logo: tpl.logoUrl || preset?.logo || null,
-      watermarkLogo: tpl.watermarkUrl || preset?.watermarkLogo || tpl.logoUrl || preset?.logo || null,
+      watermarkLogo: tpl.watermarkUrl || preset?.watermarkLogo || null,
       mainBgImage: preset?.mainBgImage || null,
       stubImage: preset?.stubImage || null,
       tagline: tpl.tagline?.length ? tpl.tagline : (preset?.tagline || []),

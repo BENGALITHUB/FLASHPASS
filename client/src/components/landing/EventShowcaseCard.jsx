@@ -553,9 +553,9 @@ function SkinBackdrop({ skin }) {
         }}
       />
       {/* The logo as a faint stamp, centred and enlarged in the background. */}
-      {(skin.watermarkLogo || skin.logo) && (
+      {skin.watermarkLogo && (
         <img
-          src={skin.watermarkLogo || skin.logo}
+          src={skin.watermarkLogo}
           alt=""
           className="absolute left-1/2 -translate-x-1/2 top-[52%] -translate-y-1/2 w-[92%] rotate-[-6deg] opacity-[0.20] md:top-[46%] md:w-[34rem] lg:w-[40rem] md:max-w-[95%] md:opacity-[0.18] select-none"
         />
