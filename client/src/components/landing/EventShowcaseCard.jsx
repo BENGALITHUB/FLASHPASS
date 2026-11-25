@@ -533,11 +533,22 @@ function SkinBackdrop({ skin }) {
         <img
           src={skin.mainBgImage}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.28]"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.58] brightness-110 contrast-105"
         />
       )}
-      {/* Clean dark contrast overlay without orange dusk wash */}
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,14,0.58) 0%, rgba(10,10,14,0.42) 50%, rgba(10,10,14,0.72) 100%)' }} />
+      {/* Luminous beguni / purple comic tint */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(160deg, rgba(62,30,90,0.54) 0%, rgba(46,20,72,0.60) 50%, rgba(28,12,48,0.74) 100%)'
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(circle at 28% 25%, rgba(147,83,211,0.22), transparent 65%)'
+        }}
+      />
       {/* The logo as a faint stamp, centred and enlarged in the background. */}
       {skin.watermarkLogo && (
         <img
