@@ -235,7 +235,7 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+        <div className="hidden sm:grid sm:grid-cols-3 gap-1.5">
           {previewItems.map(({ key, label, value, logo, tint }) => (
             <button
               key={key}
