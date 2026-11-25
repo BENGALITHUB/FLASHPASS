@@ -464,7 +464,7 @@ function MobileBookingBar({ show, skin, theme, priceLabel, totalRupees, dateRang
   );
 }
 
-export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInquiry }) {
+export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInquiry, previewMode = false }) {
   const navigate = useNavigate();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const detailsId = useId();
@@ -496,7 +496,10 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
       : stock.low ? { label: `Only ${stock.left} left`, tone: 'text-danger' }
         : { label: `${Number(soloTier.capacity).toLocaleString('en-IN')} passes available`, tone: 'text-success' }
   ) : null;
-  const book = () => navigate(`/buy?eventId=${ev.eventId}${soloTier ? `&tier=${soloTier.tierId}` : ''}${refQuery}`);
+  const book = () => {
+    if (previewMode) return;
+    navigate(`/buy?eventId=${ev.eventId}${soloTier ? `&tier=${soloTier.tierId}` : ''}${refQuery}`);
+  };
 
   // The phone booking bar shows while this card fills the middle of the screen, but only when the
   // card's own Book button is off screen, so the two are never seen at once.
@@ -517,16 +520,18 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
   return (
     <article ref={cardRef} className="event-card relative group min-w-0">
-      <MobileBookingBar
-        show={inView && !buttonVisible}
-        skin={skin}
-        theme={theme}
-        priceLabel={priceLabel}
-        totalRupees={totalRupees}
-        dateRange={dateRange}
-        soldOut={soldOut}
-        onBook={book}
-      />
+      {!previewMode && (
+        <MobileBookingBar
+          show={inView && !buttonVisible}
+          skin={skin}
+          theme={theme}
+          priceLabel={priceLabel}
+          totalRupees={totalRupees}
+          dateRange={dateRange}
+          soldOut={soldOut}
+          onBook={book}
+        />
+      )}
       {/* Ambient glow */}
       <div
         className="absolute -inset-2 rounded-[2rem] blur-2xl opacity-25 group-hover:opacity-40 transition-opacity duration-500"

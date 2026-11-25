@@ -29,6 +29,7 @@ import OrganizerPayoutCard from '../components/analytics/OrganizerPayoutCard';
 import TicketTiersManager from '../components/admin/TicketTiersManager';
 import ShiftsPanel from '../components/admin/ShiftsPanel';
 import { DemoPinBanner, StaffActions } from '../components/admin/StaffSecurity';
+import EventShowcaseCard from '../components/landing/EventShowcaseCard';
 
 // Display metadata for every inquiry/lead type the public site can submit
 const INQUIRY_META = {
@@ -234,6 +235,7 @@ export default function AdminDashboardPage() {
   const [zones, setZones] = useState([]);
   const [liveAnnouncements, setLiveAnnouncements] = useState([]);
   const [emergencyEvacuation, setEmergencyEvacuation] = useState({ active: false, message: '' });
+  const [showCardPreview, setShowCardPreview] = useState(false);
 
   // Multi-Tenant Payment Gateway Form State (Top 5 Gateways)
   const [paymentGatewayForm, setPaymentGatewayForm] = useState({
@@ -3568,6 +3570,18 @@ export default function AdminDashboardPage() {
                           Switch between Standard Neon or the KCK 7.0 Kolkata Dusk &amp; Starburst template and customize colors, tagline, or logos.
                         </p>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCardPreview((v) => !v)}
+                        className={`px-3.5 py-2 rounded-xl font-mono text-xs font-bold border-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                          showCardPreview
+                            ? 'bg-accent text-white border-black shadow-[2px_2px_0_#000]'
+                            : 'bg-surface-2 text-primary border-primary/50 hover:border-primary'
+                        }`}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>{showCardPreview ? 'HIDE PREVIEW' : 'PREVIEW CARD'}</span>
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3696,6 +3710,52 @@ export default function AdminDashboardPage() {
                         </button>
                       </div>
                     )}
+
+                    {/* Live Card Preview */}
+                    {showCardPreview && (() => {
+                      const activeEv = eventsList.find((e) => e.eventId === selectedEventId) || eventsList[0] || {};
+                      const previewEv = {
+                        ...activeEv,
+                        eventId: selectedEventId !== 'all' ? selectedEventId : (activeEv.eventId || 'preview-event'),
+                        name: settingsForm.eventName || activeEv.name || 'Event Name',
+                        venue: settingsForm.venue || activeEv.venue || 'Venue Name',
+                        aboutText: settingsForm.aboutText || activeEv.aboutText || 'Get ready for an unforgettable live experience!',
+                        dailyCapacity: Number(settingsForm.dailyCapacity) || activeEv.dailyCapacity || 5000,
+                        basePriceRupees: Number(settingsForm.basePriceRupees) || activeEv.basePriceRupees || 50,
+                        platformFeeRupees: Number(settingsForm.platformFeeRupees) || activeEv.platformFeeRupees || 1,
+                        onlineSalesEnabled: settingsForm.onlineSalesEnabled !== false,
+                        eventDays: activeEv.eventDays?.length
+                          ? activeEv.eventDays
+                          : [
+                              { dayNumber: 1, date: '2026-12-24', label: 'Day 1' },
+                              { dayNumber: 2, date: '2026-12-25', label: 'Day 2' },
+                              { dayNumber: 3, date: '2026-12-26', label: 'Day 3' }
+                            ],
+                        ticketTiers: ticketTiers?.length ? ticketTiers : (activeEv.ticketTiers || []),
+                        addOns: addOns?.length ? addOns : (activeEv.addOns || []),
+                        cardDisplay: settingsForm.cardDisplay || activeEv.cardDisplay,
+                        cardTemplate: settingsForm.cardTemplate
+                      };
+                      return (
+                        <div className="pt-4 border-t border-border/60 space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-mono uppercase tracking-wider text-primary font-bold">
+                              👁️ LIVE CARD PREVIEW ({(settingsForm.cardTemplate?.layout || 'standard') === 'kolkata-dusk' ? 'Kolkata Dusk & Starburst' : 'Standard Neon'})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowCardPreview(false)}
+                              className="text-[11px] font-mono text-text-muted hover:text-white cursor-pointer"
+                            >
+                              ✕ Close Preview
+                            </button>
+                          </div>
+                          <div className="rounded-3xl bg-[#07070F] border-2 border-primary/40 p-3 sm:p-5 overflow-x-auto">
+                            <EventShowcaseCard ev={previewEv} index={0} previewMode={true} onInquiry={() => {}} />
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Save Section */}
