@@ -221,7 +221,7 @@ const eventSchema = new mongoose.Schema({
   },
   // 10. Event Card Visual Template & Colors (standard or kolkata-dusk)
   cardTemplate: {
-    layout: { type: String, enum: ['standard', 'kolkata-dusk'], default: 'standard' },
+    layout: { type: String, enum: ['', 'standard', 'kolkata-dusk'], default: '' },
     templateName: { type: String, trim: true, default: '' },
     logoUrl: { type: String, trim: true, default: '' },
     watermarkUrl: { type: String, trim: true, default: '' },

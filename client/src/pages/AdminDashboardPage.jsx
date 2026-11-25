@@ -400,13 +400,22 @@ export default function AdminDashboardPage() {
             showTiers: false,
             customFields: []
           },
-          cardTemplate: data.settings.cardTemplate || {
-            layout: cfgEventId === 'kolkata-comics-karnival-7-0' ? 'kolkata-dusk' : 'standard',
-            templateName: '',
-            logoUrl: '',
-            watermarkUrl: '',
-            tagline: cfgEventId === 'kolkata-comics-karnival-7-0' ? ['Comics', 'Gaming', 'Collectibles', 'Cosplay'] : [],
-            colors: { ink: '#0A0A0A', orange: '#FF7A1A', burst: '#F2FF00', button: '#FFC21A', red: '#E10600' }
+          cardTemplate: {
+            layout: data.settings.cardTemplate?.layout || (cfgEventId === 'kolkata-comics-karnival-7-0' ? 'kolkata-dusk' : 'standard'),
+            templateName: data.settings.cardTemplate?.templateName || '',
+            logoUrl: data.settings.cardTemplate?.logoUrl || '',
+            watermarkUrl: data.settings.cardTemplate?.watermarkUrl || '',
+            tagline: data.settings.cardTemplate?.tagline?.length
+              ? data.settings.cardTemplate.tagline
+              : (cfgEventId === 'kolkata-comics-karnival-7-0' ? ['Comics', 'Gaming', 'Collectibles', 'Cosplay'] : []),
+            colors: {
+              ink: '#0A0A0A',
+              orange: '#FF7A1A',
+              burst: '#F2FF00',
+              button: '#FFC21A',
+              red: '#E10600',
+              ...(data.settings.cardTemplate?.colors || {})
+            }
           }
         });
 
