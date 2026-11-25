@@ -96,9 +96,9 @@ function BrandedDescription({ text, band, guide, eventName }) {
   return (
     <section
       className="relative max-w-xl !mt-2.5 sm:!mt-3 rounded-2xl border-2 p-2.5 pt-3 sm:p-3.5 sm:pt-4 backdrop-blur-sm font-sans"
-      style={{ borderColor: band, background: 'linear-gradient(160deg, rgba(255,122,26,0.12), rgba(10,10,10,0.62) 48%)', boxShadow: `4px 4px 0 ${band}` }}
+      style={{ borderColor: band, background: `linear-gradient(160deg, ${band}22, rgba(10,10,10,0.68) 52%)`, boxShadow: `4px 4px 0 ${band}` }}
     >
-      <span className="absolute -top-2.5 left-3.5 px-2 py-0.5 rounded-md border-2 border-black font-display text-xs tracking-[0.16em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
+      <span className="absolute -top-2.5 left-3.5 px-2 py-0.5 rounded-md border-2 border-black font-display text-xs tracking-[0.16em] text-white shadow-[2px_2px_0_#000]" style={{ background: band }}>
         About the event
       </span>
 
@@ -1123,16 +1123,16 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           </div>
 
           {/* ===== Sponsor / stall strip ===== */}
-          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-black' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: skin.colors.orange } : undefined}>
+          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-black' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: `linear-gradient(90deg, ${skin.colors.orange}, #7C3AED)` } : undefined}>
             <div className="hidden md:flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0_#000] shrink-0">
                 <HeartHandshake className="w-5 h-5" />
               </div>
               <div>
-                <div className={`uppercase leading-tight ${skin ? 'font-display text-2xl tracking-[0.08em] text-black' : 'font-comic text-lg text-white tracking-wide'}`}>
+                <div className={`uppercase leading-tight ${skin ? 'font-display text-2xl tracking-[0.08em] text-white drop-shadow-[1px_1px_0_#000]' : 'font-comic text-lg text-white tracking-wide'}`}>
                   Sponsor this event or book a stall
                 </div>
-                <div className={`text-[11px] font-mono ${skin ? 'text-black/75' : 'text-text-muted'}`}>Prime brand presence & vendor spaces — talk to the organizers directly.</div>
+                <div className={`text-[11px] font-mono ${skin ? 'text-white/85' : 'text-text-muted'}`}>Prime brand presence & vendor spaces — talk to the organizers directly.</div>
               </div>
             </div>
             <div className="grid grid-cols-2 md:flex w-full md:w-auto items-center gap-2">
