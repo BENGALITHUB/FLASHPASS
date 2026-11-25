@@ -658,14 +658,22 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   if (statItems.length === 0) return null;
                   return (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-lg pt-1">
-                      {statItems.map(({ icon: Icon, value, label }, idx) => (
-                        <div key={`${label}-${idx}`} className="min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-2 backdrop-blur-sm">
-                          <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
-                            <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
+                      {statItems.map(({ icon: Icon, value, label }, idx) => {
+                        const isLong = String(value ?? '').length > 14;
+                        return (
+                          <div
+                            key={`${label}-${idx}`}
+                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-2 backdrop-blur-sm ${isLong ? 'col-span-2' : ''}`}
+                          >
+                            <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
+                              <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
+                            </div>
+                            <div className={`font-comic text-white leading-tight ${isLong ? 'text-sm sm:text-base break-words' : 'text-lg sm:text-xl truncate'}`}>
+                              {value}
+                            </div>
                           </div>
-                          <div className="font-comic text-lg sm:text-xl text-white leading-tight truncate">{value}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 })()}
