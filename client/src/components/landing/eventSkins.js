@@ -11,7 +11,7 @@ export const EVENT_SKINS = {
     tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
     colors: {
       ink: '#0A0A0A',      // banner black
-      orange: '#9333EA',   // royal amethyst violet accent (pairs with beguni comic bg & gold)
+      orange: '#E10600',   // comic crimson red accent (matches KCK 7.0 & 3-day ribbon)
       burst: '#F2FF00',    // price starburst
       button: '#FFC21A',   // "Book tickets" button
       red: '#E10600'       // edition number
