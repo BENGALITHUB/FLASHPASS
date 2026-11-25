@@ -541,17 +541,6 @@ function SkinBackdrop({ skin }) {
       {/* Logo-colour glows */}
       <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.28]" style={{ background: red }} />
       <div className="absolute top-1/4 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.2]" style={{ background: '#1E5BFF' }} />
-      {/* Halftone dots, thickest towards the sky's glow */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `radial-gradient(${burst}55 1.3px, transparent 1.8px)`,
-          backgroundSize: '13px 13px',
-          WebkitMaskImage: 'linear-gradient(180deg, transparent 25%, #000 90%)',
-          maskImage: 'linear-gradient(180deg, transparent 25%, #000 90%)',
-          opacity: 0.4
-        }}
-      />
       {/* The logo as a faint stamp, centred and enlarged in the background. */}
       {skin.watermarkLogo && (
         <img
