@@ -5,10 +5,10 @@ import { AdminSettings } from '../src/models/AdminSettings.js';
 import { Event } from '../src/models/Event.js';
 
 const response = () => ({ status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } });
-const guest = (name, phone = '9876543210') => ({ name, phone });
+const guest = (name, phone = '9876543210', email = 'guest@example.com') => ({ name, phone, email });
 const order = async body => {
   const res = response();
-  await createOrder({ body: { name: 'Rahul Das', phone: '9876543210', ...body } }, res);
+  await createOrder({ body: { name: 'Rahul Das', phone: '9876543210', email: 'rahul@example.com', ...body } }, res);
   return res;
 };
 afterEach(() => test.mock.restoreAll());

@@ -15,7 +15,7 @@ import { CASH_TOKEN_STATUS, PASS_STATUS } from '../constants/index.js';
  */
 export const createCashToken = async (req, res) => {
   try {
-    const { name, phone, eventId } = req.body;
+    const { name, phone, email, eventId } = req.body;
 
     if (!name || name.trim().length < 2) {
       return errorResponse(res, 'Please enter a valid name', 'INVALID_NAME', 400);
@@ -24,6 +24,11 @@ export const createCashToken = async (req, res) => {
     const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       return errorResponse(res, 'Enter a valid 10-digit mobile number', 'INVALID_PHONE', 400);
+    }
+
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return errorResponse(res, 'Enter a valid email address', 'INVALID_EMAIL', 400);
     }
 
     // The token is for the event the guest picked (the ?eventId= link from its event card), or
@@ -90,6 +95,7 @@ export const createCashToken = async (req, res) => {
       eventDay,
       holderName: name.trim(),
       phone: cleanPhone,
+      email: cleanEmail,
       status: CASH_TOKEN_STATUS.OPEN,
       expiresAt
     });

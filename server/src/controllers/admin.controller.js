@@ -293,6 +293,82 @@ export const getDashboardMetrics = async (req, res) => {
  * GET /api/v1/admin/passes
  * Search passes by phone, orderId, or holder name
  */
+/**
+ * GET /api/v1/admin/attendees
+ * Full attendee / ticket buyer directory for Event Admin (own event) and Super Admin (selected or all events).
+ */
+export const getAttendees = async (req, res) => {
+  try {
+    const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
+    const targetEventId = isEventAdmin
+      ? ownEvent(req.user)
+      : (req.query.eventId && req.query.eventId !== 'ALL' ? String(req.query.eventId).trim().toLowerCase() : null);
+
+    const filter = {};
+    if (targetEventId) filter.eventId = targetEventId;
+    if (req.query.status && ['ACTIVE', 'VOIDED'].includes(req.query.status)) filter.status = req.query.status;
+    if (req.query.presence && ['INSIDE', 'OUTSIDE'].includes(req.query.presence)) filter.presence = req.query.presence;
+
+    const limit = Math.min(5000, Math.max(1, Number(req.query.limit) || 1000));
+    const passes = await Pass.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
+
+    const baseOrderIds = [...new Set(passes.map(p => String(p.orderId || '').replace(/-P\d+$/, '')))];
+    const eventIds = [...new Set(passes.map(p => p.eventId || 'comics-carnival'))];
+    const [orders, events] = await Promise.all([
+      Order.find({ orderId: { $in: baseOrderIds } })
+        .select('orderId channel email amountPaise paidAt gateway.provider isGroupBooking tierName')
+        .lean(),
+      Event.find({ eventId: { $in: eventIds } }).select('eventId name').lean()
+    ]);
+
+    const orderById = Object.fromEntries(orders.map(o => [o.orderId, o]));
+    const eventById = Object.fromEntries(events.map(e => [e.eventId, e.name]));
+
+    let rows = passes.map(p => {
+      const baseId = String(p.orderId || '').replace(/-P\d+$/, '');
+      const o = orderById[baseId];
+      const evId = p.eventId || 'comics-carnival';
+      return {
+        _id: p._id,
+        orderId: p.orderId,
+        baseOrderId: baseId,
+        eventId: evId,
+        eventName: eventById[evId] || evId,
+        holderName: p.holderName,
+        phone: p.phone,
+        email: p.email || o?.email || '',
+        tierName: p.tierName || o?.tierName || 'General Comic Pass',
+        badge: p.badge,
+        channel: o?.channel || 'ONLINE',
+        amountPaise: o?.amountPaise ?? 0,
+        gatewayProvider: o?.gateway?.provider || 'PAYU',
+        isGroupPass: Boolean(p.isGroupPass),
+        status: p.status,
+        presence: p.presence,
+        bookedAt: o?.paidAt || p.createdAt
+      };
+    });
+
+    if (req.query.channel && ['ONLINE', 'POS_WALKIN', 'CASH_TOKEN'].includes(req.query.channel)) {
+      rows = rows.filter(r => r.channel === req.query.channel);
+    }
+
+    const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+    if (q) {
+      rows = rows.filter(r =>
+        (r.holderName || '').toLowerCase().includes(q)
+        || (r.phone || '').toLowerCase().includes(q)
+        || (r.email || '').toLowerCase().includes(q)
+        || (r.orderId || '').toLowerCase().includes(q)
+      );
+    }
+
+    return successResponse(res, { attendees: rows, total: rows.length, eventId: targetEventId || 'ALL' });
+  } catch (error) {
+    return errorResponse(res, error.message, 'ATTENDEES_FETCH_ERROR', 500);
+  }
+};
+
 export const searchPasses = async (req, res) => {
   try {
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
@@ -1292,8 +1368,8 @@ export const maskPhoneForExport = (p) => {
   return `${d.slice(0, 2)}${'*'.repeat(d.length - 5)}${d.slice(-3)}`;
 };
 
-const EXPORT_TYPES = ['passes', 'orders', 'ledger', 'scans', 'shifts', 'footfall'];
-const EXPORTS_WITH_PHONES = ['passes', 'orders', 'footfall'];
+const EXPORT_TYPES = ['passes', 'orders', 'ledger', 'scans', 'shifts', 'footfall', 'attendees'];
+const EXPORTS_WITH_PHONES = ['passes', 'orders', 'footfall', 'attendees'];
 
 /**
  * GET /api/v1/admin/export/:type
@@ -1331,18 +1407,33 @@ export const exportCSV = async (req, res) => {
 
     if (type === 'passes') {
       const passes = await Pass.find(eventFilter).sort({ createdAt: -1 }).lean();
-      csvData = 'OrderId,EventId,HolderName,Phone,Badge,Status,Presence,ValidDays,CreatedAt\n';
+      csvData = 'OrderId,EventId,HolderName,Phone,Email,Badge,Status,Presence,ValidDays,CreatedAt\n';
       passes.forEach(p => {
         csvData += csvRow([
           csvCell(p.orderId), csvCell(p.eventId || 'comics-carnival'), csvCell(p.holderName), csvCell(phoneOut(p.phone)),
-          csvCell(p.badge), csvCell(p.status), csvCell(p.presence), csvCell((p.validDays || []).join('-')),
+          csvCell(p.email || ''), csvCell(p.badge), csvCell(p.status), csvCell(p.presence), csvCell((p.validDays || []).join('-')),
           csvCell(p.createdAt?.toISOString())
+        ]);
+      });
+    } else if (type === 'attendees') {
+      const passes = await Pass.find(eventFilter).sort({ createdAt: -1 }).lean();
+      const baseOrderIds = [...new Set(passes.map(p => String(p.orderId || '').replace(/-P\d+$/, '')))];
+      const orders = await Order.find({ orderId: { $in: baseOrderIds } }).select('orderId channel email amountPaise paidAt').lean();
+      const orderById = Object.fromEntries(orders.map(o => [o.orderId, o]));
+      csvData = 'OrderId,EventId,HolderName,Phone,Email,Tier,Channel,AmountRupees,Status,Presence,BookedAt\n';
+      passes.forEach(p => {
+        const baseId = String(p.orderId || '').replace(/-P\d+$/, '');
+        const o = orderById[baseId];
+        csvData += csvRow([
+          csvCell(p.orderId), csvCell(p.eventId || 'comics-carnival'), csvCell(p.holderName), csvCell(phoneOut(p.phone)),
+          csvCell(p.email || o?.email || ''), csvCell(p.tierName || 'General'), csvCell(o?.channel || 'ONLINE'),
+          rupees(o?.amountPaise || 0), csvCell(p.status), csvCell(p.presence), csvCell((o?.paidAt || p.createdAt)?.toISOString())
         ]);
       });
     } else if (type === 'orders') {
       // Every order, paid or not, with what was charged and how it was paid
       const orders = await Order.find(eventFilter).sort({ createdAt: -1 }).lean();
-      csvData = 'OrderId,EventId,Channel,Status,HolderName,Phone,Ticket,Passes,SubtotalRupees,DiscountRupees,Coupon,AddOnsRupees,AmountRupees,OrganizerRupees,PlatformRupees,Gateway,PaymentMethod,PaymentId,CreatedAt,PaidAt\n';
+      csvData = 'OrderId,EventId,Channel,Status,HolderName,Phone,Ticket,Passes,SubtotalRupees,DiscountRupees,Coupon,AddOnsRupees,AmountRupees,OrganizerRupees,PlatformRupees,Gateway,PaymentMethod,PaymentId,CreatedAt,PaidAt,Email\n';
       orders.forEach(o => {
         const addOnsPaise = (o.addOns || []).reduce((sum, a) => sum + (a.pricePaise || 0) * (a.quantity || 1), 0);
         csvData += csvRow([
@@ -1351,7 +1442,7 @@ export const exportCSV = async (req, res) => {
           Math.max(1, (o.attendees || []).length), rupees(o.subtotalPaise), rupees(o.discountPaise), csvCell(o.couponCode || ''),
           rupees(addOnsPaise), rupees(o.amountPaise), rupees(o.organizerSharePaise), rupees(o.platformFeePaise),
           csvCell(o.gateway?.provider || ''), csvCell(o.gateway?.method || ''), csvCell(o.gateway?.paymentId || ''),
-          csvCell(o.createdAt?.toISOString()), csvCell(o.paidAt?.toISOString() || '')
+          csvCell(o.createdAt?.toISOString()), csvCell(o.paidAt?.toISOString() || ''), csvCell(o.email || '')
         ]);
       });
     } else if (type === 'ledger') {

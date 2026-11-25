@@ -3,6 +3,7 @@ import {
   getDashboardMetrics,
   getDashboardAnalytics,
   searchPasses,
+  getAttendees,
   getPassDetail,
   forceResetPass,
   voidPass,
@@ -51,6 +52,7 @@ router.get('/settlements/:eventId/statement', downloadStatement);
 router.post('/settlements/:eventId/payouts', requireRole(ROLES.SUPER_ADMIN), verifyAdminPin, recordPayout);
 router.post('/settlements/:eventId/requests', requireRole(ROLES.EVENT_ADMIN), createPayoutRequest);
 router.get('/analytics', getDashboardAnalytics);
+router.get('/attendees', getAttendees);
 router.get('/passes', searchPasses);
 router.get('/passes/:id', getPassDetail);
 router.post('/passes/:id/force-reset', forceResetPass);

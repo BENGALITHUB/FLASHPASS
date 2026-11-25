@@ -13,7 +13,7 @@ import { Shift } from '../src/models/Shift.js';
 
 const settings = { basePricePaise: 13750, platformFeePaise: 250, cashPriceMode: 'INCLUSIVE_TOTAL', cashSalesEnabled: true, eventDays: [] };
 // The cashier sells for their own event.
-const req = (body = {}) => ({ body, params: { tokenNo: '142' }, user: { _id: new mongoose.Types.ObjectId(), assignedEventId: 'test-event' } });
+const req = (body = {}) => ({ body: { email: 'walkin@example.com', ...body }, params: { tokenNo: '142' }, user: { _id: new mongoose.Types.ObjectId(), assignedEventId: 'test-event' } });
 const response = () => ({ status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } });
 function setup(t, overrides = {}) {
   t.mock.method(AdminSettings, 'getSettings', async () => ({ ...settings, ...overrides }));

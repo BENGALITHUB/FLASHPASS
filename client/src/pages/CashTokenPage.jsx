@@ -10,7 +10,7 @@ import { ArrowLeft, Clock, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-re
 export default function CashTokenPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState('FORM'); // 'FORM' or 'TOKEN'
-  const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   // The token is for the event whose card linked here (/cash?eventId=…); with none, the server
   // uses the only event on sale.
   const [searchParams] = useSearchParams();
@@ -86,8 +86,12 @@ export default function CashTokenPage() {
 
   const handleCreateToken = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || formData.phone.length !== 10) {
+    if (!formData.name || formData.name.trim().length < 2 || !formData.phone || formData.phone.length !== 10) {
       alert('Please enter your full name and 10-digit mobile number.');
+      return;
+    }
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      alert('Please enter a valid email address.');
       return;
     }
 
@@ -160,12 +164,27 @@ export default function CashTokenPage() {
                   </label>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     required
                     maxLength={10}
-                    placeholder="98765 43210"
+                    placeholder="10-digit mobile number"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })}
-                    className="w-full bg-surface-2 border-2 border-border rounded-xl px-3.5 py-2.5 text-text font-mono placeholder-text-muted/50 focus:outline-none focus:border-warning text-base tracking-wider"
+                    className="w-full bg-surface-2 border-2 border-border rounded-xl px-3.5 py-2.5 text-text placeholder-text-muted/50 focus:outline-none focus:border-warning text-base font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase text-text-muted mb-1 font-bold">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@email.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-surface-2 border-2 border-border rounded-xl px-3.5 py-2.5 text-text placeholder-text-muted/50 focus:outline-none focus:border-warning text-base"
                   />
                 </div>
 

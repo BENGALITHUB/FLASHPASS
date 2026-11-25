@@ -55,6 +55,7 @@ const orderSchema = new mongoose.Schema({
     {
       name: { type: String, required: true },
       phone: { type: String, required: true },
+      email: { type: String, trim: true, default: '' },
       tierId: { type: String, default: 'general' },
       badge: { type: String, default: 'PASS' },
       passId: { type: mongoose.Schema.Types.ObjectId, ref: 'Pass' }

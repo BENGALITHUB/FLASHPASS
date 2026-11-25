@@ -34,6 +34,11 @@ const cashTokenSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  email: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   status: {
     type: String,
     enum: Object.values(CASH_TOKEN_STATUS),

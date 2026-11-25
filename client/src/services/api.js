@@ -170,11 +170,11 @@ export const api = {
     return handleResponse(res);
   },
 
-  posConfirmToken: async (tokenNo, cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = []) => {
+  posConfirmToken: async (tokenNo, cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = [], attendees = null) => {
     const res = await fetch(`${BASE_URL}/pos/tokens/${tokenNo}/confirm`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ cashTenderedPaise, expectedAmountPaise, quantity, guestNames })
+      body: JSON.stringify({ cashTenderedPaise, expectedAmountPaise, quantity, guestNames, ...(attendees ? { attendees } : {}) })
     });
     return handleResponse(res);
   },
@@ -233,6 +233,18 @@ export const api = {
   adminGetAnalytics: async (eventId = null) => {
     const url = (eventId && eventId !== 'ALL') ? `${BASE_URL}/admin/analytics?eventId=${encodeURIComponent(eventId)}` : `${BASE_URL}/admin/analytics`;
     const res = await fetch(url, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  adminGetAttendees: async ({ eventId = '', q = '', channel = '', status = '' } = {}) => {
+    const params = new URLSearchParams();
+    if (eventId) params.set('eventId', eventId);
+    if (q) params.set('q', q);
+    if (channel) params.set('channel', channel);
+    if (status) params.set('status', status);
+    const res = await fetch(`${BASE_URL}/admin/attendees?${params.toString()}`, {
       headers: getHeaders()
     });
     return handleResponse(res);

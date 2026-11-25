@@ -32,11 +32,28 @@ const checkGuestNames = guestNames => {
     throw posError('Each guest name must be 60 characters or fewer.', 'INVALID_NAME');
   }
 };
-// Each guest in a group gets their own pass and QR under their own name. A guest left unnamed
-// gets the buyer's name with their place in the group, so the group can tell them apart.
-const groupAttendees = (quantity, guestNames, buyerName, phone, tierId) => (quantity > 1
-  ? Array.from({ length: quantity }, (_, i) => ({ name: guestNames[i]?.trim() || `${buyerName} (${i + 1}/${quantity})`, phone, tierId }))
-  : []);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Each guest in a group gets their own pass and QR under their own details.
+const resolveGroupAttendees = (quantity, attendees, guestNames, buyerName, phone, email, tierId) => {
+  if (quantity <= 1) return [];
+  if (Array.isArray(attendees) && attendees.length === quantity) {
+    return attendees.map((a, i) => {
+      const gName = typeof a?.name === 'string' && a.name.trim() ? a.name.trim() : `${buyerName} (${i + 1}/${quantity})`;
+      const gPhone = String(a?.phone ?? '').replace(/\D/g, '').slice(-10);
+      const gEmail = typeof a?.email === 'string' ? a.email.trim().toLowerCase() : '';
+      if (gName.length > 60) throw posError('Each guest name must be 60 characters or fewer.', 'INVALID_NAME');
+      if (gPhone && !/^[6-9]\d{9}$/.test(gPhone)) throw posError(`Enter a valid 10-digit mobile number for guest #${i + 1}.`, 'INVALID_PHONE');
+      if (gEmail && !EMAIL_REGEX.test(gEmail)) throw posError(`Enter a valid email address for guest #${i + 1}.`, 'INVALID_EMAIL');
+      return { name: gName, phone: gPhone || phone, email: gEmail || email, tierId };
+    });
+  }
+  return Array.from({ length: quantity }, (_, i) => ({
+    name: guestNames[i]?.trim() || `${buyerName} (${i + 1}/${quantity})`,
+    phone,
+    email,
+    tierId
+  }));
+};
 const parseToken = value => {
   if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < 1) {
     throw posError('Enter a valid token number, for example C-142.', 'INVALID_TOKEN');
@@ -116,7 +133,7 @@ export const lookupToken = async (req, res) => {
 export const confirmTokenPayment = async (req, res) => {
   try {
     const tokenNo = parseToken(req.params.tokenNo);
-    const { cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = [] } = req.body;
+    const { cashTenderedPaise, expectedAmountPaise, quantity = 1, guestNames = [], attendees = null } = req.body;
     const { settings, event, pricing, availability, tiers } = await cashContext(req.user);
     requireSales(availability);
     // The token holder may pay for friends too: one order, one pass per guest.
@@ -133,12 +150,13 @@ export const confirmTokenPayment = async (req, res) => {
         status: CASH_TOKEN_STATUS.OPEN, expiresAt: { $gt: new Date() }
       }, { $set: { status: CASH_TOKEN_STATUS.PAID, orderId } }, { new: true, session });
       if (!token) throw posError('Token expired or already collected. Look it up again before taking cash.', 'TOKEN_UNAVAILABLE', 409);
+      const tokenAttendees = resolveGroupAttendees(quantity, attendees, guestNames, token.holderName, token.phone, token.email || '');
       await Order.create([{
-        orderId, eventId: event.eventId, cashTenderedPaise, channel: ORDER_CHANNELS.CASH_TOKEN, holderName: token.holderName, phone: token.phone,
+        orderId, eventId: event.eventId, cashTenderedPaise, channel: ORDER_CHANNELS.CASH_TOKEN, holderName: token.holderName, phone: token.phone, email: token.email || '',
         amountPaise: pricing.amountPaise * quantity, organizerSharePaise: pricing.organizerSharePaise * quantity,
         platformFeePaise: pricing.platformFeePaise * quantity, status: ORDER_STATUS.CREATED, cashierId: req.user._id,
         isGroupBooking: quantity > 1,
-        attendees: groupAttendees(quantity, guestNames, token.holderName, token.phone),
+        attendees: tokenAttendees,
         gateway: { provider: 'CASH', method: 'CASH' }
       }], { session });
       const { order, pass, passes } = await completeOrderAndIssuePass({ orderId, cashierId: req.user._id, session });
@@ -151,12 +169,14 @@ export const confirmTokenPayment = async (req, res) => {
 
 export const walkinSale = async (req, res) => {
   try {
-    const { name, phone, quantity = 1, guestNames = [], tierId = 'general', addOns: extras = [], cashTenderedPaise, expectedAmountPaise, requestId } = req.body;
+    const { name, phone, email, quantity = 1, guestNames = [], attendees = null, tierId = 'general', addOns: extras = [], cashTenderedPaise, expectedAmountPaise, requestId } = req.body;
     const guestName = typeof name === 'string' && name.trim() ? name.trim() : 'Walk-in Guest';
     const guestPhone = typeof phone === 'string' ? phone.trim() : '';
+    const guestEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (guestName.length > 60) throw posError('Guest name must be 60 characters or fewer.', 'INVALID_NAME');
     checkGuestNames(guestNames);
     if (guestPhone && !/^[6-9]\d{9}$/.test(guestPhone)) throw posError('Enter a valid 10-digit mobile number, or leave it blank.', 'INVALID_PHONE');
+    if (!EMAIL_REGEX.test(guestEmail)) throw posError('Enter a valid email address for the guest.', 'INVALID_EMAIL');
     if (requestId !== undefined && (typeof requestId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId))) throw posError('Invalid sale reference. Start a new sale.', 'INVALID_REQUEST');
     const posRequestId = requestId ? `${req.user._id}:${requestId}` : undefined;
     // A retry after a lost response returns the existing receipt, never another ticket.
@@ -183,13 +203,13 @@ export const walkinSale = async (req, res) => {
     const result = await mongoose.connection.transaction(async session => {
       await Order.create([{
         orderId, eventId: event.eventId, posRequestId, cashTenderedPaise, channel: ORDER_CHANNELS.POS_WALKIN,
-        holderName: guestName, phone: holderPhone, tierId: pricing.tierId, tierName: pricing.name,
+        holderName: guestName, phone: holderPhone, email: guestEmail, tierId: pricing.tierId, tierName: pricing.name,
         // Extras go wholly to the organizer; the platform fee applies to tickets only, as online.
         subtotalPaise: pricing.basePricePaise * quantity, addOns: addOns.addOns,
         amountPaise: pricing.amountPaise * quantity + addOns.totalPaise,
         organizerSharePaise: pricing.organizerSharePaise * quantity + addOns.totalPaise, platformFeePaise: pricing.platformFeePaise * quantity,
         isGroupBooking: quantity > 1,
-        attendees: groupAttendees(quantity, guestNames, guestName, holderPhone, pricing.tierId),
+        attendees: resolveGroupAttendees(quantity, attendees, guestNames, guestName, holderPhone, guestEmail, pricing.tierId),
         status: ORDER_STATUS.CREATED, cashierId: req.user._id, gateway: { provider: 'CASH', method: 'CASH' }
       }], { session });
       const { order, pass, passes } = await completeOrderAndIssuePass({ orderId, cashierId: req.user._id, session });

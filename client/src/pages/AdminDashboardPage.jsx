@@ -6,6 +6,7 @@ import ComicButton from '../components/common/ComicButton';
 import ComicCard from '../components/common/ComicCard';
 import ComicBadge from '../components/common/ComicBadge';
 import { playSuccessChime } from '../utils/audioFeedback';
+import { exportAttendeesCSV, exportAttendeesExcel, exportAttendeesPDF } from '../utils/exportAttendees';
 import EventRemovalDialog from '../components/admin/EventRemovalDialog';
 import './AdminDashboard.css';
 import {
@@ -150,6 +151,8 @@ export default function AdminDashboardPage() {
   // Search & Pass Detail
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [attendeesChannel, setAttendeesChannel] = useState('');
+  const [attendeesLoading, setAttendeesLoading] = useState(false);
   const [selectedPass, setSelectedPass] = useState(null);
   const [passDetail, setPassDetail] = useState(null);
   const [forceResetReason, setForceResetReason] = useState('');
@@ -457,12 +460,33 @@ export default function AdminDashboardPage() {
     loadAllData(newEventId);
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const loadAttendees = async (scopeOverride, qOverride, channelOverride) => {
+    setAttendeesLoading(true);
     try {
-      const passes = await api.adminSearchPasses(searchQuery);
-      setSearchResults(passes);
+      const effectiveScope = isEventAdmin
+        ? (user.assignedEventId || '__no-event__')
+        : (scopeOverride !== undefined ? scopeOverride : (selectedEventScope || 'ALL'));
+      const res = await api.adminGetAttendees({
+        eventId: effectiveScope,
+        q: qOverride !== undefined ? qOverride : searchQuery,
+        channel: channelOverride !== undefined ? channelOverride : attendeesChannel
+      });
+      setSearchResults(res.attendees || []);
     } catch (e) {}
+    finally {
+      setAttendeesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'PASSES' && user) {
+      loadAttendees();
+    }
+  }, [activeTab, selectedEventScope]);
+
+  const handleSearch = async (e) => {
+    e?.preventDefault();
+    await loadAttendees();
   };
 
   const openPassDetail = async (pass) => {
@@ -1756,18 +1780,33 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <ComicButton
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedEventScope(ev.eventId);
-                        loadAllData(ev.eventId);
-                        setActiveTab('SETTINGS');
-                      }}
-                      className="w-full"
-                    >
-                      MANAGE THIS EVENT →
-                    </ComicButton>
+                    <div className="grid grid-cols-2 gap-2">
+                      <ComicButton
+                        variant="info"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedEventScope(ev.eventId);
+                          loadAllData(ev.eventId);
+                          loadAttendees(ev.eventId, '', '');
+                          setActiveTab('PASSES');
+                        }}
+                        className="w-full"
+                      >
+                        👥 ATTENDEES
+                      </ComicButton>
+                      <ComicButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedEventScope(ev.eventId);
+                          loadAllData(ev.eventId);
+                          setActiveTab('SETTINGS');
+                        }}
+                        className="w-full"
+                      >
+                        MANAGE →
+                      </ComicButton>
+                    </div>
                     {(
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <button type="button" className="adm-btn adm-btn-ghost adm-btn-sm justify-center" onClick={() => setEventAction({ event: ev, mode: ev.status === 'ARCHIVED' ? 'restore' : 'archive' })}>
@@ -1794,43 +1833,81 @@ export default function AdminDashboardPage() {
           {/* ======================================================== */}
           {activeTab === 'PASSES' && (
             <div className="space-y-6">
-              {/* Search Bar */}
+              {/* Search Bar & Filters */}
               <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000]">
-                <h3 className="font-comic text-2xl text-info mb-1">GLOBAL PASS LOOKUP</h3>
-                <p className="text-xs font-mono text-text-muted mb-4">
-                  Find attendee by Phone, Name, or Order ID for instant support or emergency force-reset.
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <h3 className="font-comic text-2xl text-info">ATTENDEES &amp; TICKET BUYERS</h3>
+                    <p className="text-xs font-mono text-text-muted">
+                      Full buyer records (Name, Mobile, Email) for {isEventAdmin ? (settingsForm.eventName || 'your event') : (selectedEventScope === 'ALL' ? 'All Events' : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}.
+                    </p>
+                  </div>
+                </div>
 
-                <form onSubmit={handleSearch} className="flex gap-2">
-                  <div className="relative flex-1">
+                <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
+                  <div className="relative flex-1 min-w-[220px]">
                     <Search className="w-5 h-5 absolute left-3.5 top-3 text-text-muted" />
                     <input
                       type="text"
-                      placeholder="e.g. 6295636068 or CC-RZA7UTBQ or Sourav"
+                      placeholder="Search by Name, Mobile, Email or Order ID (e.g. souravdeyhalder@gmail.com)"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-surface-2 border-2 border-border rounded-xl pl-11 pr-4 py-2.5 font-mono text-sm text-text placeholder-text-muted/60 focus:border-info focus:outline-none"
                     />
                   </div>
+                  <select
+                    value={attendeesChannel}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAttendeesChannel(val);
+                      loadAttendees(undefined, undefined, val);
+                    }}
+                    className="bg-surface-2 border-2 border-border rounded-xl px-3 py-2.5 font-mono text-xs text-text focus:border-info focus:outline-none"
+                  >
+                    <option value="">All Channels</option>
+                    <option value="ONLINE">Online</option>
+                    <option value="POS_WALKIN">Box Office POS</option>
+                    <option value="CASH_TOKEN">Cash Token</option>
+                  </select>
                   <ComicButton variant="info" size="md" type="submit">
-                    SEARCH PASS
+                    {attendeesLoading ? 'LOADING...' : 'SEARCH'}
                   </ComicButton>
                 </form>
               </div>
 
               {/* Passes Results Table */}
               <div className="bg-surface border-2 border-border rounded-3xl p-5 shadow-[4px_4px_0_#000]">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                   <span className="font-mono text-xs uppercase font-bold text-text-muted">
-                    Found Passes ({searchResults.length})
+                    Showing Attendees ({searchResults.length})
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => handleExport('passes')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-border text-xs font-mono hover:text-primary"
+                      type="button"
+                      disabled={searchResults.length === 0}
+                      onClick={() => exportAttendeesCSV(searchResults, isEventAdmin ? settingsForm.eventName : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-border text-xs font-mono hover:text-primary hover:border-primary transition-colors cursor-pointer disabled:opacity-40"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Export CSV
+                      Download CSV
+                    </button>
+                    <button
+                      type="button"
+                      disabled={searchResults.length === 0}
+                      onClick={() => exportAttendeesExcel(searchResults, isEventAdmin ? settingsForm.eventName : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/15 border border-success/40 text-xs font-mono text-success hover:bg-success hover:text-black transition-colors cursor-pointer disabled:opacity-40"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download Excel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={searchResults.length === 0}
+                      onClick={() => exportAttendeesPDF(searchResults, isEventAdmin ? settingsForm.eventName : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/40 text-xs font-mono text-accent hover:bg-accent hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Download PDF
                     </button>
                   </div>
                 </div>
@@ -1840,9 +1917,10 @@ export default function AdminDashboardPage() {
                     <thead>
                       <tr className="border-b-2 border-border text-text-muted">
                         <th className="py-2.5 px-3">ORDER ID</th>
-                        <th className="py-2.5 px-3">HOLDER NAME</th>
+                        <th className="py-2.5 px-3">ATTENDEE NAME</th>
                         <th className="py-2.5 px-3">MOBILE</th>
-                        <th className="py-2.5 px-3">BADGE</th>
+                        <th className="py-2.5 px-3">EMAIL</th>
+                        <th className="py-2.5 px-3">TIER / CHANNEL</th>
                         <th className="py-2.5 px-3">PRESENCE</th>
                         <th className="py-2.5 px-3">STATUS</th>
                         <th className="py-2.5 px-3 text-right">ACTION</th>
@@ -1851,32 +1929,33 @@ export default function AdminDashboardPage() {
                     <tbody>
                       {searchResults.length === 0 ? (
                         <tr>
-                          <td colSpan="7" className="py-8 text-center text-text-muted">
-                            Search above or click search with empty query to see recent passes.
+                          <td colSpan="8" className="py-8 text-center text-text-muted">
+                            {attendeesLoading ? 'Loading attendee records...' : 'No attendee records found for this filter.'}
                           </td>
                         </tr>
                       ) : (
                         searchResults.map(p => (
                           <tr key={p._id} className="border-b border-border/50 hover:bg-surface-2">
-                            <td className="py-3 px-3 font-bold text-primary">{p.orderId}</td>
+                            <td className="py-3 px-3 font-bold text-primary whitespace-nowrap">{p.orderId}</td>
                             <td className="py-3 px-3 text-text">
                               <div className="flex items-center gap-2">
-                                {p.photoUrl ? (
-                                  <img
-                                    src={p.photoUrl}
-                                    alt={p.holderName}
-                                    className="w-7 h-7 rounded-lg object-cover border border-border flex-shrink-0"
-                                  />
-                                ) : (
-                                  <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-[10px] text-text-muted flex-shrink-0 font-bold">
-                                    {p.holderName ? p.holderName.charAt(0) : '?'}
-                                  </div>
-                                )}
-                                <span className="font-bold">{p.holderName}</span>
+                                <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-[10px] text-text-muted flex-shrink-0 font-bold">
+                                  {p.holderName ? p.holderName.charAt(0).toUpperCase() : '?'}
+                                </div>
+                                <div>
+                                  <span className="font-bold block">{p.holderName}</span>
+                                  {isSuperAdmin && selectedEventScope === 'ALL' && (
+                                    <span className="text-[10px] text-text-muted">{p.eventName}</span>
+                                  )}
+                                </div>
                               </div>
                             </td>
-                            <td className="py-3 px-3 text-text-muted">{p.phone}</td>
-                            <td className="py-3 px-3">{p.badge}</td>
+                            <td className="py-3 px-3 text-text whitespace-nowrap">{p.phone}</td>
+                            <td className="py-3 px-3 text-info">{p.email || <span className="text-text-muted">—</span>}</td>
+                            <td className="py-3 px-3">
+                              <span className="block text-text">{p.tierName || p.badge}</span>
+                              <span className="text-[10px] text-text-muted">{p.channel || 'ONLINE'} • ₹{((p.amountPaise || 0) / 100).toFixed(0)}</span>
+                            </td>
                             <td className="py-3 px-3">
                               <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
                                 p.presence === 'INSIDE' ? 'bg-success/20 text-success' : 'bg-surface-2 text-text-muted'

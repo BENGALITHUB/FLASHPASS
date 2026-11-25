@@ -37,7 +37,7 @@ const call = async (fn, body, extra = {}) => {
   return { code, data: out?.data, err: out?.error };
 };
 let phone = 9100000000;
-const buy = () => call(createOrder, { name: 'Fan', phone: String(++phone), eventId: 'comics-carnival' });
+const buy = () => call(createOrder, { name: 'Fan', phone: String(++phone), email: 'fan@example.com', eventId: 'comics-carnival' });
 
 // What PayU posts back, signed with the given key and salt
 const payuBody = ({ txnid, amount, key, salt, status = 'success' }) => {

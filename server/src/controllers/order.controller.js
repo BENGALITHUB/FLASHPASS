@@ -28,6 +28,7 @@ import { ORDER_STATUS, ORDER_CHANNELS, PASS_STATUS } from '../constants/index.js
  * Validate discount code against active event coupons
  */
 const MAX_NAME_LENGTH = 60;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // The checkout offers groups of 2 to 8.
 const MAX_GROUP_TICKETS = 8;
 const checkAttendees = attendees => {
@@ -42,6 +43,10 @@ const checkAttendees = attendees => {
     }
     if (!/^[6-9]\d{9}$/.test(String(a.phone ?? '').replace(/\D/g, '').slice(-10))) {
       return { code: 'INVALID_PHONE', message: `Enter a valid 10-digit mobile number for attendee #${i + 1}` };
+    }
+    const email = typeof a?.email === 'string' ? a.email.trim() : '';
+    if (!EMAIL_REGEX.test(email)) {
+      return { code: 'INVALID_EMAIL', message: `Enter a valid email address for attendee #${i + 1}` };
     }
   }
   return null;
@@ -126,7 +131,11 @@ export const createOrder = async (req, res) => {
     if (name.trim().length > MAX_NAME_LENGTH) {
       return errorResponse(res, `Name must be ${MAX_NAME_LENGTH} characters or fewer`, 'INVALID_NAME', 400);
     }
-    // Every guest's name and mobile go on their own pass, so check them here as well as in the form.
+    const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      return errorResponse(res, 'Enter a valid email address', 'INVALID_EMAIL', 400);
+    }
+    // Every guest's name, mobile, and email go on their own pass, so check them here as well as in the form.
     if (isGroupBooking) {
       const attendeeError = checkAttendees(attendees);
       if (attendeeError) return errorResponse(res, attendeeError.message, attendeeError.code, 400);
@@ -289,6 +298,7 @@ export const createOrder = async (req, res) => {
       finalizedAttendees = attendees.map(a => ({
         name: a.name.trim(),
         phone: String(a.phone).replace(/\D/g, '').slice(-10),
+        email: String(a.email).trim().toLowerCase(),
         tierId: matchedTier.tierId,
         badge: matchedTier.badge
       }));
@@ -296,6 +306,7 @@ export const createOrder = async (req, res) => {
       finalizedAttendees = [{
         name: name.trim(),
         phone: cleanPhone,
+        email: cleanEmail,
         tierId: matchedTier.tierId,
         badge: matchedTier.badge
       }];
@@ -309,7 +320,7 @@ export const createOrder = async (req, res) => {
       channel: ORDER_CHANNELS.ONLINE,
       holderName: name.trim(),
       phone: cleanPhone,
-      email: email ? email.trim() : '',
+      email: cleanEmail,
       tierId: matchedTier.tierId,
       tierName: matchedTier.name,
       isGroupBooking: Boolean(isGroupBooking && passesCount > 1),

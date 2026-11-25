@@ -31,7 +31,7 @@ const call = async (fn, body, user = ADMIN) => {
 const save = (ticketTiers) => call(updateSettings, { eventId: 'comics-carnival', ticketTiers });
 const tiers = async () => (await Event.findOne({ eventId: 'comics-carnival' })).ticketTiers;
 let phone = 9000000000;
-const buy = (tierId) => call(createOrder, { name: 'Fan', phone: String(++phone), eventId: 'comics-carnival', tierId });
+const buy = (tierId) => call(createOrder, { name: 'Fan', phone: String(++phone), email: 'fan@example.com', eventId: 'comics-carnival', tierId });
 
 let passed = 0;
 const t = async (name, fn) => { await fn(); passed++; console.log('  ✔', name); };

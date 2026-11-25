@@ -281,6 +281,11 @@ export default function CheckoutPage() {
         errs[`attendee_${idx}_phone`] = `Attendee #${idx + 1} valid 10-digit mobile required`;
         if (!firstErrorField) firstErrorField = `attendee_${idx}_phone`;
       }
+      const cleanEmail = (att.email || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        errs[`attendee_${idx}_email`] = `Attendee #${idx + 1} valid email required`;
+        if (!firstErrorField) firstErrorField = `attendee_${idx}_email`;
+      }
     });
 
     setErrors(errs);
@@ -345,7 +350,7 @@ export default function CheckoutPage() {
   const tiers = eventData?.ticketTiers?.length > 0 ? eventData.ticketTiers : [generalPass];
   const addOns = eventData?.addOns || [];
 
-  const leadReady = attendees[0]?.name?.trim().length >= 2 && /^[6-9]\d{9}$/.test((attendees[0]?.phone || '').replace(/\D/g, ''));
+  const leadReady = attendees[0]?.name?.trim().length >= 2 && /^[6-9]\d{9}$/.test((attendees[0]?.phone || '').replace(/\D/g, '')) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((attendees[0]?.email || '').trim());
   const hasErrors = Object.keys(errors).some(k => Boolean(errors[k]));
   const selectedTierDetails = tiers.find(tier => tier.tierId === selectedTierId) || currentTier;
 
@@ -769,29 +774,44 @@ export default function CheckoutPage() {
                                 )}
                               </div>
 
-                              {/* Lead email (optional) */}
-                              {isLead && (
-                                <div className="sm:col-span-2">
-                                  <div className="flex justify-between items-center mb-1.5">
-                                    <label htmlFor="attendee_0_email" className="block text-[10px] font-mono uppercase tracking-wider text-text-muted font-bold">
-                                      Email <span className="normal-case tracking-normal">(optional)</span>
-                                    </label>
-                                    <span className="text-[10px] text-info font-mono">Get a PDF copy of your pass</span>
-                                  </div>
-                                  <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-                                    <input
-                                      id="attendee_0_email"
-                                      type="email"
-                                      autoComplete="email"
-                                      placeholder="you@email.com"
-                                      value={att.email}
-                                      onChange={(e) => handleAttendeeChange(idx, 'email', e.target.value)}
-                                      className={`${fieldCls} pl-10 border-white/10`}
-                                    />
-                                  </div>
+                              {/* Email (mandatory for every attendee) */}
+                              <div className="sm:col-span-2">
+                                <div className="flex justify-between items-center mb-1.5">
+                                  <label htmlFor={`attendee_${idx}_email`} className="block text-[10px] font-mono uppercase tracking-wider text-text-muted font-bold">
+                                    Email address <span style={{ color: a }}>*</span>
+                                  </label>
+                                  {isLead ? (
+                                    <span className="text-[10px] text-info font-mono">Pass &amp; receipt sent here</span>
+                                  ) : attendees[0]?.email ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAttendeeChange(idx, 'email', attendees[0].email)}
+                                      className="text-[10px] font-mono text-primary hover:underline font-bold"
+                                      title="Copy lead email to this attendee"
+                                    >
+                                      Use Lead Email
+                                    </button>
+                                  ) : null}
                                 </div>
-                              )}
+                                <div className="relative">
+                                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                                  <input
+                                    id={`attendee_${idx}_email`}
+                                    type="email"
+                                    required
+                                    autoComplete={isLead ? 'email' : 'off'}
+                                    placeholder="you@email.com"
+                                    value={att.email}
+                                    onChange={(e) => handleAttendeeChange(idx, 'email', e.target.value)}
+                                    className={`${fieldCls} pl-10 ${errors[`attendee_${idx}_email`] ? 'border-danger ring-2 ring-danger/40' : 'border-white/10'}`}
+                                  />
+                                </div>
+                                {errors[`attendee_${idx}_email`] && (
+                                  <p className="text-xs text-danger mt-1 font-mono flex items-center gap-1">
+                                    <AlertCircle className="w-3.5 h-3.5" /> {errors[`attendee_${idx}_email`]}
+                                  </p>
+                                )}
+                              </div>
                             </div>
 
                           </div>

@@ -26,6 +26,11 @@ const passSchema = new mongoose.Schema({
     index: true,
     trim: true
   },
+  email: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   badge: {
     type: String,
     required: true
