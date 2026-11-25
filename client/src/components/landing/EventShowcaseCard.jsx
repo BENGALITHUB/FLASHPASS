@@ -904,7 +904,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
             {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
                 full-width button below. Tablets: one row. Laptops: the ticket's torn-off stub. */}
-            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-center lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {skin && <StubBackdrop skin={skin} />}
               {skin && <span className="kck-foil absolute inset-x-0 top-0 h-1 pointer-events-none" style={{ background: 'linear-gradient(90deg, #FF2E88, #FFD60A, #22D3EE, #FF2E88)', backgroundSize: '200% 100%' }} aria-hidden="true" />}
 
@@ -932,7 +932,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 </span>
               </div>
 
-              <div className="col-span-2 w-full md:w-56 lg:w-full lg:max-w-[300px] lg:mx-auto shrink-0 flex flex-col items-stretch lg:mt-14 xl:mt-16">
+              <div className="col-span-2 w-full md:w-56 lg:w-full lg:max-w-[300px] lg:mx-auto shrink-0 flex flex-col items-stretch lg:mt-auto">
                 <button
                   ref={bookButtonRef}
                   type="button"
