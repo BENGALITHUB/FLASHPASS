@@ -108,3 +108,16 @@ export const DEFAULT_ADMIN_SETTINGS = {
   ]
 };
 
+
+// Exhibition stall sizes and their fixed prices (₹). The server sets an inquiry's
+// price from this list, so a price sent by the browser is never trusted.
+// Keep in sync with client/src/utils/stalls.js.
+export const STALL_OPTIONS = [
+  { id: 'STANDARD_BOOTH', label: 'Standard Booth (10×5 sq ft)', priceRupees: 10000 },
+  { id: 'HALF_BOOTH', label: 'Half Booth (5×5 sq ft)', priceRupees: 5000 },
+  { id: 'PREMIUM_2X2', label: 'Premium Stall (2×2 sq m)', priceRupees: 7000 },
+  { id: 'PREMIUM_3_5X2', label: 'Premium Stall (3.5×2 sq m)', priceRupees: 13250 },
+  { id: 'PREMIUM_4_5X2', label: 'Premium Stall (4.5×2 sq m)', priceRupees: 18800 },
+  { id: 'PREMIUM_7X2', label: 'Premium Stall (7×2 sq m)', priceRupees: 25300 },
+  { id: 'FOOD_STALL', label: 'Food Stall (10×8 sq ft)', priceRupees: 30000 }
+];

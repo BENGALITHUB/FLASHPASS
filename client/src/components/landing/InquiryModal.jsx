@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import {
   X, Building2, Store, User, Phone, Mail, Crown, Wallet, Tag, MessageSquare,
-  Ticket, Send, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, Clock, Sparkles, ChevronDown
+  Ticket, Send, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, Clock, Sparkles, ChevronDown, Lock, IndianRupee
 } from 'lucide-react';
+import { STALL_OPTIONS, findStall, formatRupees } from '../../utils/stalls';
 
 const THEMES = {
   SPONSOR: {
@@ -17,7 +18,7 @@ const THEMES = {
     btn: 'bg-accent text-white hover:bg-accent-hover',
     title: 'Exhibition Stall Inquiry',
     pitch: 'Sell your art, merch or food to an enthusiastic crowd.',
-    perks: ['6×3 ft tables to 10×10 ft booths', 'Power, lighting & event Wi-Fi', '2–4 complimentary staff passes']
+    perks: ['Half booths from ₹5,000 to food stalls', 'Fixed, transparent stall prices', 'Tell us your offer — we reply in 24 h']
   }
 };
 
@@ -48,6 +49,7 @@ export default function InquiryModal({
   const theme = THEMES[type] || THEMES.SPONSOR;
   const TypeIcon = theme.icon;
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  const stall = findStall(form.stallType) || STALL_OPTIONS[0];
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -175,6 +177,18 @@ export default function InquiryModal({
                         <div className="text-text-muted uppercase text-[10px]">Brand</div>
                         <div className="text-white font-bold truncate">{success.brandName}</div>
                       </div>
+                      {success.stallLabel && (
+                        <>
+                          <div>
+                            <div className="text-text-muted uppercase text-[10px]">Stall</div>
+                            <div className="text-white font-bold">{success.stallLabel}</div>
+                          </div>
+                          <div>
+                            <div className="text-text-muted uppercase text-[10px]">Price</div>
+                            <div className="font-bold" style={{ color: theme.a }}>{formatRupees(success.stallPriceRupees)}</div>
+                          </div>
+                        </>
+                      )}
                       <div className="col-span-2">
                         <div className="text-text-muted uppercase text-[10px]">Contact</div>
                         <div className="text-white">{success.contactPerson} • {success.phone}</div>
@@ -284,18 +298,44 @@ export default function InquiryModal({
                       </Field>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Field label="Stall size / booth type" icon={Store} chevron>
-                        <select value={form.stallType} onChange={set('stallType')} className={`${inputCls} cursor-pointer appearance-none`}>
-                          <option value="STANDARD_BOOTH">🎪 Standard Booth (10x10 ft)</option>
-                          <option value="ARTIST_ALLEY">🎨 Artist Alley Table (6x3 ft)</option>
-                          <option value="FOOD_STALL">🍔 Food & Beverage Island</option>
-                          <option value="PREMIUM_CORNER">✨ Premium Corner Space (Double Front)</option>
-                        </select>
-                      </Field>
-                      <Field label="Merchandise category" icon={Tag}>
-                        <input type="text" placeholder="e.g. Anime posters, manga, props" value={form.category} onChange={set('category')} className={inputCls} />
-                      </Field>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_190px] gap-3">
+                        <Field label="Stall size / booth type" icon={Store} chevron required>
+                          <select value={stall.id} onChange={set('stallType')} className={`${inputCls} pr-9 cursor-pointer appearance-none`}>
+                            {STALL_OPTIONS.map((s) => (
+                              <option key={s.id} value={s.id}>{s.emoji} {s.label} — {formatRupees(s.priceRupees)}</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Stall price" icon={IndianRupee} hint="Fixed">
+                          <input
+                            type="text"
+                            readOnly
+                            tabIndex={-1}
+                            aria-readonly="true"
+                            value={stall.priceRupees.toLocaleString('en-IN')}
+                            title="Price is set by the organizer for this stall size"
+                            className={`${inputCls} pr-9 font-comic text-lg tracking-wide cursor-not-allowed select-none border-dashed`}
+                            style={{ color: theme.a, background: 'rgba(0,0,0,0.35)' }}
+                          />
+                          <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                        </Field>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Field label="Merchandise category" icon={Tag}>
+                          <input type="text" placeholder="e.g. Anime posters, manga, props" value={form.category} onChange={set('category')} className={inputCls} />
+                        </Field>
+                        <Field label="Anything about the price?" icon={Wallet}>
+                          <input
+                            type="text"
+                            maxLength={500}
+                            placeholder="e.g. Can you do ₹8,000? / Need 2 stalls"
+                            value={form.priceNote || ''}
+                            onChange={set('priceNote')}
+                            className={inputCls}
+                          />
+                        </Field>
+                      </div>
                     </div>
                   )}
 

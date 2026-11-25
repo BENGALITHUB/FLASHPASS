@@ -4,7 +4,7 @@ import { Event } from '../models/Event.js';
 import { emitNewInquiry } from '../services/socket.service.js';
 import { AdminSettings } from '../models/AdminSettings.js';
 import { AuditLog } from '../models/AuditLog.js';
-import { ROLES, DEFAULT_ADMIN_SETTINGS } from '../constants/index.js';
+import { ROLES, DEFAULT_ADMIN_SETTINGS, STALL_OPTIONS } from '../constants/index.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
 
 // Deal types the platform takes a commission on when they are closed
@@ -27,6 +27,7 @@ export const createInquiry = async (req, res) => {
       stallType,
       sponsorshipTier,
       budget,
+      priceNote,
       message
     } = req.body;
 
@@ -59,6 +60,13 @@ export const createInquiry = async (req, res) => {
       ? 'FlashPass Platform'
       : targetEventId === 'comics-carnival' ? '3-Day Comics Carnival' : targetEventId;
 
+    // A stall's price comes from the fixed price list, never from the request
+    const isStall = type.toUpperCase() === 'STALL';
+    const stall = isStall ? STALL_OPTIONS.find(s => s.id === String(stallType || '').trim()) : null;
+    if (isStall && !stall) {
+      return errorResponse(res, 'Please choose a stall size', 'INVALID_STALL_TYPE', 400);
+    }
+
     const inquiryId = `INQ-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
     const inquiry = await Inquiry.create({
@@ -71,7 +79,10 @@ export const createInquiry = async (req, res) => {
       phone: cleanPhone,
       email: email.trim().toLowerCase(),
       category: category ? String(category).trim() : 'GENERAL',
-      stallType: stallType ? String(stallType).trim() : undefined,
+      stallType: stall ? stall.id : undefined,
+      stallLabel: stall ? stall.label : undefined,
+      stallPriceRupees: stall ? stall.priceRupees : undefined,
+      priceNote: isStall && priceNote ? String(priceNote).trim().slice(0, 500) : undefined,
       sponsorshipTier: sponsorshipTier ? String(sponsorshipTier).trim() : undefined,
       budget: budget ? String(budget).trim() : undefined,
       message: message ? String(message).trim() : undefined,
@@ -88,6 +99,8 @@ export const createInquiry = async (req, res) => {
       eventName: inquiry.eventName,
       type: inquiry.type,
       brandName: inquiry.brandName,
+      stallLabel: inquiry.stallLabel,
+      stallPriceRupees: inquiry.stallPriceRupees,
       message: 'Inquiry submitted successfully! Our event organizing team will contact you shortly.'
     }, 201);
   } catch (error) {

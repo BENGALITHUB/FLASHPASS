@@ -59,6 +59,11 @@ const inquirySchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Fixed list price of the chosen stall size, copied in when the inquiry is made
+  stallLabel: { type: String, trim: true },
+  stallPriceRupees: { type: Number, min: 0 },
+  // What the vendor wants to say about the price (discount ask, offer, questions)
+  priceNote: { type: String, trim: true, maxlength: 500 },
   sponsorshipTier: {
     type: String,
     trim: true

@@ -98,6 +98,7 @@ export default function LandingPage() {
     stallType: 'STANDARD_BOOTH',
     sponsorshipTier: 'ASSOCIATE_SPONSOR',
     budget: '',
+    priceNote: '',
     message: ''
   });
   const [inquirySubmitting, setInquirySubmitting] = useState(false);
@@ -144,6 +145,7 @@ export default function LandingPage() {
         stallType: inquiryType === 'STALL' ? inquiryForm.stallType : undefined,
         sponsorshipTier: inquiryType === 'SPONSOR' ? inquiryForm.sponsorshipTier : undefined,
         budget: inquiryForm.budget.trim(),
+        priceNote: inquiryType === 'STALL' ? (inquiryForm.priceNote || '').trim() : undefined,
         message: inquiryForm.message.trim()
       };
 
@@ -935,6 +937,7 @@ export default function LandingPage() {
               stallType: 'STANDARD_BOOTH',
               sponsorshipTier: 'ASSOCIATE_SPONSOR',
               budget: '',
+              priceNote: '',
               message: ''
             });
           }}

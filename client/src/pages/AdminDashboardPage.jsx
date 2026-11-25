@@ -8,6 +8,7 @@ import ComicBadge from '../components/common/ComicBadge';
 import { playSuccessChime } from '../utils/audioFeedback';
 import { exportAttendeesCSV, exportAttendeesExcel, exportAttendeesPDF } from '../utils/exportAttendees';
 import EventRemovalDialog from '../components/admin/EventRemovalDialog';
+import { stallLabel, formatRupees } from '../utils/stalls';
 import './AdminDashboard.css';
 import {
   LayoutDashboard, Calendar, Ticket, Shield, DollarSign, Users,
@@ -933,8 +934,11 @@ export default function AdminDashboardPage() {
     // Closing a sponsor/stall deal records the platform commission, so the final deal value is required
     if (newStatus === 'ACCEPTED' && ['SPONSOR', 'STALL'].includes(inquiry.type)) {
       const entered = prompt(
-        `Final deal amount for ${inquiry.brandName} (₹)?\n\nFlashPass commission: ${commissionStats.ratePct}% of this amount, payable to the platform.`,
-        ''
+        `Final deal amount for ${inquiry.brandName} (₹)?`
+          + (inquiry.stallPriceRupees ? `\n\nList price for ${inquiry.stallLabel || stallLabel(inquiry.stallType)}: ${formatRupees(inquiry.stallPriceRupees)}` : '')
+          + (inquiry.priceNote ? `\nVendor's note on price: "${inquiry.priceNote}"` : '')
+          + `\n\nFlashPass commission: ${commissionStats.ratePct}% of this amount, payable to the platform.`,
+        inquiry.stallPriceRupees ? String(inquiry.stallPriceRupees) : ''
       );
       if (entered === null) return;
       const amount = Number(String(entered).replace(/[^\d.]/g, ''));
@@ -2702,15 +2706,32 @@ export default function AdminDashboardPage() {
                                 </>
                               ) : (
                                 <>
-                                  <div className="flex justify-between">
+                                  <div className="flex justify-between gap-3">
                                     <span className="text-text-muted">Stall / Booth Type:</span>
-                                    <strong className="text-accent">{item.stallType || 'STANDARD_BOOTH'}</strong>
+                                    <strong className="text-accent text-right">{item.stallLabel || stallLabel(item.stallType || 'STANDARD_BOOTH')}</strong>
                                   </div>
+                                  {item.stallPriceRupees > 0 && (
+                                    <div className="flex justify-between gap-3">
+                                      <span className="text-text-muted">Fixed Price:</span>
+                                      <strong className="text-primary">{formatRupees(item.stallPriceRupees)}</strong>
+                                    </div>
+                                  )}
                                   <div className="flex justify-between">
                                     <span className="text-text-muted">Category:</span>
                                     <strong className="text-text">{item.category || 'Pop Culture Merchandise'}</strong>
                                   </div>
                                 </>
+                              )}
+
+                              {item.priceNote && (
+                                <div className="pt-2 border-t border-border/60">
+                                  <span className="text-[10px] uppercase text-warning font-bold block mb-1">
+                                    Vendor's Note on Price:
+                                  </span>
+                                  <p className="text-text/90 bg-warning/10 p-2 rounded-lg border border-warning/40 text-[11px] leading-relaxed">
+                                    "{item.priceNote}"
+                                  </p>
+                                </div>
                               )}
 
                               {item.message && (
