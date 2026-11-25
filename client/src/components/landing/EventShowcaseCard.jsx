@@ -657,21 +657,34 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   ))}
                 </div>
 
-                {/* Quick stats */}
-                <div className="grid grid-cols-3 gap-2 max-w-md pt-1">
-                  {[
-                    { icon: CalendarDays, value: dayCount || '—', label: dayCount === 1 ? 'Day' : 'Days' },
-                    { icon: Users, value: ev.capacityLimit ? ev.capacityLimit.toLocaleString('en-IN') : '∞', label: 'Daily Cap' },
-                    { icon: Ticket, value: tiers.length || 1, label: tiers.length === 1 ? 'Tier' : 'Tiers' }
-                  ].map(({ icon: Icon, value, label }) => (
-                    <div key={label} className="min-w-0 rounded-xl bg-black/30 border border-white/10 px-2 sm:px-3 py-2">
-                      <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase">
-                        <Icon className="w-3 h-3" /> {label}
-                      </div>
-                      <div className="font-comic text-xl sm:text-2xl text-white leading-tight">{value}</div>
+                {/* Quick stats (controlled from Admin -> Settings -> Public Card Display) */}
+                {(() => {
+                  const cd = ev.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] };
+                  const iconMap = { CalendarDays, Users, Ticket, Clock, MapPin, Zap, Flame, Crown, ShieldCheck };
+                  const statItems = [
+                    ...(cd.showDays !== false ? [{ icon: CalendarDays, value: dayCount || '—', label: dayCount === 1 ? 'Day' : 'Days' }] : []),
+                    ...(cd.showDailyCap === true ? [{ icon: Users, value: ev.capacityLimit ? ev.capacityLimit.toLocaleString('en-IN') : '∞', label: 'Daily Cap' }] : []),
+                    ...(cd.showTiers === true ? [{ icon: Ticket, value: tiers.length || 1, label: tiers.length === 1 ? 'Tier' : 'Tiers' }] : []),
+                    ...((cd.customFields || []).map((f) => ({
+                      icon: iconMap[f.icon] || CalendarDays,
+                      value: f.value,
+                      label: f.label
+                    })))
+                  ];
+                  if (statItems.length === 0) return null;
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-lg pt-1">
+                      {statItems.map(({ icon: Icon, value, label }, idx) => (
+                        <div key={`${label}-${idx}`} className="min-w-0 rounded-xl bg-black/30 border border-white/10 px-2.5 sm:px-3 py-2">
+                          <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
+                            <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
+                          </div>
+                          <div className="font-comic text-lg sm:text-xl text-white leading-tight truncate">{value}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Phones: the Kolkata skyline as its own full-width strip under the details, edge to edge */}

@@ -206,6 +206,19 @@ const eventSchema = new mongoose.Schema({
     stripePublishableKey: { type: String, trim: true, default: '' },
     stripeSecretKey: { type: String, trim: true, default: '' }
   },
+  // 9. Public Event Card Display Settings (toggles + custom highlight fields)
+  cardDisplay: {
+    showDays: { type: Boolean, default: true },
+    showDailyCap: { type: Boolean, default: false },
+    showTiers: { type: Boolean, default: false },
+    customFields: [
+      {
+        label: { type: String, required: true, trim: true },
+        value: { type: String, required: true, trim: true },
+        icon: { type: String, default: 'CalendarDays' }
+      }
+    ]
+  },
   status: {
     type: String,
     // ARCHIVED: hidden from the public and closed to sales, records kept.

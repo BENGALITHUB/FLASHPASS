@@ -200,7 +200,13 @@ export default function AdminDashboardPage() {
     onlineSalesEnabled: true,
     cashSalesEnabled: true,
     gateOpenTime: '00:00',
-    gateCloseTime: '23:59'
+    gateCloseTime: '23:59',
+    cardDisplay: {
+      showDays: true,
+      showDailyCap: false,
+      showTiers: false,
+      customFields: []
+    }
   });
 
   // Advanced Event Settings & Live Entities
@@ -370,7 +376,13 @@ export default function AdminDashboardPage() {
           onlineSalesEnabled: data.settings.onlineSalesEnabled !== false,
           cashSalesEnabled: data.settings.cashSalesEnabled !== false,
           gateOpenTime: data.settings.gateOpenTime || '00:00',
-          gateCloseTime: data.settings.gateCloseTime || '23:59'
+          gateCloseTime: data.settings.gateCloseTime || '23:59',
+          cardDisplay: data.settings.cardDisplay || {
+            showDays: true,
+            showDailyCap: false,
+            showTiers: false,
+            customFields: []
+          }
         });
 
         if (Array.isArray(data.settings.ticketTiers)) setTicketTiers(data.settings.ticketTiers);
@@ -518,7 +530,8 @@ export default function AdminDashboardPage() {
         onlineSalesEnabled: Boolean(settingsForm.onlineSalesEnabled),
         cashSalesEnabled: Boolean(settingsForm.cashSalesEnabled),
         gateOpenTime: settingsForm.gateOpenTime,
-        gateCloseTime: settingsForm.gateCloseTime
+        gateCloseTime: settingsForm.gateCloseTime,
+        cardDisplay: settingsForm.cardDisplay
       }, adminPin);
 
       alert('Event settings & CMS updated successfully!');
@@ -3021,6 +3034,140 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Card 4: Public Card Display & Custom Highlight Fields */}
+                  <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000] space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-comic text-lg text-primary flex items-center gap-2">
+                          <span>🎨 4. PUBLIC EVENT CARD STATS & CUSTOM FIELDS</span>
+                        </h4>
+                        <p className="text-[11px] font-mono text-text-muted">
+                          Choose which stats appear on the public event card and add custom fields like Date, Timing, Age Limit, etc.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cd = settingsForm.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] };
+                          if ((cd.customFields || []).length >= 8) return;
+                          setSettingsForm({
+                            ...settingsForm,
+                            cardDisplay: {
+                              ...cd,
+                              customFields: [...(cd.customFields || []), { label: '', value: '', icon: 'CalendarDays' }]
+                            }
+                          });
+                        }}
+                        disabled={(settingsForm.cardDisplay?.customFields || []).length >= 8}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-black border-2 border-black font-mono text-xs font-bold shadow-[2px_2px_0_#000] hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" /> Add Custom Field
+                      </button>
+                    </div>
+
+                    {/* Built-in stat toggles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { key: 'showDays', label: 'Show Days Count', hint: 'e.g. "3 Days"' },
+                        { key: 'showDailyCap', label: 'Show Daily Capacity', hint: 'e.g. "20,000 Daily Cap"' },
+                        { key: 'showTiers', label: 'Show Ticket Tiers', hint: 'e.g. "1 Tier"' }
+                      ].map(({ key, label, hint }) => {
+                        const cd = settingsForm.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] };
+                        const checked = key === 'showDays' ? cd.showDays !== false : Boolean(cd[key]);
+                        return (
+                          <label
+                            key={key}
+                            className={`flex items-start gap-2.5 p-3 rounded-2xl border cursor-pointer transition-all ${
+                              checked ? 'bg-primary/10 border-primary/50' : 'bg-surface-2 border-border'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => setSettingsForm({
+                                ...settingsForm,
+                                cardDisplay: { ...cd, [key]: e.target.checked }
+                              })}
+                              className="mt-0.5 accent-primary w-4 h-4 cursor-pointer"
+                            />
+                            <div>
+                              <span className="font-mono text-xs font-bold text-text block">{label}</span>
+                              <span className="font-mono text-[10px] text-text-muted">{hint}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Fields List */}
+                    {(settingsForm.cardDisplay?.customFields || []).length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-border/60">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-text-muted block">
+                          Custom Fields ({settingsForm.cardDisplay.customFields.length}/8)
+                        </span>
+                        {settingsForm.cardDisplay.customFields.map((field, idx) => (
+                          <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_140px_auto] gap-2 items-center bg-surface-2 p-2.5 rounded-2xl border border-border">
+                            <input
+                              type="text"
+                              placeholder="Label (e.g. Date, Timing)"
+                              maxLength={30}
+                              value={field.label}
+                              onChange={(e) => {
+                                const cd = settingsForm.cardDisplay;
+                                const updated = cd.customFields.map((f, i) => i === idx ? { ...f, label: e.target.value } : f);
+                                setSettingsForm({ ...settingsForm, cardDisplay: { ...cd, customFields: updated } });
+                              }}
+                              className="bg-surface border border-border rounded-xl px-3 py-2 font-mono text-xs text-text"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Value (e.g. 12–14 Dec, 10 AM–8 PM)"
+                              maxLength={50}
+                              value={field.value}
+                              onChange={(e) => {
+                                const cd = settingsForm.cardDisplay;
+                                const updated = cd.customFields.map((f, i) => i === idx ? { ...f, value: e.target.value } : f);
+                                setSettingsForm({ ...settingsForm, cardDisplay: { ...cd, customFields: updated } });
+                              }}
+                              className="bg-surface border border-border rounded-xl px-3 py-2 font-mono text-xs text-text"
+                            />
+                            <select
+                              value={field.icon || 'CalendarDays'}
+                              onChange={(e) => {
+                                const cd = settingsForm.cardDisplay;
+                                const updated = cd.customFields.map((f, i) => i === idx ? { ...f, icon: e.target.value } : f);
+                                setSettingsForm({ ...settingsForm, cardDisplay: { ...cd, customFields: updated } });
+                              }}
+                              className="bg-surface border border-border rounded-xl px-2.5 py-2 font-mono text-xs text-text"
+                            >
+                              <option value="CalendarDays">📅 Date</option>
+                              <option value="Clock">⏰ Time</option>
+                              <option value="MapPin">📍 Location</option>
+                              <option value="Users">👥 Crowd / Age</option>
+                              <option value="Ticket">🎫 Pass / Entry</option>
+                              <option value="Zap">⚡ Highlight</option>
+                              <option value="Flame">🔥 Special</option>
+                              <option value="Crown">👑 VIP</option>
+                              <option value="ShieldCheck">🛡️ Safety</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cd = settingsForm.cardDisplay;
+                                const updated = cd.customFields.filter((_, i) => i !== idx);
+                                setSettingsForm({ ...settingsForm, cardDisplay: { ...cd, customFields: updated } });
+                              }}
+                              title="Remove field"
+                              className="p-2 rounded-xl bg-danger/15 text-danger hover:bg-danger hover:text-white border border-danger/30 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Save Section */}

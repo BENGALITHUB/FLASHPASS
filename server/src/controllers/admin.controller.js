@@ -280,6 +280,7 @@ export const getDashboardMetrics = async (req, res) => {
         zones: cfgEvent?.zones || [],
         liveAnnouncements: cfgEvent?.liveAnnouncements || [],
         emergencyEvacuation: cfgEvent?.emergencyEvacuation || { active: false },
+        cardDisplay: cfgEvent?.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] },
         paymentGateway: gatewaySettingsForAdmin(cfgEvent)
       }
     });
@@ -498,7 +499,7 @@ export const updateSettings = async (req, res) => {
       onePassPerPhone, cashPriceMode, allowReentry, maxReentriesPerDay,
       emergencyLockdown, cashSalesEnabled, onlineSalesEnabled,
       reentryMode, gateOpenTime, gateCloseTime, eventId,
-      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates
+      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates, cardDisplay
     } = req.body;
 
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
@@ -556,6 +557,26 @@ export const updateSettings = async (req, res) => {
         if (Array.isArray(affiliates)) event.affiliates = affiliates;
         if (Array.isArray(zones)) event.zones = zones;
 
+        // Public Event Card Display Settings (toggles + custom fields)
+        if (cardDisplay && typeof cardDisplay === 'object') {
+          const prev = event.cardDisplay || {};
+          event.cardDisplay = {
+            showDays: cardDisplay.showDays !== undefined ? Boolean(cardDisplay.showDays) : (prev.showDays ?? true),
+            showDailyCap: cardDisplay.showDailyCap !== undefined ? Boolean(cardDisplay.showDailyCap) : (prev.showDailyCap ?? false),
+            showTiers: cardDisplay.showTiers !== undefined ? Boolean(cardDisplay.showTiers) : (prev.showTiers ?? false),
+            customFields: Array.isArray(cardDisplay.customFields)
+              ? cardDisplay.customFields
+                  .filter(f => f && String(f.label || '').trim() && String(f.value || '').trim())
+                  .slice(0, 8)
+                  .map(f => ({
+                    label: String(f.label).trim().slice(0, 30),
+                    value: String(f.value).trim().slice(0, 50),
+                    icon: String(f.icon || 'CalendarDays').trim()
+                  }))
+              : (prev.customFields || [])
+          };
+        }
+
         // Multi-Tenant Payment Gateway Configuration (Top 5 Gateways)
         if (paymentGateway && typeof paymentGateway === 'object') {
           const merged = mergeGatewaySettings(paymentGateway, event.paymentGateway || {});
@@ -594,6 +615,7 @@ export const updateSettings = async (req, res) => {
             addOns: event.addOns,
             affiliates: event.affiliates,
             zones: event.zones,
+            cardDisplay: event.cardDisplay,
             paymentGateway: gatewaySettingsForAdmin(event)
           }
         });
