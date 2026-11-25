@@ -533,14 +533,11 @@ function SkinBackdrop({ skin }) {
         <img
           src={skin.mainBgImage}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.22]"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.28]"
         />
       )}
-      {/* Dusk sky: warm at the horizon, night at the top */}
-      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, rgba(10,10,14,0.58) 0%, ${red}28 45%, ${orange}4d 78%, ${orange}66 100%)` }} />
-      {/* Logo-colour glows */}
-      <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.28]" style={{ background: red }} />
-      <div className="absolute top-1/4 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.2]" style={{ background: '#1E5BFF' }} />
+      {/* Clean dark contrast overlay without orange dusk wash */}
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,14,0.58) 0%, rgba(10,10,14,0.42) 50%, rgba(10,10,14,0.72) 100%)' }} />
       {/* The logo as a faint stamp, centred and enlarged in the background. */}
       {skin.watermarkLogo && (
         <img
