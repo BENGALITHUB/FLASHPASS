@@ -577,7 +577,7 @@ function StubBackdrop({ skin }) {
           <img
             src={skin.stubImage}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-[50%_22%] opacity-85"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-85"
           />
           <div
             className="absolute inset-0"
@@ -732,7 +732,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
       >
         <div className="relative rounded-[calc(1.75rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#0D0D1A' }}>
           {/* ===== Ticket body + stub ===== */}
-          <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_430px] xl:grid-cols-[minmax(0,1fr)_500px]">
+          <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px]">
             {/* Event body */}
             <div className={`relative min-w-0 p-4 sm:p-5 xl:p-6 overflow-hidden ${skin ? 'md:pb-36 lg:pb-40 xl:pb-44' : ''}`}>
               {/* Themed art: gradient wash, halftone, giant watermark */}
@@ -920,7 +920,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
               <span className="hidden lg:block absolute -left-[13px] -bottom-[13px] w-6 h-6 rounded-full bg-bg" aria-hidden="true" />
 
               <div className="event-price min-w-0 shrink-0 flex flex-col items-center">
-                <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]' : 'text-text-muted'}`}>Passes from</span>
+                <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white/70' : 'text-text-muted'}`}>Passes from</span>
                 {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS INCLUSIVE` : null} /> : (
                   <div className="font-comic text-5xl lg:text-6xl leading-none mt-1 lg:my-2" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>₹{priceLabel}</div>
                 )}
@@ -945,7 +945,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 </button>
                 <Link
                   to={`/cash?eventId=${ev.eventId}`}
-                  className={`mt-2.5 inline-flex items-center justify-center gap-1.5 text-xs font-mono transition-colors ${skin ? 'text-white/95 bg-black/55 hover:bg-black/75 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10' : 'text-text-muted hover:text-warning'}`}
+                  className="mt-2.5 inline-flex items-center justify-center gap-1.5 text-xs font-mono text-text-muted hover:text-warning transition-colors"
                 >
                   <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
                 </Link>
