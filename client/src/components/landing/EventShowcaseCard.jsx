@@ -673,21 +673,6 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   </div>
                 )}
 
-                {/* Feature chips: a swipeable row on phones, wrapped on wider screens */}
-                <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar snap-x gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-xs">
-                  {[
-                    { icon: RefreshCw, label: ev.allowReentry !== false ? 'Re-Entry Allowed' : 'Single Entry', color: theme.a },
-                    { icon: Smartphone, label: 'Offline PWA Pass', color: '#22D3EE' },
-                    { icon: Clock, label: '30-Sec UPI Pay', color: '#FF2E88' },
-                    { icon: Zap, label: '<500ms Gate Scan', color: '#FFD60A' }
-                  ].map(({ icon: Icon, label, color }) => (
-                    <span key={label} className="snap-start shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#161626]/90 border border-border text-text">
-                      <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
-                      <span className="min-w-0">{label}</span>
-                    </span>
-                  ))}
-                </div>
-
               </div>
 
               {/* Phones: the Kolkata skyline as its own full-width strip under the details, edge to edge */}
