@@ -225,6 +225,16 @@ export default function AdminDashboardPage() {
       watermarkUrl: '',
       tagline: [],
       colors: { ink: '#0A0A0A', orange: '#FF7A1A', burst: '#F2FF00', button: '#FFC21A', red: '#E10600' }
+    },
+    eventGuide: {
+      duration: '9 Hrs / Day',
+      entryAllowedFor: 'All ages',
+      kidFriendly: 'Yes',
+      language: 'English, Hindi, Bengali',
+      layout: 'Indoor',
+      petFriendly: 'No',
+      seatingArrangement: 'Seated and Standing',
+      ticketsNeededFor: 'Ages 3 & Above'
     }
   });
 
@@ -419,6 +429,16 @@ export default function AdminDashboardPage() {
               red: '#E10600',
               ...(data.settings.cardTemplate?.colors || {})
             }
+          },
+          eventGuide: {
+            duration: data.settings.eventGuide?.duration || '9 Hrs / Day',
+            entryAllowedFor: data.settings.eventGuide?.entryAllowedFor || 'All ages',
+            kidFriendly: data.settings.eventGuide?.kidFriendly || 'Yes',
+            language: data.settings.eventGuide?.language || 'English, Hindi, Bengali',
+            layout: data.settings.eventGuide?.layout || 'Indoor',
+            petFriendly: data.settings.eventGuide?.petFriendly || 'No',
+            seatingArrangement: data.settings.eventGuide?.seatingArrangement || 'Seated and Standing',
+            ticketsNeededFor: data.settings.eventGuide?.ticketsNeededFor || 'Ages 3 & Above'
           }
         });
 
@@ -594,7 +614,8 @@ export default function AdminDashboardPage() {
         gateOpenTime: settingsForm.gateOpenTime,
         gateCloseTime: settingsForm.gateCloseTime,
         cardDisplay: settingsForm.cardDisplay,
-        cardTemplate: settingsForm.cardTemplate
+        cardTemplate: settingsForm.cardTemplate,
+        eventGuide: settingsForm.eventGuide
       }, adminPin);
 
       alert('Event settings & CMS updated successfully!');
@@ -3578,6 +3599,39 @@ export default function AdminDashboardPage() {
                         ))}
                       </div>
                     )}
+
+                    {/* Event Guide Fields */}
+                    <div className="space-y-2.5 pt-3 border-t border-border/60">
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-primary font-bold block">
+                        🧭 Event Guide (Shown under About + Show More modal)
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                        {[
+                          { key: 'duration', label: 'Duration', ph: '9 Hrs / Day' },
+                          { key: 'entryAllowedFor', label: 'Entry Allowed For', ph: 'All ages' },
+                          { key: 'kidFriendly', label: 'Kid Friendly', ph: 'Yes' },
+                          { key: 'language', label: 'Language', ph: 'English, Hindi, Bengali' },
+                          { key: 'layout', label: 'Layout', ph: 'Indoor' },
+                          { key: 'petFriendly', label: 'Pet Friendly', ph: 'No' },
+                          { key: 'seatingArrangement', label: 'Seating Arrangement', ph: 'Seated and Standing' },
+                          { key: 'ticketsNeededFor', label: 'Tickets Needed For', ph: 'Ages 3 & Above' }
+                        ].map((g) => (
+                          <div key={g.key}>
+                            <label className="text-[10px] font-mono uppercase text-text-muted block mb-1">{g.label}</label>
+                            <input
+                              type="text"
+                              placeholder={g.ph}
+                              value={settingsForm.eventGuide?.[g.key] ?? ''}
+                              onChange={(e) => setSettingsForm({
+                                ...settingsForm,
+                                eventGuide: { ...(settingsForm.eventGuide || {}), [g.key]: e.target.value }
+                              })}
+                              className="w-full bg-surface-2 border border-border rounded-xl px-3 py-1.5 font-mono text-xs text-text"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Card 5: Card Visual Template & Reusable Presets (hidden for now) */}

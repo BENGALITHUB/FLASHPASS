@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   MapPin, CalendarDays, Users, Smartphone, Clock, CheckCircle2, RefreshCw,
   Building2, Store, HeartHandshake, ArrowRight, Crown, Ticket, Banknote, Zap, Flame, Timer,
-  Shirt, Coffee, Car, ShoppingBag, ChevronDown, ShieldCheck
+  Shirt, Coffee, Car, ShoppingBag, ChevronDown, ShieldCheck,
+  Smile, Languages, Info, PawPrint, Armchair, X
 } from 'lucide-react';
 import { stockInfo } from '../../utils/stock';
 import { skinFor } from './eventSkins';
@@ -168,6 +169,158 @@ function EventDescription({ text, accent, band = null }) {
         </button>
       )}
     </div>
+  );
+}
+
+const DEFAULT_EVENT_GUIDE = {
+  duration: '9 Hrs / Day',
+  entryAllowedFor: 'All ages',
+  kidFriendly: 'Yes',
+  language: 'English, Hindi, Bengali',
+  layout: 'Indoor',
+  petFriendly: 'No',
+  seatingArrangement: 'Seated and Standing',
+  ticketsNeededFor: 'Ages 3 & Above'
+};
+
+function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const g = { ...DEFAULT_EVENT_GUIDE, ...(guide || {}) };
+  const highlight = band || accent || '#FFD60A';
+
+  useEffect(() => {
+    if (!modalOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setModalOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalOpen]);
+
+  const items = [
+    { key: 'duration', label: 'Duration', value: g.duration, icon: Clock },
+    { key: 'entryAllowedFor', label: 'Entry Allowed For', value: g.entryAllowedFor, icon: Users },
+    { key: 'kidFriendly', label: 'Kid Friendly', value: g.kidFriendly, icon: Smile },
+    { key: 'language', label: 'Language', value: g.language, icon: Languages },
+    { key: 'layout', label: 'Layout', value: g.layout, icon: Info },
+    { key: 'petFriendly', label: 'Pet Friendly', value: g.petFriendly, icon: PawPrint },
+    { key: 'seatingArrangement', label: 'Seating Arrangement', value: g.seatingArrangement, icon: Armchair },
+    { key: 'ticketsNeededFor', label: 'Tickets Needed For', value: g.ticketsNeededFor, icon: Ticket }
+  ].filter((item) => String(item.value || '').trim().length > 0);
+
+  if (items.length === 0) return null;
+  const previewItems = items.slice(0, 3);
+
+  return (
+    <>
+      <div className="max-w-2xl pt-0.5 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-display text-xs sm:text-sm tracking-[0.14em] uppercase text-white/95 flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5" style={{ color: highlight }} />
+            Event Guide
+          </span>
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="font-mono text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
+            style={{ color: highlight }}
+          >
+            <span>Show more</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {previewItems.map(({ key, label, value, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="group/guide flex items-center gap-2.5 text-left rounded-xl bg-black/45 hover:bg-black/65 border border-white/15 hover:border-white/30 px-2.5 py-2 backdrop-blur-sm transition-all cursor-pointer min-w-0"
+            >
+              <span
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover/guide:scale-105"
+                style={{ background: `${highlight}20`, border: `1px solid ${highlight}45` }}
+              >
+                <Icon className="w-4 h-4" style={{ color: highlight }} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-mono text-[9px] uppercase tracking-wider text-text-muted truncate">{label}</span>
+                <span className="block font-sans text-xs font-bold text-white truncate">{value}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {modalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+          onClick={() => setModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Event Guide"
+        >
+          <div
+            className="relative w-full max-w-xl rounded-3xl bg-[#11101A] border-2 p-5 sm:p-7 shadow-[0_24px_70px_rgba(0,0,0,0.85),6px_6px_0_#000]"
+            style={{ borderColor: highlight }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {eventName && (
+                  <span className="inline-block font-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 mb-1.5">
+                    {eventName}
+                  </span>
+                )}
+                <h3 className="font-display text-2xl sm:text-3xl tracking-wide text-white uppercase">
+                  Event Guide
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                aria-label="Close Event Guide"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+              {items.map(({ key, label, value, icon: Icon }) => (
+                <div
+                  key={key}
+                  className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-3.5 py-3"
+                >
+                  <span
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `${highlight}20`, border: `1px solid ${highlight}45` }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: highlight }} />
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</span>
+                    <span className="block font-sans text-sm font-bold text-white leading-snug">{value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
+              <span className="font-mono text-[11px] text-text-muted">Quick venue &amp; entry details</span>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="px-4 py-2 rounded-xl border-2 border-black font-mono text-xs font-bold text-black shadow-[2px_2px_0_#000] hover:-translate-y-0.5 transition-all cursor-pointer"
+                style={{ background: highlight }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -680,6 +833,8 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 })()}
 
                 <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} band={skin?.colors.orange} />
+
+                <EventGuideSection guide={ev.eventGuide} accent={theme.a} band={skin?.colors.orange} eventName={ev.name} />
 
                 {/* One ticket type: what it includes sits here; it is booked from the price stub. */}
                 {soloTier?.perks?.length > 0 && (

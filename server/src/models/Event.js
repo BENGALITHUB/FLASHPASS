@@ -234,6 +234,17 @@ const eventSchema = new mongoose.Schema({
       red: { type: String, default: '#E10600' }
     }
   },
+  // 11. Event Guide (Comic-Con style quick info shown under About & in Show More modal)
+  eventGuide: {
+    duration: { type: String, trim: true, default: '9 Hrs / Day' },
+    entryAllowedFor: { type: String, trim: true, default: 'All ages' },
+    kidFriendly: { type: String, trim: true, default: 'Yes' },
+    language: { type: String, trim: true, default: 'English, Hindi, Bengali' },
+    layout: { type: String, trim: true, default: 'Indoor' },
+    petFriendly: { type: String, trim: true, default: 'No' },
+    seatingArrangement: { type: String, trim: true, default: 'Seated and Standing' },
+    ticketsNeededFor: { type: String, trim: true, default: 'Ages 3 & Above' }
+  },
   status: {
     type: String,
     // ARCHIVED: hidden from the public and closed to sales, records kept.

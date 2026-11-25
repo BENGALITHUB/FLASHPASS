@@ -43,6 +43,7 @@ export const getAllPublicEvents = async (req, res) => {
         emergencyEvacuation: ev.emergencyEvacuation || { active: false },
         cardDisplay: ev.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] },
         cardTemplate: ev.cardTemplate || null,
+        eventGuide: ev.eventGuide || null,
         paymentGateway: {
           provider: ev.paymentGateway?.provider || 'PAYU',
           enabled: ev.paymentGateway?.enabled !== false

@@ -282,6 +282,7 @@ export const getDashboardMetrics = async (req, res) => {
         emergencyEvacuation: cfgEvent?.emergencyEvacuation || { active: false },
         cardDisplay: cfgEvent?.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] },
         cardTemplate: cfgEvent?.cardTemplate || null,
+        eventGuide: cfgEvent?.eventGuide || null,
         paymentGateway: gatewaySettingsForAdmin(cfgEvent)
       }
     });
@@ -592,7 +593,7 @@ export const updateSettings = async (req, res) => {
       onePassPerPhone, cashPriceMode, allowReentry, maxReentriesPerDay,
       emergencyLockdown, cashSalesEnabled, onlineSalesEnabled,
       reentryMode, gateOpenTime, gateCloseTime, eventId,
-      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates, cardDisplay, cardTemplate
+      ticketTiers, coupons, addOns, affiliates, zones, paymentGateway, eventDates, cardDisplay, cardTemplate, eventGuide
     } = req.body;
 
     const isEventAdmin = req.user.role === ROLES.EVENT_ADMIN;
@@ -667,6 +668,20 @@ export const updateSettings = async (req, res) => {
                     icon: String(f.icon || 'CalendarDays').trim()
                   }))
               : (prev.customFields || [])
+          };
+        }
+
+        if (eventGuide && typeof eventGuide === 'object') {
+          const prevG = event.eventGuide || {};
+          event.eventGuide = {
+            duration: eventGuide.duration !== undefined ? String(eventGuide.duration).trim().slice(0, 60) : (prevG.duration || '9 Hrs / Day'),
+            entryAllowedFor: eventGuide.entryAllowedFor !== undefined ? String(eventGuide.entryAllowedFor).trim().slice(0, 60) : (prevG.entryAllowedFor || 'All ages'),
+            kidFriendly: eventGuide.kidFriendly !== undefined ? String(eventGuide.kidFriendly).trim().slice(0, 40) : (prevG.kidFriendly || 'Yes'),
+            language: eventGuide.language !== undefined ? String(eventGuide.language).trim().slice(0, 80) : (prevG.language || 'English, Hindi, Bengali'),
+            layout: eventGuide.layout !== undefined ? String(eventGuide.layout).trim().slice(0, 60) : (prevG.layout || 'Indoor'),
+            petFriendly: eventGuide.petFriendly !== undefined ? String(eventGuide.petFriendly).trim().slice(0, 40) : (prevG.petFriendly || 'No'),
+            seatingArrangement: eventGuide.seatingArrangement !== undefined ? String(eventGuide.seatingArrangement).trim().slice(0, 80) : (prevG.seatingArrangement || 'Seated and Standing'),
+            ticketsNeededFor: eventGuide.ticketsNeededFor !== undefined ? String(eventGuide.ticketsNeededFor).trim().slice(0, 60) : (prevG.ticketsNeededFor || 'Ages 3 & Above')
           };
         }
 
