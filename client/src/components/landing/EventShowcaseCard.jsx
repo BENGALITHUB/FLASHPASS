@@ -95,7 +95,7 @@ function BrandedDescription({ text, band, guide, eventName }) {
 
   return (
     <section
-      className="relative max-w-xl !mt-4 rounded-2xl border-2 p-3.5 pt-4 sm:p-4 sm:pt-5 backdrop-blur-sm font-sans"
+      className="relative max-w-xl !mt-3 rounded-2xl border-2 p-3 pt-3.5 sm:p-3.5 sm:pt-4 backdrop-blur-sm font-sans"
       style={{ borderColor: band, background: 'linear-gradient(160deg, rgba(255,122,26,0.12), rgba(10,10,10,0.62) 48%)', boxShadow: `4px 4px 0 ${band}` }}
     >
       <span className="absolute -top-2.5 left-3.5 px-2 py-0.5 rounded-md border-2 border-black font-display text-xs tracking-[0.16em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
@@ -709,7 +709,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           {/* ===== Ticket body + stub ===== */}
           <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_300px]">
             {/* Event body */}
-            <div className={`relative min-w-0 p-4 sm:p-6 xl:p-8 overflow-hidden ${skin ? 'md:pb-44 lg:pb-48 xl:pb-52' : ''}`}>
+            <div className={`relative min-w-0 p-4 sm:p-5 xl:p-6 overflow-hidden ${skin ? 'md:pb-36 lg:pb-40 xl:pb-44' : ''}`}>
               {/* Themed art: gradient wash, halftone, giant watermark */}
               {skin ? <SkinBackdrop skin={skin} /> : <>
                 <div
@@ -726,7 +726,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 {initials(ev.name)}
               </div>}
 
-              <div className="relative space-y-3 sm:space-y-4">
+              <div className="relative space-y-2.5 sm:space-y-3">
                 {/* Status + meta chips */}
                 <div className="relative z-10 -mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar items-center gap-1.5 sm:gap-2 font-mono text-[10px] sm:text-[11px] font-bold [&>span]:shrink-0 [&>span]:whitespace-nowrap">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 border-black shadow-[2px_2px_0_#000] ${salesOpen ? 'bg-success text-white' : 'bg-warning text-black'}`}>
@@ -776,7 +776,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                           <span className="absolute inset-[32%] rounded-full blur-2xl opacity-55" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
                         </span>
                         {skin.logo ? (
-                          <img src={skin.logo} alt="" width="441" height="176" className="relative h-24 sm:h-28 xl:h-32 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
+                          <img src={skin.logo} alt="" width="441" height="176" className="relative h-20 sm:h-24 xl:h-28 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
                         ) : (
                           <span
                             className="relative block font-display text-4xl sm:text-6xl xl:text-7xl leading-[0.9] tracking-wide uppercase [overflow-wrap:anywhere]"
@@ -791,7 +791,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                       )}
                     </h2>
                     {skin.tagline && (
-                      <p className="relative z-10 mt-3 font-display text-[15px] min-[400px]:text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
+                      <p className="relative z-10 mt-2 font-display text-[15px] min-[400px]:text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.18em] text-white leading-none whitespace-nowrap">{skin.tagline.join(' | ')}</p>
                     )}
                   </div>
                 ) : (
@@ -826,7 +826,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                         return (
                           <div
                             key={`${label}-${idx}`}
-                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-2 backdrop-blur-sm ${valLen > 20 ? 'col-span-2 sm:col-span-3' : isLong ? 'col-span-2' : ''}`}
+                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-1.5 backdrop-blur-sm ${valLen > 20 ? 'col-span-2 sm:col-span-3' : isLong ? 'col-span-2' : ''}`}
                           >
                             <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
                               <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
