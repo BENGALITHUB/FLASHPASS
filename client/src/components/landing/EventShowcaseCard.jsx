@@ -838,20 +838,25 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     })))
                   ];
                   if (statItems.length === 0) return null;
+                  const shortCount = statItems.filter((s) => String(s.value ?? '').length <= 14).length;
+                  const gridCols = shortCount === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3';
                   return (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-lg pt-1">
+                    <div className={`grid ${gridCols} gap-2 max-w-xl pt-1`}>
                       {statItems.map(({ icon: Icon, value, label }, idx) => {
                         const valLen = String(value ?? '').length;
                         const isLong = valLen > 14;
+                        const spanClass = isLong
+                          ? (shortCount === 2 ? 'col-span-2' : (valLen > 20 ? 'col-span-2 sm:col-span-3' : 'col-span-2'))
+                          : '';
                         return (
                           <div
                             key={`${label}-${idx}`}
-                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-1 sm:py-1.5 backdrop-blur-sm ${valLen > 20 ? 'col-span-2 sm:col-span-3' : isLong ? 'col-span-2' : ''}`}
+                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-1 sm:py-1.5 backdrop-blur-sm ${spanClass}`}
                           >
                             <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
                               <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
                             </div>
-                            <div className={`font-comic text-base sm:text-xl tracking-wider text-white leading-tight ${isLong ? 'break-words' : 'truncate'}`}>
+                            <div className={`${skin ? 'font-display' : 'font-comic'} text-base sm:text-xl tracking-wider text-white leading-tight ${isLong ? 'break-words' : 'truncate'}`}>
                               {value}
                             </div>
                           </div>

@@ -30,6 +30,7 @@ export default function CheckoutPage() {
 
   const [eventData, setEventData] = useState(null);
   const eventId = paramEventId || eventData?.eventId || '';
+  const isKckEvent = String(eventId || '').toLowerCase().includes('comics-karnival');
   const [allEvents, setAllEvents] = useState([]);
   const [selectedTierId, setSelectedTierId] = useState(paramTier || 'general');
   const [isGroupBooking, setIsGroupBooking] = useState(false);
@@ -362,7 +363,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
+    <div className={`min-h-screen bg-bg flex flex-col ${isKckEvent ? '[&_.font-comic]:!font-display [&_.font-comic]:tracking-wider' : ''}`}>
       <Header />
 
       <main className="relative flex-1 overflow-hidden">
@@ -898,7 +899,8 @@ export default function CheckoutPage() {
               </section>
               )}
 
-              {/* ===== 5. Promo code ===== */}
+              {/* ===== 5. Promo code (disabled for KCK) ===== */}
+              {!isKckEvent && (
               <section className="rounded-3xl bg-[#0D0D1A]/90 border-2 border-white/10 p-4 sm:p-5 shadow-[4px_4px_0_#000]">
                 <div className="flex items-center gap-2 mb-3">
                   <Tag className="w-4 h-4 text-accent" />
@@ -949,6 +951,7 @@ export default function CheckoutPage() {
                   </p>
                 )}
               </section>
+              )}
             </div>
 
             {/* ================= RIGHT: receipt (sticky on desktop) ================= */}

@@ -333,6 +333,8 @@ export default function PaymentConfirmingPage() {
   };
 
   const eventName = orderData?.event?.name || 'Your event';
+  const eventIdStr = String(orderData?.eventId || orderData?.event?.eventId || eventName || '').toLowerCase();
+  const isKckEvent = eventIdStr.includes('comics-karnival');
   const venue = orderData?.event?.venue || '';
   const subtotalRupees = ((orderData?.subtotalPaise || (orderData?.amountPaise ? orderData.amountPaise - 200 : 5000)) / 100).toFixed(2);
   const platformFeeRupees = ((orderData?.platformFeePaise || 200) / 100).toFixed(2);
@@ -340,7 +342,7 @@ export default function PaymentConfirmingPage() {
   const passCount = orderData?.attendees?.length || (orderData?.isGroupBooking ? 2 : 1);
 
   return (
-    <div className="min-h-screen bg-[#0B0B14] text-text flex flex-col justify-between selection:bg-primary selection:text-black relative overflow-x-hidden">
+    <div className={`min-h-screen bg-[#0B0B14] text-text flex flex-col justify-between selection:bg-primary selection:text-black relative overflow-x-hidden ${isKckEvent ? '[&_.font-comic]:!font-display [&_.font-comic]:tracking-wider' : ''}`}>
       {/* Background Cyberpunk Ambient Glow */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-[140px]" />
