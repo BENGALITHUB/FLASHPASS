@@ -383,10 +383,12 @@ function SkinBackdrop({ skin }) {
           opacity: 0.4
         }}
       />
-      {/* The logo as a faint stamp. Phones: in the open space under the description, behind the
-          pass perks, where the description panel does not cover it. Larger screens: beside the
-          description, above the skyline. */}
-      <img src={skin.logo} alt="" className="absolute left-1/2 -translate-x-1/2 top-[62%] w-[82%] rotate-[-8deg] opacity-[0.22] md:left-auto md:translate-x-0 md:-right-6 md:top-[22%] md:w-[28rem] md:max-w-[95%] md:opacity-[0.16] select-none" />
+      {/* The logo as a faint stamp, centred and enlarged in the background. */}
+      <img
+        src={skin.watermarkLogo || skin.logo}
+        alt=""
+        className="absolute left-1/2 -translate-x-1/2 top-[52%] -translate-y-1/2 w-[92%] rotate-[-6deg] opacity-[0.20] md:top-[46%] md:w-[34rem] lg:w-[40rem] md:max-w-[95%] md:opacity-[0.18] select-none"
+      />
       {/* Tablets and up: the skyline across the foot of the panel. Phones get it as its own strip. */}
       <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[34%] lg:h-[28%]" />
     </div>
@@ -442,7 +444,7 @@ function MobileBookingBar({ show, skin, theme, priceLabel, totalRupees, dateRang
             <span className={`leading-none ${skin ? 'font-display text-3xl' : 'font-comic text-2xl'}`} style={{ color: theme.a }}>₹{priceLabel}</span>
             <span className="font-mono text-[10px] text-white/60">/ person</span>
           </div>
-          <span className="block truncate font-mono text-[10px] text-white/70">₹{totalRupees} at checkout{dateRange ? ` • ${dateRange}` : ''}</span>
+          <span className="block truncate font-mono text-[10px] text-white/70">{dateRange || 'Instant digital pass'}</span>
         </div>
         <button
           type="button"
@@ -604,7 +606,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                           />
                           <span className="absolute inset-[32%] rounded-full blur-2xl opacity-55" style={{ background: `radial-gradient(circle, #FFF6C2 0%, ${skin.colors.burst} 35%, ${skin.colors.orange} 65%, transparent 75%)` }} />
                         </span>
-                        <img src={skin.logo} alt="" width="772" height="508" className="relative h-24 sm:h-32 xl:h-36 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
+                        <img src={skin.logo} alt="" width="441" height="176" className="relative h-24 sm:h-28 xl:h-32 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]" />
                       </span>
                       {skin.edition && (
                         <span aria-hidden="true" className="font-display text-5xl sm:text-7xl leading-[0.8] pb-1" style={{ color: skin.colors.red, WebkitTextStroke: '1.5px #fff', textShadow: '4px 4px 0 #000' }}>{skin.edition}</span>
@@ -622,6 +624,35 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   {ev.name}
                 </h2>
                 )}
+
+                {/* Quick stats (controlled from Admin -> Settings -> Public Card Display) */}
+                {(() => {
+                  const cd = ev.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] };
+                  const iconMap = { CalendarDays, Users, Ticket, Clock, MapPin, Zap, Flame, Crown, ShieldCheck };
+                  const statItems = [
+                    ...(cd.showDays !== false ? [{ icon: CalendarDays, value: dayCount || '—', label: dayCount === 1 ? 'Day' : 'Days' }] : []),
+                    ...(cd.showDailyCap === true ? [{ icon: Users, value: ev.capacityLimit ? ev.capacityLimit.toLocaleString('en-IN') : '∞', label: 'Daily Cap' }] : []),
+                    ...(cd.showTiers === true ? [{ icon: Ticket, value: tiers.length || 1, label: tiers.length === 1 ? 'Tier' : 'Tiers' }] : []),
+                    ...((cd.customFields || []).map((f) => ({
+                      icon: iconMap[f.icon] || CalendarDays,
+                      value: f.value,
+                      label: f.label
+                    })))
+                  ];
+                  if (statItems.length === 0) return null;
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-lg pt-1">
+                      {statItems.map(({ icon: Icon, value, label }, idx) => (
+                        <div key={`${label}-${idx}`} className="min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-2 backdrop-blur-sm">
+                          <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
+                            <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
+                          </div>
+                          <div className="font-comic text-lg sm:text-xl text-white leading-tight truncate">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
 
                 <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} band={skin?.colors.orange} />
 
@@ -657,34 +688,6 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   ))}
                 </div>
 
-                {/* Quick stats (controlled from Admin -> Settings -> Public Card Display) */}
-                {(() => {
-                  const cd = ev.cardDisplay || { showDays: true, showDailyCap: false, showTiers: false, customFields: [] };
-                  const iconMap = { CalendarDays, Users, Ticket, Clock, MapPin, Zap, Flame, Crown, ShieldCheck };
-                  const statItems = [
-                    ...(cd.showDays !== false ? [{ icon: CalendarDays, value: dayCount || '—', label: dayCount === 1 ? 'Day' : 'Days' }] : []),
-                    ...(cd.showDailyCap === true ? [{ icon: Users, value: ev.capacityLimit ? ev.capacityLimit.toLocaleString('en-IN') : '∞', label: 'Daily Cap' }] : []),
-                    ...(cd.showTiers === true ? [{ icon: Ticket, value: tiers.length || 1, label: tiers.length === 1 ? 'Tier' : 'Tiers' }] : []),
-                    ...((cd.customFields || []).map((f) => ({
-                      icon: iconMap[f.icon] || CalendarDays,
-                      value: f.value,
-                      label: f.label
-                    })))
-                  ];
-                  if (statItems.length === 0) return null;
-                  return (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-lg pt-1">
-                      {statItems.map(({ icon: Icon, value, label }, idx) => (
-                        <div key={`${label}-${idx}`} className="min-w-0 rounded-xl bg-black/30 border border-white/10 px-2.5 sm:px-3 py-2">
-                          <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
-                            <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
-                          </div>
-                          <div className="font-comic text-lg sm:text-xl text-white leading-tight truncate">{value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
               </div>
 
               {/* Phones: the Kolkata skyline as its own full-width strip under the details, edge to edge */}
@@ -715,17 +718,13 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
               <div className="event-price min-w-0 shrink-0 flex flex-col items-center">
                 <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white/70' : 'text-text-muted'}`}>Passes from</span>
-                {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS` : null} /> : (
+                {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS INCLUSIVE` : null} /> : (
                   <div className="font-comic text-5xl lg:text-6xl leading-none mt-1 lg:my-2" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>₹{priceLabel}</div>
                 )}
               </div>
 
-              <div className="min-w-0 flex-1 lg:flex-none flex flex-col gap-1 lg:items-center">
-                <span className={`font-mono text-[11px] lg:text-[10px] ${skin ? 'text-white/70' : 'text-text-muted'}`}>
-                  + ₹{feeRupees.toFixed(2)} fee • <span className="text-white font-bold">₹{totalRupees} at checkout</span>
-                </span>
-                {availability && <span className={`font-mono text-[10px] font-bold uppercase ${availability.tone}`}>{availability.label}</span>}
-                <span className="hidden md:inline-flex lg:hidden items-center gap-1.5 font-mono text-[10px] text-text-muted">
+              <div className="hidden md:flex lg:hidden min-w-0 flex-1 flex-col gap-1">
+                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
                   <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Instant pass • No app needed
                 </span>
               </div>

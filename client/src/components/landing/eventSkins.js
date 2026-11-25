@@ -4,8 +4,8 @@
 export const EVENT_SKINS = {
   // Kolkata Comics Karnival 7.0: black and orange with a yellow price burst, as on its banner.
   'kolkata-comics-karnival-7-0': {
-    logo: '/events/kolkata-comics-karnival-7-0/logo.png',
-    edition: '7.0',
+    logo: '/events/kolkata-comics-karnival-7-0/kck7-logo.png',
+    watermarkLogo: '/events/kolkata-comics-karnival-7-0/logo.png',
     tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
     colors: {
       ink: '#0A0A0A',      // banner black
