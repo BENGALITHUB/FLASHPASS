@@ -1012,7 +1012,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="admin-shell min-h-screen text-text flex overflow-hidden font-sans">
       {/* 1. SIDEBAR — fixed header/footer, scrolling menu */}
-      <aside id="admin-navigation" className={`adm-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] shrink-0 h-dvh flex flex-col transition-transform duration-300 motion-reduce:transition-none xl:static xl:translate-x-0 ${
+      <aside id="admin-navigation" className={`adm-sidebar fixed inset-y-0 left-0 z-[60] w-72 max-w-[85vw] shrink-0 h-dvh flex flex-col transition-transform duration-300 motion-reduce:transition-none xl:static xl:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="adm-sidebar-glow pointer-events-none absolute inset-x-0 top-0 h-56" aria-hidden="true" />
@@ -1032,6 +1032,14 @@ export default function AdminDashboardPage() {
                 {isEventAdmin ? 'Organizer HQ' : 'Admin console'}
               </span>
             </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close admin navigation"
+            className="xl:hidden adm-icon-btn shrink-0 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
           </button>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -1176,7 +1184,7 @@ export default function AdminDashboardPage() {
       </aside>
 
       {sidebarOpen && (
-        <button type="button" aria-label="Close admin navigation backdrop" onClick={() => setSidebarOpen(false)} className="xl:hidden fixed inset-0 z-40 bg-black/60" />
+        <button type="button" aria-label="Close admin navigation backdrop" onClick={() => setSidebarOpen(false)} className="xl:hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs" />
       )}
 
       {/* 2. MAIN WORKSPACE / CONTENT AREA */}
@@ -1185,13 +1193,14 @@ export default function AdminDashboardPage() {
         <header className="admin-header adm-topbar sticky top-0 z-30 px-3 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 max-w-full items-center gap-2 sm:gap-3">
             <button
-              onClick={() => setSidebarOpen(true)}
-              aria-label="Open admin navigation"
+              type="button"
+              onClick={() => setSidebarOpen((open) => !open)}
+              aria-label={sidebarOpen ? 'Close admin navigation' : 'Open admin navigation'}
               aria-expanded={sidebarOpen}
               aria-controls="admin-navigation"
-              className="adm-icon-btn xl:hidden shrink-0"
+              className="adm-icon-btn xl:hidden shrink-0 cursor-pointer"
             >
-              <Menu className="w-5 h-5" />
+              {sidebarOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5" />}
             </button>
 
             <button
@@ -1831,149 +1840,258 @@ export default function AdminDashboardPage() {
           {/* ======================================================== */}
           {/* VIEW 3: PASSES & ATTENDEE SEARCH */}
           {/* ======================================================== */}
-          {activeTab === 'PASSES' && (
-            <div className="space-y-6">
-              {/* Search Bar & Filters */}
-              <div className="p-5 rounded-3xl bg-surface border-2 border-border shadow-[4px_4px_0_#000]">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          {activeTab === 'PASSES' && (() => {
+            const totalAttendees = searchResults.length;
+            const insideCount = searchResults.filter(r => r.presence === 'INSIDE').length;
+            const onlineCount = searchResults.filter(r => (r.channel || 'ONLINE') === 'ONLINE').length;
+            const counterCount = totalAttendees - onlineCount;
+            const totalAmountRupees = (searchResults.reduce((sum, r) => sum + (Number(r.amountPaise) || 0), 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+            const activeEventLabel = isEventAdmin
+              ? (settingsForm.eventName || 'Your Event')
+              : (selectedEventScope === 'ALL' ? 'All Events' : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope));
+
+            return (
+            <div className="space-y-5">
+              {/* 1. KPI Summary Strip */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="adm-stat adm-tone-cyan rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="adm-eyebrow text-info">Total Attendees</span>
+                    <Users className="w-4 h-4 text-info/80" />
+                  </div>
+                  <div className="adm-kpi-value font-comic text-3xl text-white mt-1.5">{totalAttendees}</div>
+                  <p className="text-[11px] font-mono text-text-muted mt-1 truncate">{activeEventLabel}</p>
+                </div>
+
+                <div className="adm-stat adm-tone-green rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="adm-eyebrow text-success">Checked In</span>
+                    <CheckCircle2 className="w-4 h-4 text-success/80" />
+                  </div>
+                  <div className="adm-kpi-value font-comic text-3xl text-white mt-1.5">{insideCount}</div>
+                  <p className="text-[11px] font-mono text-text-muted mt-1">{totalAttendees - insideCount} yet to arrive</p>
+                </div>
+
+                <div className="adm-stat adm-tone-magenta rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="adm-eyebrow text-accent">Booking Channels</span>
+                    <Globe className="w-4 h-4 text-accent/80" />
+                  </div>
+                  <div className="adm-kpi-value font-comic text-3xl text-white mt-1.5">{onlineCount} <span className="text-sm font-mono text-text-muted">vs</span> {counterCount}</div>
+                  <p className="text-[11px] font-mono text-text-muted mt-1">Online • Counter / Token</p>
+                </div>
+
+                <div className="adm-stat adm-tone-gold rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="adm-eyebrow text-primary">Total Value</span>
+                    <DollarSign className="w-4 h-4 text-primary/80" />
+                  </div>
+                  <div className="adm-kpi-value font-comic text-3xl text-primary mt-1.5">₹{totalAmountRupees}</div>
+                  <p className="text-[11px] font-mono text-text-muted mt-1">Across listed passes</p>
+                </div>
+              </div>
+
+              {/* 2. Search, Channel Pills & Export Command Bar */}
+              <div className="adm-card rounded-3xl p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="font-comic text-2xl text-info">ATTENDEES &amp; TICKET BUYERS</h3>
-                    <p className="text-xs font-mono text-text-muted">
-                      Full buyer records (Name, Mobile, Email) for {isEventAdmin ? (settingsForm.eventName || 'your event') : (selectedEventScope === 'ALL' ? 'All Events' : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}.
-                    </p>
+                    <span className="adm-eyebrow text-info block">LIVE DIRECTORY • {activeEventLabel}</span>
+                    <h3 className="font-comic text-2xl sm:text-3xl text-white tracking-wide mt-0.5">ATTENDEES &amp; TICKET BUYERS</h3>
+                  </div>
+
+                  {/* Export Suite */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={searchResults.length === 0}
+                      onClick={() => exportAttendeesCSV(searchResults, activeEventLabel)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-primary/15 border border-white/10 hover:border-primary/50 text-xs font-mono font-bold text-text hover:text-primary transition-all cursor-pointer disabled:opacity-40"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      disabled={searchResults.length === 0}
+                      onClick={() => exportAttendeesExcel(searchResults, activeEventLabel)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-success/10 hover:bg-success/20 border border-success/35 text-xs font-mono font-bold text-success transition-all cursor-pointer disabled:opacity-40"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Excel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={searchResults.length === 0}
+                      onClick={() => exportAttendeesPDF(searchResults, activeEventLabel)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/35 text-xs font-mono font-bold text-accent transition-all cursor-pointer disabled:opacity-40"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      PDF
+                    </button>
                   </div>
                 </div>
 
-                <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
-                  <div className="relative flex-1 min-w-[220px]">
-                    <Search className="w-5 h-5 absolute left-3.5 top-3 text-text-muted" />
+                <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-info" />
                     <input
                       type="text"
-                      placeholder="Search by Name, Mobile, Email or Order ID (e.g. souravdeyhalder@gmail.com)"
+                      placeholder="Search by Name, 10-digit Mobile, Email or Order ID (e.g. souravdeyhalder@gmail.com)"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-surface-2 border-2 border-border rounded-xl pl-11 pr-4 py-2.5 font-mono text-sm text-text placeholder-text-muted/60 focus:border-info focus:outline-none"
+                      className="w-full bg-[#0B0B14]/80 border border-white/15 rounded-2xl pl-11 pr-10 py-3 font-mono text-xs sm:text-sm text-white placeholder-text-muted/50 focus:border-info focus:ring-2 focus:ring-info/20 focus:outline-none transition-all"
                     />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => { setSearchQuery(''); loadAttendees(undefined, '', undefined); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white p-1"
+                        title="Clear search"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  <select
-                    value={attendeesChannel}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setAttendeesChannel(val);
-                      loadAttendees(undefined, undefined, val);
-                    }}
-                    className="bg-surface-2 border-2 border-border rounded-xl px-3 py-2.5 font-mono text-xs text-text focus:border-info focus:outline-none"
-                  >
-                    <option value="">All Channels</option>
-                    <option value="ONLINE">Online</option>
-                    <option value="POS_WALKIN">Box Office POS</option>
-                    <option value="CASH_TOKEN">Cash Token</option>
-                  </select>
-                  <ComicButton variant="info" size="md" type="submit">
+
+                  <div className="flex flex-wrap items-center gap-1.5 bg-[#0B0B14]/70 border border-white/10 rounded-2xl p-1.5">
+                    {[
+                      { id: '', label: 'All' },
+                      { id: 'ONLINE', label: 'Online' },
+                      { id: 'POS_WALKIN', label: 'Box Office' },
+                      { id: 'CASH_TOKEN', label: 'Token' }
+                    ].map(ch => (
+                      <button
+                        key={ch.id || 'ALL'}
+                        type="button"
+                        onClick={() => {
+                          setAttendeesChannel(ch.id);
+                          loadAttendees(undefined, undefined, ch.id);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl font-mono text-[11px] font-bold transition-all cursor-pointer ${
+                          attendeesChannel === ch.id
+                            ? 'bg-info text-black shadow-[0_0_12px_rgba(34,211,238,0.35)]'
+                            : 'text-text-muted hover:text-white hover:bg-white/[0.05]'
+                        }`}
+                      >
+                        {ch.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <ComicButton variant="info" size="md" type="submit" className="shrink-0">
                     {attendeesLoading ? 'LOADING...' : 'SEARCH'}
                   </ComicButton>
                 </form>
               </div>
 
-              {/* Passes Results Table */}
-              <div className="bg-surface border-2 border-border rounded-3xl p-5 shadow-[4px_4px_0_#000]">
-                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-                  <span className="font-mono text-xs uppercase font-bold text-text-muted">
-                    Showing Attendees ({searchResults.length})
+              {/* 3. Premium Attendees Table */}
+              <div className="adm-card rounded-3xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-text-muted">
+                    Showing <strong className="text-white">{searchResults.length}</strong> Verified Buyer Records
                   </span>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={searchResults.length === 0}
-                      onClick={() => exportAttendeesCSV(searchResults, isEventAdmin ? settingsForm.eventName : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-border text-xs font-mono hover:text-primary hover:border-primary transition-colors cursor-pointer disabled:opacity-40"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Download CSV
-                    </button>
-                    <button
-                      type="button"
-                      disabled={searchResults.length === 0}
-                      onClick={() => exportAttendeesExcel(searchResults, isEventAdmin ? settingsForm.eventName : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/15 border border-success/40 text-xs font-mono text-success hover:bg-success hover:text-black transition-colors cursor-pointer disabled:opacity-40"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Download Excel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={searchResults.length === 0}
-                      onClick={() => exportAttendeesPDF(searchResults, isEventAdmin ? settingsForm.eventName : (eventsList.find(e => e.eventId === selectedEventScope)?.name || selectedEventScope))}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/40 text-xs font-mono text-accent hover:bg-accent hover:text-white transition-colors cursor-pointer disabled:opacity-40"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      Download PDF
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadAttendees()}
+                    className="inline-flex items-center gap-1.5 font-mono text-[11px] text-info hover:underline cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${attendeesLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left font-mono text-xs">
                     <thead>
-                      <tr className="border-b-2 border-border text-text-muted">
-                        <th className="py-2.5 px-3">ORDER ID</th>
-                        <th className="py-2.5 px-3">ATTENDEE NAME</th>
-                        <th className="py-2.5 px-3">MOBILE</th>
-                        <th className="py-2.5 px-3">EMAIL</th>
-                        <th className="py-2.5 px-3">TIER / CHANNEL</th>
-                        <th className="py-2.5 px-3">PRESENCE</th>
-                        <th className="py-2.5 px-3">STATUS</th>
-                        <th className="py-2.5 px-3 text-right">ACTION</th>
+                      <tr className="border-b border-white/[0.08] bg-black/25 text-[10px] uppercase tracking-wider text-text-muted">
+                        <th className="py-3.5 px-4">Order ID</th>
+                        <th className="py-3.5 px-4">Attendee</th>
+                        <th className="py-3.5 px-4">Mobile</th>
+                        <th className="py-3.5 px-4">Email Address</th>
+                        <th className="py-3.5 px-4">Tier &amp; Channel</th>
+                        <th className="py-3.5 px-4">Presence</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-white/[0.05]">
                       {searchResults.length === 0 ? (
                         <tr>
-                          <td colSpan="8" className="py-8 text-center text-text-muted">
-                            {attendeesLoading ? 'Loading attendee records...' : 'No attendee records found for this filter.'}
+                          <td colSpan="8" className="py-14 text-center">
+                            <Users className="w-8 h-8 text-text-muted/40 mx-auto mb-2" />
+                            <p className="text-sm font-mono text-text-muted">
+                              {attendeesLoading ? 'Fetching attendee records...' : 'No attendee records match this filter.'}
+                            </p>
                           </td>
                         </tr>
                       ) : (
                         searchResults.map(p => (
-                          <tr key={p._id} className="border-b border-border/50 hover:bg-surface-2">
-                            <td className="py-3 px-3 font-bold text-primary whitespace-nowrap">{p.orderId}</td>
-                            <td className="py-3 px-3 text-text">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-surface border border-border flex items-center justify-center text-[10px] text-text-muted flex-shrink-0 font-bold">
+                          <tr key={p._id} className="hover:bg-white/[0.03] transition-colors">
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span className="font-bold text-primary bg-primary/10 border border-primary/25 px-2.5 py-1 rounded-lg">
+                                {p.orderId}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-text">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-info/25 to-accent/25 border border-white/15 flex items-center justify-center text-xs text-white flex-shrink-0 font-bold shadow-sm">
                                   {p.holderName ? p.holderName.charAt(0).toUpperCase() : '?'}
                                 </div>
                                 <div>
-                                  <span className="font-bold block">{p.holderName}</span>
+                                  <span className="font-bold text-white block text-[13px]">{p.holderName}</span>
                                   {isSuperAdmin && selectedEventScope === 'ALL' && (
                                     <span className="text-[10px] text-text-muted">{p.eventName}</span>
                                   )}
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3 px-3 text-text whitespace-nowrap">{p.phone}</td>
-                            <td className="py-3 px-3 text-info">{p.email || <span className="text-text-muted">—</span>}</td>
-                            <td className="py-3 px-3">
-                              <span className="block text-text">{p.tierName || p.badge}</span>
-                              <span className="text-[10px] text-text-muted">{p.channel || 'ONLINE'} • ₹{((p.amountPaise || 0) / 100).toFixed(0)}</span>
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <a href={`tel:${p.phone}`} className="text-white hover:text-primary transition-colors">{p.phone}</a>
                             </td>
-                            <td className="py-3 px-3">
-                              <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                                p.presence === 'INSIDE' ? 'bg-success/20 text-success' : 'bg-surface-2 text-text-muted'
+                            <td className="py-3.5 px-4">
+                              {p.email ? (
+                                <a href={`mailto:${p.email}`} className="text-info hover:underline">{p.email}</a>
+                              ) : (
+                                <span className="text-text-muted/50">—</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="block text-white font-semibold">{p.tierName || p.badge}</span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  p.channel === 'POS_WALKIN' ? 'bg-warning/15 text-warning'
+                                    : p.channel === 'CASH_TOKEN' ? 'bg-accent/15 text-accent'
+                                    : 'bg-info/15 text-info'
+                                }`}>
+                                  {p.channel || 'ONLINE'}
+                                </span>
+                                <span className="text-[10px] text-text-muted">₹{((p.amountPaise || 0) / 100).toFixed(0)}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] ${
+                                p.presence === 'INSIDE'
+                                  ? 'bg-success/15 text-success border border-success/30'
+                                  : 'bg-white/[0.05] text-text-muted border border-white/10'
                               }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${p.presence === 'INSIDE' ? 'bg-success animate-pulse' : 'bg-text-muted/60'}`} />
                                 {p.presence}
                               </span>
                             </td>
-                            <td className="py-3 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] ${
-                                p.status === 'ACTIVE' ? 'bg-primary/20 text-primary' : 'bg-danger/20 text-danger'
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                p.status === 'ACTIVE'
+                                  ? 'bg-primary/15 text-primary border border-primary/30'
+                                  : 'bg-danger/15 text-danger border border-danger/30'
                               }`}>
                                 {p.status}
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-right">
+                            <td className="py-3.5 px-4 text-right">
                               <button
+                                type="button"
                                 onClick={() => openPassDetail(p)}
-                                className="px-3 py-1 rounded-lg bg-surface border border-border text-xs hover:border-primary text-text"
+                                className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-info hover:text-black border border-white/15 hover:border-info text-[11px] font-bold text-white transition-all cursor-pointer"
                               >
                                 View Details
                               </button>
@@ -1986,7 +2104,8 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ======================================================== */}
           {/* VIEW: SPONSORS & EXHIBITION STALLS INQUIRY CRM */}
