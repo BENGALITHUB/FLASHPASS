@@ -86,7 +86,7 @@ const LEADING_EMOJI = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:
 // An event's own look: a dark glass panel with its colour as the accent and offset shadow, an
 // "About the event" sticker, the first paragraph as a headline, emoji paragraphs as highlight
 // rows, and the rest folded under a fade until "Read more".
-function BrandedDescription({ text, band }) {
+function BrandedDescription({ text, band, guide, eventName }) {
   const [open, setOpen] = useState(false);
   const paragraphs = String(text).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   const [lead, ...rest] = paragraphs;
@@ -131,6 +131,10 @@ function BrandedDescription({ text, band }) {
           <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       )}
+
+      <div className="mt-3 pt-2.5 border-t border-white/15">
+        <EventGuideSection guide={guide} band={band} eventName={eventName} inline />
+      </div>
     </section>
   );
 }
@@ -138,14 +142,14 @@ function BrandedDescription({ text, band }) {
 // The organizer's description, as they wrote it: blank lines start new paragraphs. The first
 // paragraph leads in brighter type; the rest fold away behind "Read more" when it runs long.
 // With `band` set (an event's own colour) it uses the event's branded panel instead.
-function EventDescription({ text, accent, band = null }) {
+function EventDescription({ text, accent, band = null, guide = null, eventName = '' }) {
   const [open, setOpen] = useState(false);
   const paragraphs = String(text).split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   const [lead, ...rest] = paragraphs;
   const long = rest.length > 1 || rest.join(' ').length > 220;
   const shown = !long || open ? rest : rest.slice(0, 1);
 
-  if (band) return <BrandedDescription text={text} band={band} />;
+  if (band) return <BrandedDescription text={text} band={band} guide={guide} eventName={eventName} />;
 
   return (
     <div
@@ -168,6 +172,9 @@ function EventDescription({ text, accent, band = null }) {
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       )}
+      <div className="pt-2 border-t border-white/10">
+        <EventGuideSection guide={guide} accent={accent} eventName={eventName} inline />
+      </div>
     </div>
   );
 }
@@ -196,14 +203,14 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
   }, [modalOpen]);
 
   const items = [
-    { key: 'duration', label: 'Duration', value: g.duration, icon: Clock },
-    { key: 'entryAllowedFor', label: 'Entry Allowed For', value: g.entryAllowedFor, icon: Users },
-    { key: 'kidFriendly', label: 'Kid Friendly', value: g.kidFriendly, icon: Smile },
-    { key: 'language', label: 'Language', value: g.language, icon: Languages },
-    { key: 'layout', label: 'Layout', value: g.layout, icon: Info },
-    { key: 'petFriendly', label: 'Pet Friendly', value: g.petFriendly, icon: PawPrint },
-    { key: 'seatingArrangement', label: 'Seating Arrangement', value: g.seatingArrangement, icon: Armchair },
-    { key: 'ticketsNeededFor', label: 'Tickets Needed For', value: g.ticketsNeededFor, icon: Ticket }
+    { key: 'duration', label: 'Duration', value: g.duration, logo: '⏱️', tint: '#22D3EE' },
+    { key: 'entryAllowedFor', label: 'Entry Allowed For', value: g.entryAllowedFor, logo: '👥', tint: '#FFD60A' },
+    { key: 'kidFriendly', label: 'Kid Friendly', value: g.kidFriendly, logo: '🧒', tint: '#4ADE80' },
+    { key: 'language', label: 'Language', value: g.language, logo: '🌐', tint: '#A78BFA' },
+    { key: 'layout', label: 'Layout', value: g.layout, logo: '🏛️', tint: '#FF7A1A' },
+    { key: 'petFriendly', label: 'Pet Friendly', value: g.petFriendly, logo: '🐾', tint: '#F472B6' },
+    { key: 'seatingArrangement', label: 'Seating Arrangement', value: g.seatingArrangement, logo: '💺', tint: '#38BDF8' },
+    { key: 'ticketsNeededFor', label: 'Tickets Needed For', value: g.ticketsNeededFor, logo: '🎟️', tint: '#FACC15' }
   ].filter((item) => String(item.value || '').trim().length > 0);
 
   if (items.length === 0) return null;
@@ -211,16 +218,16 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
 
   return (
     <>
-      <div className="max-w-2xl pt-0.5 space-y-2">
+      <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-display text-xs sm:text-sm tracking-[0.14em] uppercase text-white/95 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5" style={{ color: highlight }} />
+          <span className="font-display text-[11px] sm:text-xs tracking-[0.14em] uppercase text-white/95 flex items-center gap-1.5">
+            <span aria-hidden="true">🧭</span>
             Event Guide
           </span>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="font-mono text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
+            className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
             style={{ color: highlight }}
           >
             <span>Show more</span>
@@ -228,23 +235,24 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {previewItems.map(({ key, label, value, icon: Icon }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+          {previewItems.map(({ key, label, value, logo, tint }) => (
             <button
               key={key}
               type="button"
               onClick={() => setModalOpen(true)}
-              className="group/guide flex items-center gap-2.5 text-left rounded-xl bg-black/45 hover:bg-black/65 border border-white/15 hover:border-white/30 px-2.5 py-2 backdrop-blur-sm transition-all cursor-pointer min-w-0"
+              className="group/guide flex items-center gap-2 text-left rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 hover:border-white/25 px-2 py-1.5 transition-all cursor-pointer min-w-0"
             >
               <span
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover/guide:scale-105"
-                style={{ background: `${highlight}20`, border: `1px solid ${highlight}45` }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm transition-transform group-hover/guide:scale-110"
+                style={{ background: `${tint}22`, border: `1px solid ${tint}55` }}
+                aria-hidden="true"
               >
-                <Icon className="w-4 h-4" style={{ color: highlight }} />
+                {logo}
               </span>
               <span className="min-w-0">
-                <span className="block font-mono text-[9px] uppercase tracking-wider text-text-muted truncate">{label}</span>
-                <span className="block font-sans text-xs font-bold text-white truncate">{value}</span>
+                <span className="block font-mono text-[8.5px] uppercase tracking-wider text-text-muted truncate">{label}</span>
+                <span className="block font-sans text-[11px] font-bold text-white truncate">{value}</span>
               </span>
             </button>
           ))}
@@ -286,16 +294,17 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
-              {items.map(({ key, label, value, icon: Icon }) => (
+              {items.map(({ key, label, value, logo, tint }) => (
                 <div
                   key={key}
                   className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-3.5 py-3"
                 >
                   <span
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: `${highlight}20`, border: `1px solid ${highlight}45` }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xl"
+                    style={{ background: `${tint}22`, border: `1px solid ${tint}55` }}
+                    aria-hidden="true"
                   >
-                    <Icon className="w-5 h-5" style={{ color: highlight }} />
+                    {logo}
                   </span>
                   <div className="min-w-0">
                     <span className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">{label}</span>
@@ -832,9 +841,13 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   );
                 })()}
 
-                <EventDescription text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'} accent={theme.a} band={skin?.colors.orange} />
-
-                <EventGuideSection guide={ev.eventGuide} accent={theme.a} band={skin?.colors.orange} eventName={ev.name} />
+                <EventDescription
+                  text={ev.announcementText || 'Powered by FlashPass Next-Gen Ingress Engine with sub-500ms gate scanning, atomic anti-passback protection, and client-side pass delivery.'}
+                  accent={theme.a}
+                  band={skin?.colors.orange}
+                  guide={ev.eventGuide}
+                  eventName={ev.name}
+                />
 
                 {/* One ticket type: what it includes sits here; it is booked from the price stub. */}
                 {soloTier?.perks?.length > 0 && (
