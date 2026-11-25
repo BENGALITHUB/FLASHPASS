@@ -529,8 +529,15 @@ function SkinBackdrop({ skin }) {
   const { orange, burst, red } = skin.colors;
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {skin.mainBgImage && (
+        <img
+          src={skin.mainBgImage}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-[0.22]"
+        />
+      )}
       {/* Dusk sky: warm at the horizon, night at the top */}
-      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 0%, ${red}1f 45%, ${orange}47 78%, ${orange}5c 100%)` }} />
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, rgba(10,10,14,0.58) 0%, ${red}28 45%, ${orange}4d 78%, ${orange}66 100%)` }} />
       {/* Logo-colour glows */}
       <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full blur-3xl opacity-[0.28]" style={{ background: red }} />
       <div className="absolute top-1/4 -right-24 w-96 h-96 rounded-full blur-3xl opacity-[0.2]" style={{ background: '#1E5BFF' }} />
@@ -565,42 +572,45 @@ function StubBackdrop({ skin }) {
   const { burst, orange } = skin.colors;
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-      {skin.stubImage && (
+      {skin.stubImage ? (
         <>
           <img
             src={skin.stubImage}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-center opacity-55"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-85"
           />
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(12,12,18,0.45) 0%, rgba(12,12,18,0.32) 45%, rgba(12,12,18,0.78) 100%)'
+              background: 'linear-gradient(180deg, rgba(10,10,14,0.35) 0%, rgba(10,10,14,0.12) 45%, rgba(10,10,14,0.65) 100%)'
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 w-[140%] aspect-square">
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                background: `repeating-conic-gradient(from 0deg, ${burst}1f 0deg 5deg, transparent 5deg 15deg)`,
+                WebkitMaskImage: 'radial-gradient(circle, #000 10%, transparent 55%)',
+                maskImage: 'radial-gradient(circle, #000 10%, transparent 55%)'
+              }}
+            />
+            <div className="absolute inset-[28%] rounded-full blur-3xl opacity-40" style={{ background: `radial-gradient(circle, ${burst}, ${orange} 55%, transparent 72%)` }} />
+          </div>
+          <div
+            className="absolute inset-x-0 bottom-0 h-1/2"
+            style={{
+              backgroundImage: `radial-gradient(${orange}66 1.2px, transparent 1.7px)`,
+              backgroundSize: '12px 12px',
+              WebkitMaskImage: 'linear-gradient(180deg, transparent, #000)',
+              maskImage: 'linear-gradient(180deg, transparent, #000)',
+              opacity: 0.45
             }}
           />
         </>
       )}
-      <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-1/2 w-[140%] aspect-square">
-        <div
-          className="absolute inset-0 opacity-60"
-          style={{
-            background: `repeating-conic-gradient(from 0deg, ${burst}1f 0deg 5deg, transparent 5deg 15deg)`,
-            WebkitMaskImage: 'radial-gradient(circle, #000 10%, transparent 55%)',
-            maskImage: 'radial-gradient(circle, #000 10%, transparent 55%)'
-          }}
-        />
-        <div className="absolute inset-[28%] rounded-full blur-3xl opacity-40" style={{ background: `radial-gradient(circle, ${burst}, ${orange} 55%, transparent 72%)` }} />
-      </div>
-      <div
-        className="absolute inset-x-0 bottom-0 h-1/2"
-        style={{
-          backgroundImage: `radial-gradient(${orange}66 1.2px, transparent 1.7px)`,
-          backgroundSize: '12px 12px',
-          WebkitMaskImage: 'linear-gradient(180deg, transparent, #000)',
-          maskImage: 'linear-gradient(180deg, transparent, #000)',
-          opacity: 0.45
-        }}
-      />
     </div>
   );
 }
@@ -722,7 +732,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
       >
         <div className="relative rounded-[calc(1.75rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#0D0D1A' }}>
           {/* ===== Ticket body + stub ===== */}
-          <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px]">
             {/* Event body */}
             <div className={`relative min-w-0 p-4 sm:p-5 xl:p-6 overflow-hidden ${skin ? 'md:pb-36 lg:pb-40 xl:pb-44' : ''}`}>
               {/* Themed art: gradient wash, halftone, giant watermark */}
@@ -922,7 +932,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 </span>
               </div>
 
-              <div className="col-span-2 w-full md:w-56 lg:w-full shrink-0 flex flex-col items-stretch lg:mt-5">
+              <div className="col-span-2 w-full md:w-56 lg:w-full lg:max-w-[300px] lg:mx-auto shrink-0 flex flex-col items-stretch lg:mt-5">
                 <button
                   ref={bookButtonRef}
                   type="button"
@@ -948,11 +958,6 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                       </span>
                     </span>
                   ))}
-                </div>
-                {/* Ticket barcode */}
-                <div className="relative mt-4 hidden lg:block" aria-hidden="true">
-                  <div className="h-9 rounded-sm opacity-70" style={{ background: 'repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px, #fff 8px 11px, transparent 11px 13px)' }} />
-                  <span className="mt-1 block truncate font-mono text-[9px] tracking-[0.25em] text-white/40">ADMIT ONE • {dayCount ? `${dayCount}-DAY PASS` : 'ENTRY PASS'}</span>
                 </div>
               </div>
             </div>
