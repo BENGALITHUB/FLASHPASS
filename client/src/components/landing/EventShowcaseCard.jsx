@@ -861,10 +861,10 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 {/* One ticket type: what it includes sits here; it is booked from the price stub. */}
                 {soloTier?.perks?.length > 0 && (
                   <div>
-                    <span className="block mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Your pass includes</span>
-                    <ul className="flex flex-wrap gap-1.5 sm:gap-2">
+                    <span className="block mb-1.5 sm:mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Your pass includes</span>
+                    <ul className="-mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar gap-1.5 sm:gap-2 [&>li]:shrink-0 [&>li]:whitespace-nowrap">
                       {soloTier.perks.map((perk, i) => (
-                        <li key={i} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/15 pl-1.5 pr-3 py-1 font-mono text-[11px] sm:text-xs text-white">
+                        <li key={i} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/15 pl-1 pr-2.5 py-0.5 sm:pl-1.5 sm:pr-3 sm:py-1 font-mono text-[10.5px] sm:text-xs text-white">
                           <span className="grid place-items-center w-5 h-5 rounded-full" style={{ background: `${skin ? theme.a : '#22D3EE'}26` }}>
                             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: skin ? theme.a : '#22D3EE' }} />
                           </span>
