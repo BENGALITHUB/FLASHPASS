@@ -94,25 +94,25 @@ function BrandedDescription({ text, band }) {
 
   return (
     <section
-      className="relative max-w-2xl !mt-6 rounded-2xl border-2 p-4 pt-6 sm:p-6 sm:pt-7 backdrop-blur-sm font-sans"
-      style={{ borderColor: band, background: 'linear-gradient(160deg, rgba(255,122,26,0.14), rgba(10,10,10,0.78) 45%)', boxShadow: `5px 5px 0 ${band}` }}
+      className="relative max-w-xl !mt-4 rounded-2xl border-2 p-3.5 pt-4 sm:p-4 sm:pt-5 backdrop-blur-sm font-sans"
+      style={{ borderColor: band, background: 'linear-gradient(160deg, rgba(255,122,26,0.12), rgba(10,10,10,0.62) 48%)', boxShadow: `4px 4px 0 ${band}` }}
     >
-      <span className="absolute -top-3 left-4 px-2.5 py-0.5 rounded-md border-2 border-black font-display text-sm tracking-[0.18em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
+      <span className="absolute -top-2.5 left-3.5 px-2 py-0.5 rounded-md border-2 border-black font-display text-xs tracking-[0.16em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
         About the event
       </span>
 
-      <p className="text-[15px] sm:text-lg font-semibold leading-snug text-white whitespace-pre-line">{lead}</p>
+      <p className="text-xs sm:text-sm font-semibold leading-snug text-white whitespace-pre-line">{lead}</p>
 
-      <div className={`relative mt-3 space-y-2.5 ${long && !open ? 'max-h-36 overflow-hidden' : ''}`}>
+      <div className={`relative mt-2 space-y-1.5 ${long && !open ? 'max-h-28 overflow-hidden' : ''}`}>
         {shown.map((p, i) => {
           const emoji = p.match(LEADING_EMOJI);
           return emoji ? (
-            <div key={i} className="flex items-start gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2.5">
-              <span className="grid place-items-center w-8 h-8 shrink-0 rounded-full text-base" style={{ background: `${band}26`, boxShadow: `inset 0 0 0 1px ${band}66` }} aria-hidden="true">{emoji[1]}</span>
-              <p className="pt-1 text-[13px] sm:text-sm leading-relaxed text-white/85 whitespace-pre-line">{p.slice(emoji[0].length)}</p>
+            <div key={i} className="flex items-start gap-2.5 rounded-xl bg-white/[0.04] border border-white/10 px-2.5 py-2">
+              <span className="grid place-items-center w-6 h-6 shrink-0 rounded-full text-xs" style={{ background: `${band}26`, boxShadow: `inset 0 0 0 1px ${band}66` }} aria-hidden="true">{emoji[1]}</span>
+              <p className="pt-0.5 text-[11px] sm:text-xs leading-relaxed text-white/85 whitespace-pre-line">{p.slice(emoji[0].length)}</p>
             </div>
           ) : (
-            <p key={i} className="text-[13px] sm:text-sm leading-relaxed text-white/70 whitespace-pre-line">{p}</p>
+            <p key={i} className="text-[11px] sm:text-xs leading-relaxed text-white/75 whitespace-pre-line">{p}</p>
           );
         })}
         {long && !open && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0d0b0a] to-transparent" />}
@@ -390,7 +390,7 @@ function SkinBackdrop({ skin }) {
         className="absolute left-1/2 -translate-x-1/2 top-[52%] -translate-y-1/2 w-[92%] rotate-[-6deg] opacity-[0.20] md:top-[46%] md:w-[34rem] lg:w-[40rem] md:max-w-[95%] md:opacity-[0.18] select-none"
       />
       {/* Tablets and up: the skyline across the foot of the panel. Phones get it as its own strip. */}
-      <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[34%] lg:h-[28%]" />
+      <KolkataSkyline orange={orange} red={red} className="hidden md:block absolute inset-x-0 bottom-0 w-full md:h-[180px] lg:h-[195px]" />
     </div>
   );
 }
@@ -540,7 +540,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           {/* ===== Ticket body + stub ===== */}
           <div className="event-summary grid lg:grid-cols-[minmax(0,1fr)_300px]">
             {/* Event body */}
-            <div className="relative min-w-0 p-4 sm:p-6 xl:p-8 overflow-hidden">
+            <div className={`relative min-w-0 p-4 sm:p-6 xl:p-8 overflow-hidden ${skin ? 'md:pb-44 lg:pb-48 xl:pb-52' : ''}`}>
               {/* Themed art: gradient wash, halftone, giant watermark */}
               {skin ? <SkinBackdrop skin={skin} /> : <>
                 <div
