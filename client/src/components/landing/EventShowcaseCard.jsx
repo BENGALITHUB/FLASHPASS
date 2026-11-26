@@ -763,18 +763,6 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                       <span className="hidden sm:inline">{countdown.label}</span>
                     </span>
                   )}
-                  {dateRange && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-text">
-                      <CalendarDays className="w-3.5 h-3.5" style={{ color: theme.b }} />
-                      {dateRange}
-                    </span>
-                  )}
-                  {ev.venue && (
-                    <span className="inline-flex max-w-full min-w-0 items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-text">
-                      <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: theme.a }} />
-                      <span className="min-w-0 break-words">{ev.venue}</span>
-                    </span>
-                  )}
                 </div>
 
                 {/* Title: the event's own logo when it has one */}
