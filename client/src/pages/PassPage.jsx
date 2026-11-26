@@ -520,6 +520,17 @@ export default function PassPage() {
                 {copied ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
               </button>
             </div>
+
+            {/* Powered by Bengal IT Hub */}
+            <div className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#090912] border-t border-white/10">
+              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-text-muted">Powered by</span>
+              <img
+                src="/bengal-it-hub-logo.png"
+                alt="Bengal IT Hub"
+                className="h-6 w-auto rounded bg-white px-1 py-0.5 object-contain"
+              />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white">Bengal IT Hub</span>
+            </div>
           </div>
         </div>
 

@@ -26,8 +26,20 @@ export const savePassImage = async (cardElementId, orderId, holderName = 'Attend
  * Download Printable A6 PDF Pass with attendee's name and individual QR
  */
 export const downloadPassPDF = async (pass, qrDataUrl) => {
-  const { doc, fileName } = buildPassPDF(pass, qrDataUrl);
+  const { doc, fileName } = await buildPassPDF(pass, qrDataUrl);
   doc.save(fileName);
+};
+
+let cachedBrandLogo = null;
+const loadBrandLogo = async () => {
+  if (cachedBrandLogo) return cachedBrandLogo;
+  try {
+    const img = await loadImage('/bengal-it-hub-logo.png');
+    cachedBrandLogo = img;
+    return img;
+  } catch {
+    return null;
+  }
 };
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -52,7 +64,7 @@ export const eventHeading = (event) => {
   return { title, subtitle: [when, place].filter(Boolean).join(' • ') };
 };
 
-const buildPassPDF = (pass, qrDataUrl) => {
+const buildPassPDF = async (pass, qrDataUrl) => {
   const heading = eventHeading(pass.event);
   // A6 format: 105 x 148 mm
   const doc = new jsPDF({
@@ -150,7 +162,26 @@ const buildPassPDF = (pass, qrDataUrl) => {
   doc.setFontSize(7);
   doc.setTextColor(163, 163, 194);
   doc.setFont('helvetica', 'italic');
-  doc.text('Show this QR at the gate • High brightness required', 52.5, 137, { align: 'center' });
+  doc.text('Show this QR at the gate • High brightness required', 52.5, 134, { align: 'center' });
+
+  // Powered by Bengal IT Hub + logo
+  const brandImg = await loadBrandLogo();
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(245, 245, 250);
+  if (brandImg) {
+    try {
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(38.5, 136.2, 6.2, 5.6, 0.8, 0.8, 'F');
+      doc.addImage(brandImg, 'PNG', 39, 136.5, 5.2, 5.0);
+      doc.text('Powered by', 37, 140, { align: 'right' });
+      doc.text('BENGAL IT HUB', 46.5, 140, { align: 'left' });
+    } catch {
+      doc.text('Powered by Bengal IT Hub', 52.5, 140, { align: 'center' });
+    }
+  } else {
+    doc.text('Powered by Bengal IT Hub', 52.5, 140, { align: 'center' });
+  }
 
   // Safe file naming with attendee's name
   const safeName = (pass.holderName || 'Attendee').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -287,11 +318,38 @@ export const passImageBlob = async (p, index = 0, total = 1, event = null) => {
     ctx.drawImage(qr, W / 2 - 200, 250, 400, 400);
   }
 
-  center(String(p.holderName || 'Guest').toUpperCase(), 712, 'bold 38px Arial, sans-serif', '#FFFFFF');
+  center(String(p.holderName || 'Guest').toUpperCase(), 700, 'bold 38px Arial, sans-serif', '#FFFFFF');
   const days = p.validDays?.length ? p.validDays.map(d => `[DAY ${d}]`).join('  ') : '[ALL DAYS]';
-  center(days, 760, 'bold 28px Arial, sans-serif', '#22D3EE');
-  center(`Pass ID: ${p.orderId}`, 808, 'bold 28px Arial, sans-serif', '#FFD60A');
-  center(total > 1 ? `Pass ${index + 1} of ${total} • Show this QR at the gate` : 'Show this QR at the gate', 852, 'italic 20px Arial, sans-serif', '#A3A3C2');
+  center(days, 744, 'bold 26px Arial, sans-serif', '#22D3EE');
+  center(`Pass ID: ${p.orderId}`, 788, 'bold 26px Arial, sans-serif', '#FFD60A');
+  center(total > 1 ? `Pass ${index + 1} of ${total} • Show this QR at the gate` : 'Show this QR at the gate', 824, 'italic 18px Arial, sans-serif', '#A3A3C2');
+
+  const brandImg = await loadBrandLogo();
+  ctx.font = 'bold 17px Arial, sans-serif';
+  if (brandImg) {
+    const logoW = 30;
+    const logoH = 27;
+    const leftText = 'Powered by';
+    const rightText = 'BENGAL IT HUB';
+    const leftW = ctx.measureText(leftText).width;
+    const rightW = ctx.measureText(rightText).width;
+    const gap = 10;
+    const totalW = leftW + gap + logoW + gap + rightW;
+    const startX = (W - totalW) / 2;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#A3A3C2';
+    ctx.fillText(leftText, startX, 858);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(startX + leftW + gap - 3, 858 - logoH / 2 - 2, logoW + 6, logoH + 4, 6);
+    ctx.fill();
+    ctx.drawImage(brandImg, startX + leftW + gap, 858 - logoH / 2, logoW, logoH);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(rightText, startX + leftW + gap + logoW + gap, 858);
+    ctx.textAlign = 'center';
+  } else {
+    center('Powered by Bengal IT Hub', 858, 'bold 18px Arial, sans-serif', '#F5F5FA');
+  }
 
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Could not make the image'))), 'image/png'));
 };
