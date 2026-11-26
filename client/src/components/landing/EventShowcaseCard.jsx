@@ -95,7 +95,7 @@ function BrandedDescription({ text, band, guide, eventName }) {
 
   return (
     <section
-      className="relative max-w-xl !mt-2.5 sm:!mt-3 rounded-2xl border-2 p-2.5 pt-3 sm:p-3.5 sm:pt-4 backdrop-blur-sm font-sans"
+      className="relative max-w-xl !mt-3 rounded-2xl border-2 p-3 pt-4 sm:p-3.5 sm:pt-5 backdrop-blur-sm font-sans"
       style={{ borderColor: band, background: `linear-gradient(160deg, ${band}22, rgba(10,10,10,0.68) 52%)`, boxShadow: `4px 4px 0 ${band}` }}
     >
       <span className="absolute -top-2.5 left-3.5 px-2 py-0.5 rounded-md border-2 border-black font-display text-xs tracking-[0.16em] text-black shadow-[2px_2px_0_#000]" style={{ background: band }}>
