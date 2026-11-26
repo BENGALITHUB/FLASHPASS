@@ -1164,7 +1164,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           </div>
 
           {/* ===== Sponsor / stall strip ===== */}
-          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-purple-700/80' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: 'linear-gradient(90deg, #151024, #23183A)' } : undefined}>
+          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 md:pr-3 xl:pr-4 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-purple-700/80' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: 'linear-gradient(90deg, #151024, #23183A)' } : undefined}>
             <div className="hidden md:flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0_#000] shrink-0">
                 <HeartHandshake className="w-5 h-5" />
