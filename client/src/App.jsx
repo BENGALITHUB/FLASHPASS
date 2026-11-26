@@ -41,12 +41,88 @@ function PageLoading() {
   );
 }
 
+const SITE_ORIGIN = (import.meta.env.VITE_SITE_URL || 'https://flashpass.bengalithub.com').replace(/\/+$/, '');
+
+const ROUTE_SEO = {
+  '/': {
+    title: 'FlashPass — Kolkata Comics Karnival 7.0 & Instant Event Passes',
+    description: 'Book Kolkata Comics Karnival 7.0 & live event passes in 30 seconds with UPI — instant digital QR pass, no app, zero gate queues.',
+    robots: 'index, follow, max-image-preview:large',
+    canonical: `${SITE_ORIGIN}/`
+  },
+  '/buy': {
+    title: 'Book Event Passes — Kolkata Comics Karnival 7.0 | FlashPass',
+    description: 'Book your 3-day pass for Kolkata Comics Karnival 7.0 at Khudiram Anushilan Kendra in 30 seconds with UPI or Card.',
+    robots: 'index, follow',
+    canonical: `${SITE_ORIGIN}/buy`
+  },
+  '/checkout': {
+    title: 'Book Event Passes — Kolkata Comics Karnival 7.0 | FlashPass',
+    description: 'Book your 3-day pass for Kolkata Comics Karnival 7.0 at Khudiram Anushilan Kendra in 30 seconds with UPI or Card.',
+    robots: 'index, follow',
+    canonical: `${SITE_ORIGIN}/buy`
+  },
+  '/organizers': {
+    title: 'For Event Organizers — Zero-Queue Gate Ticketing | FlashPass',
+    description: 'Run high-speed event ticketing, UPI checkout, Box Office POS, and sub-500ms anti-passback QR gate scanning with FlashPass.',
+    robots: 'index, follow',
+    canonical: `${SITE_ORIGIN}/organizers`
+  },
+  '/my-ticket': {
+    title: 'Ticket Recovery — Find Your Digital Pass | FlashPass',
+    description: 'Recover your FlashPass digital QR ticket anytime using your mobile number or order ID.',
+    robots: 'index, follow',
+    canonical: `${SITE_ORIGIN}/my-ticket`
+  },
+  '/cash': {
+    title: 'Cash Counter Token — Pay at Venue Box Office | FlashPass',
+    description: 'Generate a fast cash token and pay at the venue Box Office counter for instant QR pass issuance.',
+    robots: 'index, follow',
+    canonical: `${SITE_ORIGIN}/cash`
+  }
+};
+
+const applyRouteSEO = (pathname) => {
+  if (typeof document === 'undefined') return;
+  const isPrivate = /^\/(admin|pos|gate|staff|order|pass)(\/|$)/.test(pathname);
+  const meta = ROUTE_SEO[pathname] || (isPrivate
+    ? {
+        title: 'FlashPass — Pass & Operations Portal',
+        description: 'FlashPass digital event pass and operations portal.',
+        robots: 'noindex, nofollow',
+        canonical: `${SITE_ORIGIN}${pathname}`
+      }
+    : ROUTE_SEO['/']);
+
+  document.title = meta.title;
+  const setMeta = (selector, attr, key, content) => {
+    let el = document.head.querySelector(selector);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attr, key);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  };
+  setMeta('meta[name="description"]', 'name', 'description', meta.description);
+  setMeta('meta[name="robots"]', 'name', 'robots', meta.robots);
+
+  let canonical = document.head.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement('link');
+    canonical.setAttribute('rel', 'canonical');
+    document.head.appendChild(canonical);
+  }
+  canonical.setAttribute('href', meta.canonical);
+};
+
 export default function App() {
   const location = useLocation();
 
-  // SPA page views for analytics (no-op unless VITE_GA_ID is configured)
+  // SPA page views for analytics & dynamic per-route SEO metadata
   useEffect(() => {
     sessionStorage.removeItem('fp_chunk_reload');
+    applyRouteSEO(location.pathname);
     trackPageView(location.pathname + location.search);
   }, [location.pathname, location.search]);
 

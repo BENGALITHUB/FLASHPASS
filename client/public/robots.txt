@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /pos
+Disallow: /gate
+Disallow: /staff
+Disallow: /order/
+Disallow: /pass/
+Disallow: /api/
+
+Sitemap: https://flashpass.bengalithub.com/sitemap.xml

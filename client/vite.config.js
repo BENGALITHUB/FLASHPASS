@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // Public origin (e.g. https://flashpass.in) so share-preview image URLs are absolute; '' keeps them relative
-  const siteUrl = (env.VITE_SITE_URL || '').replace(/\/+$/, '')
+  // Public origin (e.g. https://flashpass.bengalithub.com) so share-preview image URLs and canonical tags are absolute
+  const siteUrl = (env.VITE_SITE_URL || 'https://flashpass.bengalithub.com').replace(/\/+$/, '')
 
   return {
     plugins: [

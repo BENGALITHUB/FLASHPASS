@@ -6,21 +6,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0B0B14" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <title>FlashPass — High-Speed Ingress &amp; Ticketing</title>
-    <meta name="description" content="Book event passes in 30 seconds with UPI — instant digital pass, no app, zero gate queues. Live comic-cons, fests and concerts powered by FlashPass." />
+    <title>FlashPass — Kolkata Comics Karnival 7.0 &amp; Instant Event Passes</title>
+    <meta name="description" content="Book Kolkata Comics Karnival 7.0 &amp; live event passes in 30 seconds with UPI — instant digital QR pass, no app, zero gate queues. Powered by Bengal IT Hub." />
+    <meta name="keywords" content="FlashPass, Kolkata Comics Karnival, Kolkata Comics Karnival 7.0, comic con Kolkata tickets, Khudiram Anushilan Kendra, book event passes UPI, digital QR ticket, Bengal IT Hub" />
+    <meta name="author" content="Bengal IT Hub" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="%SITE_URL%/" />
 
-    <!-- Social share previews (WhatsApp / Facebook / X). Absolute URLs are injected at build time when VITE_SITE_URL is set. -->
+    <!-- Social share previews (WhatsApp / Facebook / X) -->
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_IN" />
     <meta property="og:site_name" content="FlashPass" />
+    <meta property="og:url" content="%SITE_URL%/" />
     <meta property="og:title" content="FlashPass — Instant Event Passes, Zero Gate Queues" />
     <meta property="og:description" content="Book your pass in 30 seconds with UPI. No app, no printing — just scan and walk in." />
     <meta property="og:image" content="%SITE_URL%/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FlashPass — Instant Digital Event Passes" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="FlashPass — Instant Event Passes, Zero Gate Queues" />
     <meta name="twitter:description" content="Book your pass in 30 seconds with UPI. No app, no printing — just scan and walk in." />
     <meta name="twitter:image" content="%SITE_URL%/og-image.png" />
+
+    <!-- Google Rich Results Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "name": "Bengal IT Hub — FlashPass",
+            "url": "%SITE_URL%/",
+            "logo": "%SITE_URL%/bengal-it-hub-logo.png"
+          },
+          {
+            "@type": "WebSite",
+            "name": "FlashPass",
+            "url": "%SITE_URL%/"
+          },
+          {
+            "@type": "Event",
+            "name": "Kolkata Comics Karnival 7.0",
+            "description": "City's biggest comics and pop-culture event uniting geeks, nerds and fans under one roof — 3 days of comics, gaming, collectibles and cosplay.",
+            "startDate": "2026-12-24T11:00:00+05:30",
+            "endDate": "2026-12-26T20:00:00+05:30",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "location": {
+              "@type": "Place",
+              "name": "Khudiram Anushilan Kendra",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Kolkata",
+                "addressRegion": "WB",
+                "addressCountry": "IN"
+              }
+            },
+            "image": ["%SITE_URL%/og-image.png"],
+            "organizer": {
+              "@type": "Organization",
+              "name": "Bengal IT Hub",
+              "url": "%SITE_URL%/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "url": "%SITE_URL%/buy",
+              "price": "50",
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "validFrom": "2026-11-25T00:00:00+05:30"
+            }
+          }
+        ]
+      }
+    </script>
     <!-- Google Fonts: Bangers, Space Grotesk, Inter, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
