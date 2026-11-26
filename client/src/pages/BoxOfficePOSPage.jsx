@@ -128,43 +128,48 @@ export default function BoxOfficePOSPage() {
   const saleTier = mode === 'walkin' ? tier : tiers.find(t => t.tierId === 'general');
   const maxTickets = Math.max(1, Math.min(config?.maxWalkinTickets || 5, saleTier?.remaining ?? Infinity));
   const saleQuantity = receipt ? receipt.quantity || 1 : mode === 'walkin' || activeToken ? quantity : 1;
-  const sentGuestNames = () => (quantity > 1 ? Array.from({ length: quantity }, (_, i) => (groupGuests[i]?.name || guestNames[i] || '').trim()) : []);
-  const sentAttendees = (leadName, leadPhone, leadEmail) => (quantity > 1 ? Array.from({ length: quantity }, (_, i) => ({
-    name: (groupGuests[i]?.name || guestNames[i] || (i === 0 ? leadName : '')).trim(),
-    phone: (groupGuests[i]?.phone || (i === 0 ? leadPhone : '')).replace(/\D/g, ''),
-    email: (groupGuests[i]?.email || (i === 0 ? leadEmail : '')).trim()
-  })) : null);
+  const sentGuestNames = () => {
+    const leadName = mode === 'walkin' ? guest.name.trim() : (activeToken?.token?.holderName || '');
+    return quantity > 1
+      ? Array.from({ length: quantity }, (_, i) => (i === 0 ? leadName : (groupGuests[i]?.name || guestNames[i] || '').trim()))
+      : [];
+  };
+  const sentAttendees = (leadName, leadPhone, leadEmail) => (quantity > 1 ? Array.from({ length: quantity }, (_, i) => (
+    i === 0
+      ? { name: leadName.trim(), phone: String(leadPhone || '').replace(/\D/g, ''), email: String(leadEmail || '').trim() }
+      : {
+          name: (groupGuests[i]?.name || guestNames[i] || '').trim(),
+          phone: (groupGuests[i]?.phone || '').replace(/\D/g, ''),
+          email: (groupGuests[i]?.email || '').trim()
+        }
+  )) : null);
   const updateGroupGuest = (idx, field, val) => setGroupGuests(prev => {
     const next = [...prev];
     while (next.length <= idx) next.push({ name: '', phone: '', email: '' });
     next[idx] = { ...next[idx], [field]: val };
     return next;
   });
-  // Ticket count and one optional name box per guest; shared by walk-in and token sales.
-  const groupFields = (buyerName, buyerPhone = '', buyerEmail = '') => <>
+  // Ticket #1 uses the lead guest entered above; only ask for additional guests (#2..#N).
+  const groupFields = (buyerName) => <>
     <label htmlFor="pos-quantity">Number of tickets <span>up to {maxTickets}</span></label>
     <div className="pos-quantity"><button type="button" aria-label="One less ticket" disabled={Boolean(busy) || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><Minus size={18} /></button><output id="pos-quantity" aria-live="polite"><Users size={17} /> {ticketsLabel(quantity)}</output><button type="button" aria-label="One more ticket" disabled={Boolean(busy) || quantity >= maxTickets} onClick={() => setQuantity(quantity + 1)}><Plus size={18} /></button></div>
     {quantity > 1 && <>
-      <span className="pos-field-label pos-extras-label" id="pos-guest-names-label">Guest details for each ticket <span>required</span></span>
-      <div className="pos-guest-names" role="group" aria-labelledby="pos-guest-names-label">{Array.from({ length: quantity }, (_, i) => {
+      <span className="pos-field-label pos-extras-label" id="pos-guest-names-label">
+        Additional guest{quantity > 2 ? 's' : ''} ({quantity === 2 ? 'Ticket #2' : `Tickets #2–#${quantity}`}) <span>required</span>
+      </span>
+      <div className="pos-guest-names" role="group" aria-labelledby="pos-guest-names-label">{Array.from({ length: quantity - 1 }, (_, idx) => {
+        const i = idx + 1;
         const g = groupGuests[i] || {};
-        const gName = g.name ?? (i === 0 && buyerName !== 'Walk-in Guest' ? buyerName : '');
-        const gPhone = g.phone ?? (i === 0 ? buyerPhone : '');
-        const gEmail = g.email ?? (i === 0 ? buyerEmail : '');
         return (
-          <div className="pos-guest-name-row" key={i} style={{ display: 'grid', gridTemplateColumns: '24px 1fr 1fr 1.2fr', gap: '8px', alignItems: 'center' }}>
-    
-            <span aria-hidden="true">{i + 1}</span>
-            <input form="pos-payment-form" required aria-label={`Name on ticket ${i + 1}`} placeholder={`Guest #${i + 1} Name *`} autoComplete="off" maxLength={60} value={gName} disabled={Boolean(busy)} onChange={e => updateGroupGuest(i, 'name', e.target.value)} />
-            <input form="pos-payment-form" required type="tel" inputMode="numeric" aria-label={`Mobile on ticket ${i + 1}`} placeholder="10-digit Mobile *" autoComplete="off" maxLength={10} value={gPhone} disabled={Boolean(busy)} onChange={e => updateGroupGuest(i, 'phone', e.target.value.replace(/\D/g, ''))} />
-            <input form="pos-payment-form" required type="email" aria-label={`Email on ticket ${i + 1}`} placeholder="Email *" autoComplete="off" value={gEmail} disabled={Boolean(busy)} onChange={e => updateGroupGuest(i, 'email', e.target.value)} />
+          <div className="pos-guest-name-row" key={i} style={{ display: 'grid', gridTemplateColumns: '28px minmax(0, 1fr) minmax(0, 0.95fr) minmax(0, 1.4fr)', gap: '8px', alignItems: 'center' }}>
+            <span aria-hidden="true">#{i + 1}</span>
+            <input form="pos-payment-form" required aria-label={`Name on ticket ${i + 1}`} placeholder={`Guest #${i + 1} Name *`} autoComplete="off" maxLength={60} value={g.name || ''} disabled={Boolean(busy)} onChange={e => updateGroupGuest(i, 'name', e.target.value)} />
+            <input form="pos-payment-form" required type="tel" inputMode="numeric" aria-label={`Mobile on ticket ${i + 1}`} placeholder="10-digit Mobile *" autoComplete="off" maxLength={10} value={g.phone || ''} disabled={Boolean(busy)} onChange={e => updateGroupGuest(i, 'phone', e.target.value.replace(/\D/g, ''))} />
+            <input form="pos-payment-form" required type="email" aria-label={`Email on ticket ${i + 1}`} placeholder="Email *" autoComplete="off" value={g.email || ''} disabled={Boolean(busy)} onChange={e => updateGroupGuest(i, 'email', e.target.value)} />
           </div>
         );
       })}</div>
-
-
-
-
+      <p className="pos-guest-names-help">Ticket #1 is for {buyerName} (above). Each additional guest gets their own QR pass.</p>
     </>}
   </>;
   const amount = Number.isSafeInteger(pricing?.amountPaise) ? pricing.amountPaise * saleQuantity + extrasPaise : undefined;
@@ -175,14 +180,12 @@ export default function BoxOfficePOSPage() {
   const nameValid = guest.name.trim().length >= 2;
   const phoneValid = /^[6-9]\d{9}$/.test(guest.phone);
   const emailValid = isValidEmail(guest.email);
-  const groupValid = quantity <= 1 || Array.from({ length: quantity }, (_, i) => {
+  const groupValid = quantity <= 1 || Array.from({ length: quantity - 1 }, (_, idx) => {
+    const i = idx + 1;
     const g = groupGuests[i] || {};
-    const leadName = mode === 'walkin' ? guest.name.trim() : (activeToken?.token?.holderName || '');
-    const leadPhone = mode === 'walkin' ? guest.phone : (activeToken?.token?.phone || '');
-    const leadEmail = mode === 'walkin' ? guest.email : (activeToken?.token?.email || '');
-    const n = (g.name ?? (i === 0 ? leadName : '')).trim();
-    const p = (g.phone ?? (i === 0 ? leadPhone : '')).replace(/\D/g, '');
-    const em = (g.email ?? (i === 0 ? leadEmail : '')).trim();
+    const n = (g.name || '').trim();
+    const p = (g.phone || '').replace(/\D/g, '');
+    const em = (g.email || '').trim();
     return n.length >= 2 && /^[6-9]\d{9}$/.test(p) && isValidEmail(em);
   }).every(Boolean);
   const sufficientCash = cashPaise !== null && Number.isSafeInteger(amount) && cashPaise >= amount;
@@ -490,7 +493,7 @@ export default function BoxOfficePOSPage() {
               <div className={`pos-cash-input ${cash && !sufficientCash ? 'has-error' : ''}`}><span>₹</span><input ref={cashRef} id="pos-cash" type="text" inputMode="decimal" autoComplete="off" placeholder="0.00" value={cash} disabled={!ready || Boolean(busy)} onChange={e => { if (/^\d{0,8}(\.\d{0,2})?$/.test(e.target.value)) setCash(e.target.value); }} aria-invalid={Boolean(cash && !sufficientCash)} aria-describedby="pos-cash-help" /><Banknote size={20} /></div>
               <div className="pos-quick-cash"><button type="button" disabled={!ready || Boolean(busy)} onClick={() => setCash((amount / 100).toFixed(2))}>Exact amount</button>{[100, 200, 500, 1000, 2000, 5000].filter(value => value * 100 >= (amount || 0)).slice(0, 3).map(value => <button type="button" key={value} disabled={!ready || Boolean(busy)} onClick={() => setCash(String(value))}>₹{value}</button>)}</div>
               <div className={`pos-change ${ready && sufficientCash ? 'is-ready' : ''}`}><div><RotateCcw size={15} /><span>Change to return</span></div><strong>{receipt ? formatMoney(Math.round(Number(receipt.changeRupees) * 100)) : ready && sufficientCash ? formatMoney(cashPaise - amount) : '₹0.00'}</strong></div>
-              <p id="pos-cash-help" className={`pos-payment-help ${cash && !sufficientCash ? 'pos-field-error' : ''}`}>{receipt ? 'Open the ticket or start the next sale.' : !ready ? 'Select a walk-in or find a token to continue.' : !cash ? 'Enter the cash received or choose an amount above.' : !sufficientCash ? `Collect ${formatMoney(Math.max(0, amount - (cashPaise || 0)))} more to continue.` : 'Return the change shown above to your guest.'}</p>
+              <p id="pos-cash-help" className={`pos-payment-help ${(cash && !sufficientCash) || (ready && sufficientCash && !canConfirm) ? 'pos-field-error' : ''}`}>{receipt ? 'Open the ticket or start the next sale.' : !ready ? 'Select a walk-in or find a token to continue.' : !cash ? 'Enter the cash received or choose an amount above.' : !sufficientCash ? `Collect ${formatMoney(Math.max(0, amount - (cashPaise || 0)))} more to continue.` : mode === 'walkin' && (!nameValid || !phoneValid || !emailValid) ? 'Enter valid lead guest name, 10-digit mobile & email.' : !groupValid ? `Fill valid name, 10-digit mobile & email for ${quantity === 2 ? 'Guest #2' : `Guests #2–#${quantity}`}.` : 'Return the change shown above to your guest.'}</p>
               <button type="submit" className="pos-button pos-button-primary pos-confirm" disabled={!canConfirm}>{busy === 'confirm' ? <Loader2 size={18} className="pos-spin" /> : receipt ? <CheckCircle2 size={18} /> : <Check size={18} />}{busy === 'confirm' ? 'Issuing ticket…' : receipt ? 'Ticket issued' : saleQuantity > 1 ? `Confirm cash & issue ${saleQuantity} tickets` : 'Confirm cash & issue ticket'}{!receipt && <ArrowRight size={17} />}</button>
               <div className="pos-confirm-note"><ShieldCheck size={12} /> Confirm only after receiving cash</div>
             </form>
