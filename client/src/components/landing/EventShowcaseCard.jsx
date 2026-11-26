@@ -882,9 +882,63 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
               </div>
             </div>
 
-            {/* The place to book: price, total, stock and the button. Phones: price beside the totals,
-                full-width button below. Tablets: one row. Laptops: the ticket's torn-off stub. */}
-            <div className={`event-booking relative min-w-0 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-4 md:flex md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-3.5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            {/* The place to book: price, total, stock and the button. Phones: Master Roshi scene when stubImage is set. Tablets: one row. Laptops: the ticket's torn-off stub. */}
+            {skin?.stubImage && (
+              <div className="md:hidden border-t-2 border-dashed border-white/30 bg-[#111111]">
+                <div className="relative w-full aspect-[16/9] overflow-hidden">
+                  <img
+                    src={skin.stubImage}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover object-[50%_56%]"
+                  />
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(180deg, rgba(10,10,14,0.28) 0%, rgba(10,10,14,0.08) 50%, rgba(10,10,14,0.58) 100%)'
+                    }}
+                  />
+                  {/* Top-left KCK logo */}
+                  <img
+                    src="/events/kolkata-comics-karnival-7-0/logo.png"
+                    alt=""
+                    className="absolute top-2.5 left-3 h-11 w-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] pointer-events-none"
+                  />
+                  {/* 50₹ starburst centered right on the ball between Master Roshi's hands */}
+                  <div className="absolute left-[40%] top-[53%] -translate-x-1/2 -translate-y-1/2 z-10">
+                    <PriceBurst color={skin.colors.burst} rupees={priceRupees} size="sm" />
+                  </div>
+                  {/* Book Pass button right below the starburst */}
+                  <button
+                    type="button"
+                    disabled={soldOut}
+                    onClick={book}
+                    className="kck-shine absolute left-[40%] top-[85%] -translate-x-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center gap-1 px-4 py-1.5 rounded-lg border-2 border-black text-black font-display text-base tracking-[0.12em] shadow-[3px_3px_0_#000] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                    style={{ background: `linear-gradient(180deg, #FFD54A, ${skin.colors.button} 55%, #F2A900)` }}
+                  >
+                    {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-3.5 h-3.5 shrink-0" /></>}
+                  </button>
+                </div>
+                <div className="px-3.5 py-2.5 flex flex-col items-center gap-2 border-t border-white/10">
+                  <Link
+                    to={`/cash?eventId=${ev.eventId}`}
+                    className="inline-flex items-center justify-center gap-1.5 text-[11px] font-mono text-white/80 hover:text-warning transition-colors"
+                  >
+                    <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
+                  </Link>
+                  <div className="w-full grid grid-cols-3 gap-1.5">
+                    {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
+                      <span key={label} className="rounded-xl p-px" style={{ background: `linear-gradient(140deg, ${theme.a}88, transparent 45%, ${theme.b}88)` }}>
+                        <span className="h-full flex flex-col items-center gap-1 rounded-[11px] bg-[#141414] px-1 py-1.5 font-mono text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">
+                          <Icon className="w-3.5 h-3.5" style={{ color: theme.a }} /> {label}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className={`event-booking relative min-w-0 ${skin?.stubImage ? 'hidden md:flex' : 'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-4 md:flex'} md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-3.5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {skin && <StubBackdrop skin={skin} />}
               {skin && <span className="kck-foil absolute inset-x-0 top-0 h-1 pointer-events-none" style={{ background: 'linear-gradient(90deg, #FF2E88, #FFD60A, #22D3EE, #FF2E88)', backgroundSize: '200% 100%' }} aria-hidden="true" />}
 
