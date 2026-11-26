@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Banknote, Check, CheckCircle2, Che
 import { toPaise, formatMoney } from '../utils/pos';
 import ShiftBar from '../components/pos/ShiftBar';
 import './BoxOfficePOSPage.css';
+import './BoxOfficePOSPremium.css';
 
 const ticketsLabel = n => `${n} ${n === 1 ? 'ticket' : 'tickets'}`;
 const timeLabel = value => new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
@@ -402,7 +403,7 @@ export default function BoxOfficePOSPage() {
         <div className="pos-breadcrumb"><button type="button" disabled={Boolean(busy)} onClick={() => navigate('/')}><ArrowLeft size={13} /> Home</button><ChevronRight size={12} /><span>Box office</span></div>
         <section className="pos-page-heading">
           <div><div className="pos-eyebrow">POINT OF SALE</div><h1>Box office<span>.</span></h1><p>A smooth check-in starts with a simple checkout.</p></div>
-          <div className="pos-event"><span className={`pos-status-dot ${!config?.salesOpen || syncError ? 'is-offline' : ''}`} /><div><strong>{config?.eventName || 'Loading your counter'}</strong><span>{syncError ? 'Connection needs attention' : config ? config.salesOpen ? 'Cash counter open' : 'Cash sales paused' : 'Connecting to the counter…'}</span></div></div>
+          <div className={`pos-event ${!config?.salesOpen || syncError ? 'is-offline' : ''}`}><span className={`pos-status-dot ${!config?.salesOpen || syncError ? 'is-offline' : ''}`} /><div><strong>{config?.eventName || 'Loading your counter'}</strong><span>{syncError ? 'Connection needs attention' : config ? config.salesOpen ? 'Cash counter open' : 'Cash sales paused' : 'Connecting to the counter…'}</span></div></div>
         </section>
 
         {syncError && <div className="pos-alert" role="alert"><AlertCircle size={17} /><span>{syncError} Sales are paused until counter data refreshes.</span><button type="button" onClick={refresh} disabled={syncing || !user}>Retry</button></div>}

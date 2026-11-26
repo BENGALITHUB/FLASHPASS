@@ -5,10 +5,9 @@ import { toPaise, formatMoney } from '../../utils/pos';
 
 const time = (d) => new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 
-const box = { border: '2px solid var(--pos-line)', borderRadius: 14, background: 'var(--pos-surface)', boxShadow: '4px 4px 0 #000' };
 const input = {
-  width: '100%', minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--pos-line)',
-  background: 'var(--pos-bg)', color: '#f5f5fa', fontSize: 16, fontVariantNumeric: 'tabular-nums'
+  width: '100%', minHeight: 44, padding: '0 12px', borderRadius: 12, border: '1px solid rgba(255,255,255,.12)',
+  background: 'rgba(7,7,16,.55)', color: '#f5f5fa', fontSize: 16, fontVariantNumeric: 'tabular-nums'
 };
 const label = { display: 'block', fontSize: 11, color: 'var(--pos-muted)', marginBottom: 6, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' };
 
@@ -40,9 +39,9 @@ export default function ShiftBar({ shift, disabled, onChanged }) {
   };
 
   return (
-    <section aria-label="Your shift" style={{ ...box, padding: '12px 18px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 22px' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--pos-muted)' }}>
-        <Clock3 size={15} /> Shift started <strong style={{ color: '#f5f5fa' }}>{time(shift.openedAt)}</strong>
+    <section aria-label="Your shift" className="pos-shiftbar">
+      <span className="pos-shiftbar-item">
+        <Clock3 size={15} /> Shift started <strong>{time(shift.openedAt)}</strong>
       </span>
 
       {editingFloat ? (
@@ -53,20 +52,19 @@ export default function ShiftBar({ shift, disabled, onChanged }) {
           <button type="button" className="pos-button pos-button-secondary" disabled={busy} onClick={() => { setEditingFloat(false); setError(''); }} style={{ padding: '8px 10px' }} aria-label="Cancel"><X size={14} /></button>
         </form>
       ) : (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--pos-muted)' }}>
-          Cash at start <strong style={{ color: '#f5f5fa' }}>{formatMoney(shift.openingFloatPaise)}</strong>
-          <button type="button" disabled={disabled} onClick={() => { setFloatInput(String((shift.openingFloatPaise || 0) / 100)); setEditingFloat(true); }}
-            style={{ background: 'none', border: 0, color: 'var(--pos-accent)', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 12 }}>
-            <Pencil size={12} /> {shift.openingFloatPaise ? 'Edit' : 'Set'}
+        <span className="pos-shiftbar-item">
+          Cash at start <strong>{formatMoney(shift.openingFloatPaise)}</strong>
+          <button type="button" className="pos-shiftbar-edit" disabled={disabled} onClick={() => { setFloatInput(String((shift.openingFloatPaise || 0) / 100)); setEditingFloat(true); }}>
+            <Pencil size={11} /> {shift.openingFloatPaise ? 'Edit' : 'Set'}
           </button>
         </span>
       )}
 
-      <span style={{ fontSize: 12, color: 'var(--pos-muted)' }}>
-        Should be in drawer now <strong style={{ color: 'var(--pos-accent)', fontSize: 15 }}>{formatMoney(shift.expectedInDrawerPaise)}</strong>
+      <span className="pos-shiftbar-item">
+        Should be in drawer now <strong className="pos-shiftbar-expected">{formatMoney(shift.expectedInDrawerPaise)}</strong>
       </span>
 
-      <button type="button" className="pos-button pos-button-secondary" disabled={disabled} onClick={() => setClosing(true)} style={{ marginLeft: 'auto' }}>
+      <button type="button" className="pos-button pos-button-secondary" disabled={disabled} onClick={() => setClosing(true)}>
         <Lock size={15} /> Close shift
       </button>
 
@@ -107,9 +105,8 @@ function CloseShiftDialog({ shift, onClose, onDone }) {
   const finish = async () => { onClose(); await onDone(); };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Close shift"
-      style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,.78)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto' }}>
-      <div style={{ ...box, width: '100%', maxWidth: 440, margin: '6vh 0', padding: 22, color: '#f5f5fa' }}>
+    <div role="dialog" aria-modal="true" aria-label="Close shift" className="pos-shift-modal">
+      <div>
         {result ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
