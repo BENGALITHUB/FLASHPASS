@@ -557,8 +557,10 @@ export default function CheckoutPage() {
                           </div>
                           <div className="mt-2 sm:mt-2.5 font-comic text-base min-[380px]:text-lg text-white leading-tight tracking-wide [overflow-wrap:anywhere]">{tier.name}</div>
                           <div className="mt-auto pt-2 sm:pt-1">
-                            <div className="font-comic text-3xl leading-none [overflow-wrap:anywhere]" style={{ color }}>₹{formatRupees((tier.pricePaise || 0) + (tier.platformFeePaise ?? 200))}</div>
-                            <span className="sm:hidden block mt-1 text-[10px] font-mono text-text-muted">Incl. platform fee</span>
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <div className="font-comic text-3xl leading-none [overflow-wrap:anywhere]" style={{ color }}>₹{formatRupees((tier.pricePaise || 0) + (tier.platformFeePaise ?? 200))}</div>
+                              <span className="text-[11px] font-mono text-text-muted">(with fee)</span>
+                            </div>
                           </div>
                           <ul className="hidden sm:block mt-3 space-y-1">
                             {(tier.perks?.length ? tier.perks : ['Standard Entry']).slice(0, 3).map((perk) => (
