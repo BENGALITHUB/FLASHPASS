@@ -925,7 +925,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     type="button"
                     disabled={soldOut}
                     onClick={book}
-                    className="kck-shine overflow-hidden absolute left-[48%] bottom-3 -translate-x-1/2 z-10 inline-flex items-center justify-center gap-2 px-8 py-2.5 rounded-2xl border-2 border-black text-black font-display text-2xl tracking-[0.14em] shadow-[4px_4px_0_#000,0_10px_25px_rgba(255,194,26,0.35)] hover:brightness-105 active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                    className="kck-shine overflow-hidden absolute left-[48%] bottom-1 -translate-x-1/2 z-10 inline-flex items-center justify-center gap-2 px-8 py-2.5 rounded-2xl border-2 border-black text-black font-display text-2xl tracking-[0.14em] shadow-[4px_4px_0_#000,0_10px_25px_rgba(255,194,26,0.35)] hover:brightness-105 active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
                     style={{ background: `linear-gradient(180deg, #FFE066 0%, ${skin.colors.button} 55%, #E59800 100%)` }}
                   >
                     {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-5 h-5 shrink-0" /></>}
