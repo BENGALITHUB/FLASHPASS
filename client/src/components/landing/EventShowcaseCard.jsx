@@ -889,7 +889,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   <img
                     src={skin.stubImage}
                     alt=""
-                    className="absolute inset-y-0 -left-[1%] w-[116%] max-w-none h-full object-cover object-[50%_62%]"
+                    className="absolute inset-y-0 -left-[1%] w-[116%] max-w-none h-full object-cover object-[50%_56%]"
                   />
                   <div
                     className="absolute inset-0 pointer-events-none"
@@ -904,7 +904,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     className="absolute top-2.5 left-3 h-11 w-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] pointer-events-none"
                   />
                   {/* 50₹ starburst centered right on the ball between Master Roshi's hands */}
-                  <div className="absolute left-[46%] top-[55%] -translate-x-1/2 -translate-y-1/2 z-10">
+                  <div className="absolute left-[48%] top-[53%] -translate-x-1/2 -translate-y-1/2 z-10">
                     <PriceBurst color={skin.colors.burst} rupees={priceRupees} size="sm" />
                   </div>
                   {/* Book Pass button right below the starburst */}
@@ -912,7 +912,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     type="button"
                     disabled={soldOut}
                     onClick={book}
-                    className="kck-shine overflow-hidden absolute left-[46%] top-[86%] -translate-x-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center gap-1.5 px-6 py-2 rounded-xl border-2 border-black text-black font-display text-xl tracking-[0.14em] shadow-[3px_3px_0_#000] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                    className="kck-shine overflow-hidden absolute left-[48%] top-[85%] -translate-x-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center gap-1.5 px-6 py-2 rounded-xl border-2 border-black text-black font-display text-xl tracking-[0.14em] shadow-[3px_3px_0_#000] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
                     style={{ background: `linear-gradient(180deg, #FFD54A, ${skin.colors.button} 55%, #F2A900)` }}
                   >
                     {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-4 h-4 shrink-0" /></>}
