@@ -1,12 +1,13 @@
 import mongoose from 'mongoose';
 import { LedgerEntry } from '../models/LedgerEntry.js';
+import { Pass } from '../models/Pass.js';
 import { Event } from '../models/Event.js';
 import { User } from '../models/User.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { Payout, PAYOUT_METHODS } from '../models/Payout.js';
 import { SettlementRequest, REQUEST_STATUS } from '../models/SettlementRequest.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
-import { ROLES, LEDGER_TYPES } from '../constants/index.js';
+import { ROLES, LEDGER_TYPES, PASS_STATUS } from '../constants/index.js';
 
 /*
  * Organizer settlement.
@@ -66,16 +67,21 @@ async function buildSummaries(eventIds, session = null) {
   }
   const allIds = [...ids];
 
-  const [events, organizers, pending] = await Promise.all([
+  const [events, organizers, pending, passAgg] = await Promise.all([
     Event.find({ eventId: { $in: allIds } }).select('eventId name venue status').lean().session(session),
     User.find({ role: ROLES.EVENT_ADMIN, assignedEventId: { $in: allIds } }).select('name username assignedEventId').lean().session(session),
-    SettlementRequest.find({ eventId: { $in: allIds }, status: REQUEST_STATUS.PENDING }).lean().session(session)
+    SettlementRequest.find({ eventId: { $in: allIds }, status: REQUEST_STATUS.PENDING }).lean().session(session),
+    Pass.aggregate([
+      { $match: { status: PASS_STATUS.ACTIVE } },
+      { $group: { _id: { $ifNull: ['$eventId', DEFAULT_EVENT] }, count: { $sum: 1 } } }
+    ]).session(session)
   ]);
 
   return allIds.map(eventId => {
     const ev = events.find(e => e.eventId === eventId);
     const l = ledgerAgg.find(x => x._id === eventId) || {};
     const p = payoutAgg.find(x => x._id === eventId) || {};
+    const passCount = passAgg.find(x => x._id === eventId)?.count ?? 0;
     const owedPaise = l.organizerPaise || 0;
     const paidOutPaise = p.paidPaise || 0;
     const org = organizers.find(o => o.assignedEventId === eventId);
@@ -85,7 +91,7 @@ async function buildSummaries(eventIds, session = null) {
       venue: ev?.venue || '',
       status: ev?.status || 'ACTIVE',
       organizer: org ? { name: org.name, username: org.username } : null,
-      passesSold: (l.sales || 0) - (l.reversals || 0),
+      passesSold: passCount,
       grossPaise: l.grossPaise || 0,
       platformPaise: l.platformPaise || 0,
       owedPaise,
