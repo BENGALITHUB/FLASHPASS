@@ -11,7 +11,7 @@ export const EVENT_SKINS = {
     tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
     colors: {
       ink: '#0A0A0A',      // banner black
-      orange: '#6D28D9',   // rich dark purple border & badge accent
+      orange: '#C4B5FD',   // luminous purple-whitish border & badge accent
       burst: '#F2FF00',    // price starburst
       button: '#FFC21A',   // "Book tickets" button
       red: '#E10600'       // edition number
@@ -36,7 +36,7 @@ export const skinFor = (evOrId) => {
       tagline: tpl.tagline?.length ? tpl.tagline : (preset?.tagline || []),
       colors: {
         ink: '#0A0A0A',
-        orange: '#6D28D9',
+        orange: '#C4B5FD',
         burst: '#F2FF00',
         button: '#FFC21A',
         red: '#E10600',
