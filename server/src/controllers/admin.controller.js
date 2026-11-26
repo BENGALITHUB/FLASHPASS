@@ -609,6 +609,11 @@ export const updateSettings = async (req, res) => {
         if (announcementText !== undefined) event.announcementText = String(announcementText).trim();
         if (basePricePaise !== undefined) event.basePricePaise = Number(basePricePaise);
         if (platformFeePaise !== undefined) event.platformFeePaise = Number(platformFeePaise);
+        // Keep single-tier events in sync when Core Pricing & Capacity is updated
+        if (!Array.isArray(ticketTiers) && (basePricePaise !== undefined || platformFeePaise !== undefined) && event.ticketTiers?.length === 1) {
+          if (basePricePaise !== undefined) event.ticketTiers[0].pricePaise = Number(basePricePaise);
+          if (platformFeePaise !== undefined) event.ticketTiers[0].platformFeePaise = Number(platformFeePaise);
+        }
         if (capacityLimit !== undefined) event.capacityLimit = Number(capacityLimit);
         if (allowReentry !== undefined) event.allowReentry = Boolean(allowReentry);
         if (maxReentriesPerDay !== undefined) event.maxReentriesPerDay = Number(maxReentriesPerDay);
