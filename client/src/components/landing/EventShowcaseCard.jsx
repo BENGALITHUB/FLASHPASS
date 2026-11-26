@@ -889,7 +889,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   <img
                     src={skin.stubImage}
                     alt=""
-                    className="absolute inset-0 w-full h-full object-cover object-[50%_56%] scale-[1.22] translate-x-[9%]"
+                    className="absolute inset-0 w-full h-full object-cover object-[50%_56%]"
                   />
                   <div
                     className="absolute inset-0 pointer-events-none"
@@ -903,28 +903,22 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     alt=""
                     className="absolute top-2.5 left-3 h-11 w-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] pointer-events-none"
                   />
-                  {/* 50₹ starburst centered in the middle over the ball between Master Roshi's hands */}
-                  <div className="absolute left-1/2 top-[53%] -translate-x-1/2 -translate-y-1/2 z-10">
+                  {/* 50₹ starburst centered right on the ball between Master Roshi's hands */}
+                  <div className="absolute left-[40%] top-[53%] -translate-x-1/2 -translate-y-1/2 z-10">
                     <PriceBurst color={skin.colors.burst} rupees={priceRupees} size="sm" />
                   </div>
-                  {/* Book Pass button centered right below the starburst */}
+                  {/* Book Pass button right below the starburst */}
                   <button
                     type="button"
                     disabled={soldOut}
                     onClick={book}
-                    className="kck-shine overflow-hidden absolute left-1/2 top-[85%] -translate-x-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center gap-1.5 px-6 py-2 rounded-xl border-2 border-black text-black font-display text-xl tracking-[0.14em] shadow-[3px_3px_0_#000] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                    className="kck-shine overflow-hidden absolute left-[40%] top-[85%] -translate-x-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center gap-1.5 px-6 py-2 rounded-xl border-2 border-black text-black font-display text-xl tracking-[0.14em] shadow-[3px_3px_0_#000] active:translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
                     style={{ background: `linear-gradient(180deg, #FFD54A, ${skin.colors.button} 55%, #F2A900)` }}
                   >
                     {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-4 h-4 shrink-0" /></>}
                   </button>
                 </div>
                 <div className="px-3.5 py-2.5 flex flex-col items-center gap-2 border-t border-white/10">
-                  <Link
-                    to={`/cash?eventId=${ev.eventId}`}
-                    className="inline-flex items-center justify-center gap-1.5 text-[11px] font-mono text-white/80 hover:text-warning transition-colors"
-                  >
-                    <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
-                  </Link>
                   <div className="w-full grid grid-cols-3 gap-1.5">
                     {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
                       <span key={label} className="rounded-xl p-px" style={{ background: `linear-gradient(140deg, ${theme.a}88, transparent 45%, ${theme.b}88)` }}>
@@ -977,14 +971,8 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                 >
                   {soldOut ? <span>SOLD OUT</span> : <><span>BOOK PASS</span> <ArrowRight className="w-5 h-5 shrink-0" /></>}
                 </button>
-                <Link
-                  to={`/cash?eventId=${ev.eventId}`}
-                  className="mt-1.5 sm:mt-2.5 inline-flex items-center justify-center gap-1.5 text-xs font-mono text-text-muted hover:text-warning transition-colors"
-                >
-                  <Banknote className="w-3.5 h-3.5 shrink-0" /> Paying cash? Get venue token
-                </Link>
                 {/* What you get, at a glance */}
-                <div className="relative mt-2.5 sm:mt-4 grid grid-cols-3 gap-1.5 md:hidden lg:grid">
+                <div className="relative mt-4 grid grid-cols-3 gap-1.5 md:hidden lg:grid">
                   {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
                     <span key={label} className="rounded-xl p-px" style={{ background: `linear-gradient(140deg, ${theme.a}88, transparent 45%, ${theme.b}88)` }}>
                       <span className="h-full flex flex-col items-center gap-1 rounded-[11px] bg-[#141414] px-1 py-1.5 sm:py-2 font-mono text-[9px] font-bold uppercase tracking-wide text-white/80 text-center leading-tight">
