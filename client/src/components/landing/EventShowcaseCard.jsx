@@ -349,7 +349,7 @@ function PriceBurst({ color, rupees, size = 'lg', ribbon = null }) {
         <polygon points={BURST_POINTS} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1" transform="translate(50 50) scale(0.86) translate(-50 -50)" />
       </svg>
       <span className={`relative font-display text-black leading-none flex items-start ${size === 'lg' ? 'text-4xl sm:text-5xl lg:text-7xl' : 'text-4xl sm:text-5xl lg:text-6xl'}`}>
-        {label}<span className="text-[0.5em] mt-[0.12em] ml-0.5">₹</span>
+        {label}<span className="text-[0.68em] mt-[0.06em] ml-0.5">₹</span>
       </span>
       {ribbon && (
         <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rotate-[-6deg] whitespace-nowrap rounded-md border-2 border-black bg-[#E10600] px-2 py-0.5 font-display text-[11px] lg:text-xs tracking-[0.14em] text-white shadow-[2px_2px_0_#000]">
