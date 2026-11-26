@@ -227,11 +227,11 @@ const eventSchema = new mongoose.Schema({
     watermarkUrl: { type: String, trim: true, default: '' },
     tagline: [{ type: String, trim: true }],
     colors: {
-      ink: { type: String, default: '#0A0A0A' },
-      orange: { type: String, default: '#FF7A1A' },
-      burst: { type: String, default: '#F2FF00' },
-      button: { type: String, default: '#FFC21A' },
-      red: { type: String, default: '#E10600' }
+      ink: { type: String, default: '' },
+      orange: { type: String, default: '' },
+      burst: { type: String, default: '' },
+      button: { type: String, default: '' },
+      red: { type: String, default: '' }
     }
   },
   // 11. Event Guide (Comic-Con style quick info shown under About & in Show More modal)

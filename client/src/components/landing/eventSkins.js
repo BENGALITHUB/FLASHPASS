@@ -25,6 +25,9 @@ export const skinFor = (evOrId) => {
   const preset = EVENT_SKINS[evOrId.eventId] || null;
   const tpl = evOrId.cardTemplate;
   if (tpl?.layout === 'kolkata-dusk') {
+    const customColors = Object.fromEntries(
+      Object.entries(tpl.colors || {}).filter(([, v]) => Boolean(v && String(v).trim()))
+    );
     return {
       logo: tpl.logoUrl || preset?.logo || null,
       watermarkLogo: tpl.watermarkUrl || preset?.watermarkLogo || null,
@@ -33,12 +36,12 @@ export const skinFor = (evOrId) => {
       tagline: tpl.tagline?.length ? tpl.tagline : (preset?.tagline || []),
       colors: {
         ink: '#0A0A0A',
-        orange: '#FF7A1A',
+        orange: '#6D28D9',
         burst: '#F2FF00',
         button: '#FFC21A',
         red: '#E10600',
-        ...(preset?.colors || {}),
-        ...(tpl.colors || {})
+        ...(tpl.templateName ? customColors : {}),
+        ...(preset?.colors || {})
       }
     };
   }
