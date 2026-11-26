@@ -240,7 +240,7 @@ export default function PassPage() {
     if (!pass) return;
     const passUrl = `${window.location.origin}/pass/${pass.orderId}`;
     const text = encodeURIComponent(
-      `Hey ${pass.holderName}! 🎟️ Here is your official entry pass for ${pass.event?.name || 'the event'} (${pass.badge || 'ALL ACCESS'}).\n\nShow this QR at the gate:\n${passUrl}\n\nPass ID: ${pass.orderId}\n\nPowered by Bengal IT Hub: https://bengalithub.com/`
+      `Hey ${pass.holderName}! 🎟️ Here is your official entry pass for ${pass.event?.name || 'the event'} (${pass.badge || 'ALL ACCESS'}).\n\nShow this QR at the gate:\n${passUrl}\n\nPass ID: ${pass.orderId}\n\nPowered by *Bengal IT Hub: https://bengalithub.com/*`
     );
     const cleanPhone = pass.phone ? String(pass.phone).replace(/\D/g, '').slice(-10) : '';
     const whatsappUrl = cleanPhone

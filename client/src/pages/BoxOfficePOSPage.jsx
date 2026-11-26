@@ -221,7 +221,8 @@ export default function BoxOfficePOSPage() {
       `Order ID: ${receipt.orderId}`,
       '',
       // WhatsApp cannot hyperlink words, so the site URL follows the name and is clickable.
-      'Powered by Bengal IT Hub: https://bengalithub.com/'
+      // *…* is WhatsApp's bold.
+      'Powered by *Bengal IT Hub: https://bengalithub.com/*'
     ].join('\n');
     setWaBusy(true);
     const imageModule = import('../utils/exportPass');
