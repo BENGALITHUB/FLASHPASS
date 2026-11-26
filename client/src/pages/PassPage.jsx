@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../services/api';
 import { io } from 'socket.io-client';
 import QRCode from 'qrcode';
+import { safeGoBack } from '../utils/navigation';
 // Save Image / PDF / Share pull in large libraries (jsPDF, html-to-image); load them only
 // when a button is pressed so the pass itself opens fast at the gate
 const loadExport = () => import('../utils/exportPass');
@@ -294,7 +295,7 @@ export default function PassPage() {
         <div className="flex items-center justify-between mb-4 px-1">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => safeGoBack(navigate, '/my-ticket')}
             className="pp-metal-btn min-h-10 px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-mono font-bold"
             title="Back to previous page"
           >

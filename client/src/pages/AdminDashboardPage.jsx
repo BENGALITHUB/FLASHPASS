@@ -7,6 +7,7 @@ import ComicCard from '../components/common/ComicCard';
 import ComicBadge from '../components/common/ComicBadge';
 import { playSuccessChime } from '../utils/audioFeedback';
 import { exportAttendeesCSV, exportAttendeesExcel, exportAttendeesPDF } from '../utils/exportAttendees';
+import { safeGoBack } from '../utils/navigation';
 import EventRemovalDialog from '../components/admin/EventRemovalDialog';
 import { stallLabel, formatRupees } from '../utils/stalls';
 import './AdminDashboard.css';
@@ -1281,7 +1282,7 @@ export default function AdminDashboardPage() {
 
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => safeGoBack(navigate, '/staff')}
               className="adm-icon-btn adm-back-btn shrink-0"
               title="Go back to previous page"
               aria-label="Go back"

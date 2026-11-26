@@ -5,6 +5,7 @@ import { initSocket, joinRoom } from '../services/socket';
 import ComicButton from '../components/common/ComicButton';
 import ComicCard from '../components/common/ComicCard';
 import Header from '../components/common/Header';
+import { safeGoBack } from '../utils/navigation';
 import { ArrowLeft, Clock, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function CashTokenPage() {
@@ -127,7 +128,7 @@ export default function CashTokenPage() {
             <div className="flex items-center gap-2 mb-4">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => safeGoBack(navigate)}
                 className="p-2 rounded-lg bg-surface-2 border border-border text-text hover:text-primary transition-all"
                 title="Back to previous page"
               >

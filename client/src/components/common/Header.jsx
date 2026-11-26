@@ -6,6 +6,7 @@ import {
   QrCode, DollarSign, Smartphone, ShieldCheck, ArrowRight, Activity, ArrowLeft, Rocket
 } from 'lucide-react';
 import ComicButton from './ComicButton';
+import { safeGoBack } from '../../utils/navigation';
 
 export default function Header() {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => safeGoBack(navigate)}
             className="hidden sm:flex shrink-0 min-h-11 px-3 rounded-xl bg-surface-2 hover:bg-surface border border-border hover:border-primary text-text-muted hover:text-primary transition-all items-center gap-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_#000]"
             title="Go to previous page"
           >

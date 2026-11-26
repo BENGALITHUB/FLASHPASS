@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { IconTile } from '../components/landing/Premium';
 import Header from '../components/common/Header';
 import { stockInfo } from '../utils/stock';
+import { safeGoBack } from '../utils/navigation';
 import {
   ArrowLeft, ArrowRight, Lock, AlertCircle, CheckCircle, RefreshCw, ShieldCheck,
   X, Users, User, Tag, ShoppingBag, Check, Zap, HeartHandshake, Ticket, MapPin, Mail, Smartphone,
@@ -378,7 +379,7 @@ export default function CheckoutPage() {
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => safeGoBack(navigate)}
                 className="mt-1 p-2.5 rounded-xl bg-white/5 border-2 border-white/10 text-text hover:text-primary hover:border-primary/60 transition-all"
                 title="Back to previous page"
               >

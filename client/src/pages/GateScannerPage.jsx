@@ -4,6 +4,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { api } from '../services/api';
 import { initSocket } from '../services/socket';
 import { playSuccessChime, playExitChime, playRejectionBuzzer, playWarningTone } from '../utils/audioFeedback';
+import { safeGoBack } from '../utils/navigation';
 import './GateScannerPage.css';
 import {
   Keyboard, Flashlight, LogOut, CheckCircle2, XCircle, AlertTriangle,
@@ -284,7 +285,7 @@ export default function GateScannerPage() {
           <div className="flex items-center justify-between gap-2 mb-5">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => safeGoBack(navigate, '/staff')}
               className="gs-metal-btn min-h-10 px-3.5 rounded-xl flex items-center gap-1.5 font-mono text-xs font-bold"
               title="Go to previous page"
             >
@@ -406,7 +407,7 @@ export default function GateScannerPage() {
                 type="button"
                 onClick={() => {
                   if (html5QrCodeRef.current) html5QrCodeRef.current.stop().catch(()=>{});
-                  navigate(-1);
+                  safeGoBack(navigate, '/staff');
                 }}
                 className="p-1 rounded-lg bg-black/20 hover:bg-black/40 transition-colors mr-1"
                 title="Go to previous page"
