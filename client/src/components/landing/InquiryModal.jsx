@@ -7,11 +7,12 @@ import { STALL_OPTIONS, findStall, formatRupees } from '../../utils/stalls';
 
 const THEMES = {
   SPONSOR: {
+    label: 'Sponsor / Ads / Promo',
     a: '#FFD60A', b: '#FB923C', soft: 'rgba(255,214,10,0.25)', icon: Building2,
     btn: 'bg-primary text-black hover:bg-primary-dark',
-    title: 'Event Sponsorship Inquiry',
-    pitch: 'Put your brand in front of thousands of high-intent fans.',
-    perks: ['Stage, gate & wristband branding', 'Logo on every digital FlashPass', 'VIP hospitality & backstage access']
+    title: 'Sponsor, Ads & Promotions Inquiry',
+    pitch: 'Put your brand, ads & promotions in front of thousands of high-intent fans.',
+    perks: ['Stage, gate & wristband branding', 'On-site ads, banners & promotions', 'VIP hospitality & backstage access']
   },
   STALL: {
     a: '#FF2E88', b: '#22D3EE', soft: 'rgba(255,46,136,0.25)', icon: Store,
@@ -220,7 +221,7 @@ export default function InquiryModal({
                   {/* Type switcher */}
                   <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl bg-black/40 border border-white/10">
                     {[
-                      { key: 'SPONSOR', label: 'Sponsorship', Icon: Building2, active: 'bg-primary text-black' },
+                      { key: 'SPONSOR', label: 'Sponsor / Ads / Promo', Icon: Building2, active: 'bg-primary text-black' },
                       { key: 'STALL', label: 'Vendor stall', Icon: Store, active: 'bg-accent text-white' }
                     ].map(({ key, label, Icon, active }) => (
                       <button
@@ -285,11 +286,12 @@ export default function InquiryModal({
 
                   {type === 'SPONSOR' ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Field label="Sponsorship tier" icon={Crown} chevron>
+                      <Field label="Sponsor / Ads / Promotion tier" icon={Crown} chevron>
                         <select value={form.sponsorshipTier} onChange={set('sponsorshipTier')} className={`${inputCls} cursor-pointer appearance-none`}>
                           <option value="TITLE_SPONSOR">👑 Title Sponsor (Main Stage Naming)</option>
                           <option value="POWERED_BY">⚡ Powered By Sponsor</option>
                           <option value="ASSOCIATE_SPONSOR">★ Associate Sponsor</option>
+                          <option value="ADS_PROMOTION">📢 Brand Ads &amp; Promotions</option>
                           <option value="MERCH_PARTNER">👕 Merch & Lanyard Partner</option>
                           <option value="GAMING_ARENA">🎮 Gaming Arena Sponsor</option>
                         </select>
