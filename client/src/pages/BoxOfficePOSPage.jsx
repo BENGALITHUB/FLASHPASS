@@ -215,7 +215,10 @@ export default function BoxOfficePOSPage() {
       `Hi ${name}! Your ${count > 1 ? `${count} tickets` : 'ticket'} for ${config?.eventName || 'the event'} ${count > 1 ? 'are' : 'is'} ready. Show the QR at the gate.`,
       '',
       `Open ${count > 1 ? 'them' : 'it'} any time here: ${window.location.origin}/pass/${receipt.orderId}`,
-      `Order ID: ${receipt.orderId}`
+      `Order ID: ${receipt.orderId}`,
+      '',
+      // WhatsApp cannot hyperlink words, so the site URL follows the name and is clickable.
+      'Powered by Bengal IT Hub: https://bengalithub.com/'
     ].join('\n');
     setWaBusy(true);
     const imageModule = import('../utils/exportPass');
