@@ -318,7 +318,7 @@ export const getAttendees = async (req, res) => {
     const eventIds = [...new Set(passes.map(p => p.eventId || 'comics-carnival'))];
     const [orders, events, settings] = await Promise.all([
       Order.find({ orderId: { $in: baseOrderIds } })
-        .select('orderId channel email amountPaise paidAt gateway.provider isGroupBooking tierName')
+        .select('orderId channel email amountPaise paidAt gateway.provider isGroupBooking tierName attendees')
         .lean(),
       Event.find({ eventId: { $in: eventIds } }).select('eventId name eventDays reentryMode').lean(),
       AdminSettings.getSettings()
@@ -335,6 +335,8 @@ export const getAttendees = async (req, res) => {
     let rows = passes.map(p => {
       const baseId = String(p.orderId || '').replace(/-P\d+$/, '');
       const o = orderById[baseId];
+      const groupSize = Math.max(1, o?.attendees?.length || 1);
+      const perPassAmountPaise = o?.amountPaise ? Math.round(o.amountPaise / groupSize) : 0;
       const evId = p.eventId || 'comics-carnival';
       const gate = gateInfoById[evId] || {
         today: getCurrentEventDay(settings.eventDays) || 1,
@@ -352,7 +354,9 @@ export const getAttendees = async (req, res) => {
         tierName: p.tierName || o?.tierName || 'General Comic Pass',
         badge: p.badge,
         channel: o?.channel || 'ONLINE',
-        amountPaise: o?.amountPaise ?? 0,
+        amountPaise: perPassAmountPaise,
+        orderAmountPaise: o?.amountPaise ?? 0,
+        groupSize,
         gatewayProvider: o?.gateway?.provider || 'PAYU',
         isGroupPass: Boolean(p.isGroupPass),
         status: p.status,
