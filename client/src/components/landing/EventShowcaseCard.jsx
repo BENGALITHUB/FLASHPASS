@@ -102,7 +102,7 @@ function BrandedDescription({ text, band, guide, eventName }) {
         About the event
       </span>
 
-      <p className="text-xs sm:text-sm font-semibold leading-snug text-white whitespace-pre-line">{lead}</p>
+      <p className="text-[10.5px] sm:text-sm font-medium sm:font-semibold leading-[1.35] sm:leading-snug text-white whitespace-normal sm:whitespace-pre-line">{lead}</p>
 
       <div className={`relative mt-2 space-y-1.5 ${long && !open ? 'max-h-28 overflow-hidden' : ''}`}>
         {shown.map((p, i) => {
