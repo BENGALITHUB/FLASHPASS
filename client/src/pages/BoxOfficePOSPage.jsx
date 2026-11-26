@@ -10,6 +10,9 @@ import './BoxOfficePOSPremium.css';
 const ticketsLabel = n => `${n} ${n === 1 ? 'ticket' : 'tickets'}`;
 const timeLabel = value => new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
 const isMobile = value => /^[6-9]\d{9}$/.test(value || '');
+// Cash-token sales (guest books a token online, pays at the counter) are off for this event:
+// the counter sells walk-ins only. Set to true to bring back the "Collect a token" mode.
+const TOKEN_SALES = false;
 const dateLabel = value => new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 
 export default function BoxOfficePOSPage() {
@@ -20,7 +23,7 @@ export default function BoxOfficePOSPage() {
   const [syncing, setSyncing] = useState(true);
   const [syncError, setSyncError] = useState('');
   const [syncedAt, setSyncedAt] = useState(null);
-  const [mode, setMode] = useState('token');
+  const [mode, setMode] = useState(TOKEN_SALES ? 'token' : 'walkin');
   const [tokenInput, setTokenInput] = useState('');
   const [activeToken, setActiveToken] = useState(null);
   const [guest, setGuest] = useState({ name: '', phone: '', email: '' });
@@ -422,11 +425,11 @@ export default function BoxOfficePOSPage() {
 
         <div className="pos-counter-grid">
           <section className="pos-panel pos-sale-panel" aria-labelledby="new-sale-title">
-            <div className="pos-panel-heading"><div className="pos-title-with-icon"><span className="pos-section-number">01</span><div><h2 id="new-sale-title">Start a sale</h2><p>Choose how your guest is checking in.</p></div></div><span className="pos-small-label">CASH PAYMENT</span></div>
-            <div className="pos-mode-switch" aria-label="Sale type">
+            <div className="pos-panel-heading"><div className="pos-title-with-icon"><span className="pos-section-number">01</span><div><h2 id="new-sale-title">Start a sale</h2><p>{TOKEN_SALES ? 'Choose how your guest is checking in.' : 'Issue tickets to guests at the counter.'}</p></div></div><span className="pos-small-label">CASH PAYMENT</span></div>
+            {TOKEN_SALES && <div className="pos-mode-switch" aria-label="Sale type">
               <button type="button" aria-pressed={mode === 'token'} className={mode === 'token' ? 'is-active' : ''} onClick={() => reset('token')} disabled={Boolean(busy)}><ScanLine size={17} /> Collect a token</button>
               <button type="button" aria-pressed={mode === 'walkin'} className={mode === 'walkin' ? 'is-active' : ''} onClick={() => reset('walkin')} disabled={Boolean(busy)}><UserPlus size={17} /> New walk-in <kbd>F2</kbd></button>
-            </div>
+            </div>}
 
             {receipt ? <div className="pos-receipt" role="status">
               <div className="pos-success-icon"><Check size={30} /></div><span className="pos-eyebrow">PAYMENT COMPLETE</span><h3>You're all set.</h3><p>{receipt.quantity > 1 ? <><strong>{receipt.quantity} tickets</strong> issued for <strong>{receipt.token?.holderName || guest.name.trim() || 'Walk-in Guest'}</strong>'s group{receipt.tierName ? ` (${receipt.tierName})` : ''}. Each guest has their own QR.</> : <>A ticket has been issued to <strong>{receipt.pass.holderName}</strong>.</>}</p>
@@ -460,7 +463,7 @@ export default function BoxOfficePOSPage() {
                 <div className="pos-walkin-intro"><UserPlus size={20} /><div><strong>No token? No problem.</strong><p>Issue a ticket directly to a guest at the counter.</p></div></div>
                 <span className="pos-field-label" id="pos-tier-label">Ticket category <span>{tiers.length} on sale</span></span>
                 <div className="pos-tiers" role="radiogroup" aria-labelledby="pos-tier-label">{tiers.map(t => <button type="button" role="radio" key={t.tierId} aria-checked={t.tierId === tier?.tierId} className={t.tierId === tier?.tierId ? 'is-active' : ''} disabled={Boolean(busy) || t.remaining === 0} onClick={() => setTierId(t.tierId)}><strong>{t.name}</strong><span>{formatMoney(t.amountPaise)}</span><small>{t.remaining === 0 ? 'Sold out' : t.remaining !== null && t.remaining <= 50 ? `${t.remaining} left` : t.customerFeePaise ? `incl. ${formatMoney(t.customerFeePaise)} fee` : 'Fee included'}</small></button>)}</div>
-                <label htmlFor="pos-guest-name">Guest name <span>required</span></label><input id="pos-guest-name" ref={nameRef} form="pos-payment-form" required placeholder="Full Name *" autoComplete="off" maxLength={60} value={guest.name} disabled={Boolean(busy)} onChange={e => setGuest({ ...guest, name: e.target.value })} />
+                <label htmlFor="pos-guest-name">Guest name <span>required</span></label><input id="pos-guest-name" ref={nameRef} autoFocus={!TOKEN_SALES} form="pos-payment-form" required placeholder="Full Name *" autoComplete="off" maxLength={60} value={guest.name} disabled={Boolean(busy)} onChange={e => setGuest({ ...guest, name: e.target.value })} />
                 <label htmlFor="pos-guest-phone">Mobile number <span>required</span></label><div className="pos-phone-input"><span>+91</span><input id="pos-guest-phone" form="pos-payment-form" required type="tel" inputMode="numeric" placeholder="10-digit mobile number *" autoComplete="off" maxLength={10} aria-invalid={Boolean(guest.phone) && !phoneValid} aria-describedby={!phoneValid ? 'pos-phone-error' : undefined} value={guest.phone} disabled={Boolean(busy)} onChange={e => setGuest({ ...guest, phone: e.target.value.replace(/\D/g, '') })} /></div>
                 {guest.phone && !phoneValid && <p id="pos-phone-error" className="pos-field-error">Enter 10 digits starting with 6, 7, 8 or 9.</p>}
                 <label htmlFor="pos-guest-email">Email address <span>required</span></label><input id="pos-guest-email" form="pos-payment-form" required type="email" placeholder="guest@email.com *" autoComplete="off" value={guest.email} disabled={Boolean(busy)} onChange={e => setGuest({ ...guest, email: e.target.value })} />
@@ -497,7 +500,7 @@ export default function BoxOfficePOSPage() {
               <div className={`pos-cash-input ${cash && !sufficientCash ? 'has-error' : ''}`}><span>₹</span><input ref={cashRef} id="pos-cash" type="text" inputMode="decimal" autoComplete="off" placeholder="0.00" value={cash} disabled={!ready || Boolean(busy)} onChange={e => { if (/^\d{0,8}(\.\d{0,2})?$/.test(e.target.value)) setCash(e.target.value); }} aria-invalid={Boolean(cash && !sufficientCash)} aria-describedby="pos-cash-help" /><Banknote size={20} /></div>
               <div className="pos-quick-cash"><button type="button" disabled={!ready || Boolean(busy)} onClick={() => setCash((amount / 100).toFixed(2))}>Exact amount</button>{[100, 200, 500, 1000, 2000, 5000].filter(value => value * 100 >= (amount || 0)).slice(0, 3).map(value => <button type="button" key={value} disabled={!ready || Boolean(busy)} onClick={() => setCash(String(value))}>₹{value}</button>)}</div>
               <div className={`pos-change ${ready && sufficientCash ? 'is-ready' : ''}`}><div><RotateCcw size={15} /><span>Change to return</span></div><strong>{receipt ? formatMoney(Math.round(Number(receipt.changeRupees) * 100)) : ready && sufficientCash ? formatMoney(cashPaise - amount) : '₹0.00'}</strong></div>
-              <p id="pos-cash-help" className={`pos-payment-help ${(cash && !sufficientCash) || (ready && sufficientCash && !canConfirm) ? 'pos-field-error' : ''}`}>{receipt ? 'Open the ticket or start the next sale.' : !ready ? 'Select a walk-in or find a token to continue.' : !cash ? 'Enter the cash received or choose an amount above.' : !sufficientCash ? `Collect ${formatMoney(Math.max(0, amount - (cashPaise || 0)))} more to continue.` : mode === 'walkin' && (!nameValid || !phoneValid || !emailValid) ? 'Enter valid lead guest name, 10-digit mobile & email.' : !groupValid ? `Fill valid name, 10-digit mobile & email for ${quantity === 2 ? 'Guest #2' : `Guests #2–#${quantity}`}.` : 'Return the change shown above to your guest.'}</p>
+              <p id="pos-cash-help" className={`pos-payment-help ${(cash && !sufficientCash) || (ready && sufficientCash && !canConfirm) ? 'pos-field-error' : ''}`}>{receipt ? 'Open the ticket or start the next sale.' : !ready ? (TOKEN_SALES ? 'Select a walk-in or find a token to continue.' : 'Waiting for the counter to open.') : !cash ? 'Enter the cash received or choose an amount above.' : !sufficientCash ? `Collect ${formatMoney(Math.max(0, amount - (cashPaise || 0)))} more to continue.` : mode === 'walkin' && (!nameValid || !phoneValid || !emailValid) ? 'Enter valid lead guest name, 10-digit mobile & email.' : !groupValid ? `Fill valid name, 10-digit mobile & email for ${quantity === 2 ? 'Guest #2' : `Guests #2–#${quantity}`}.` : 'Return the change shown above to your guest.'}</p>
               <button type="submit" className="pos-button pos-button-primary pos-confirm" disabled={!canConfirm}>{busy === 'confirm' ? <Loader2 size={18} className="pos-spin" /> : receipt ? <CheckCircle2 size={18} /> : <Check size={18} />}{busy === 'confirm' ? 'Issuing ticket…' : receipt ? 'Ticket issued' : saleQuantity > 1 ? `Confirm cash & issue ${saleQuantity} tickets` : 'Confirm cash & issue ticket'}{!receipt && <ArrowRight size={17} />}</button>
               <div className="pos-confirm-note"><ShieldCheck size={12} /> Confirm only after receiving cash</div>
             </form>
@@ -513,7 +516,7 @@ export default function BoxOfficePOSPage() {
 
           <aside className="pos-side-tools">
             <section className="pos-undo-card"><div><span className="pos-tool-icon"><RotateCcw size={18} /></span><div><h3>Need to correct a sale?</h3><p>{canUndo ? `${lastSale.orderId} · ${undoSeconds}s remaining` : 'Undo an unused ticket within 30 seconds.'}</p></div></div><button type="button" className="pos-button pos-button-secondary" disabled={!canUndo} onClick={() => setUndoOpen(true)}><RotateCcw size={14} /> Undo last sale <span>{canUndo ? `${undoSeconds}s` : <kbd>Ctrl Z</kbd>}</span></button></section>
-            <section className="pos-shortcuts"><h3><Keyboard size={16} /> A little faster, every time</h3><div><span>Find token</span><kbd>Enter</kbd></div><div><span>Confirm cash</span><kbd>Space</kbd></div><div><span>New walk-in</span><kbd>F2</kbd></div><div><span>Clear sale</span><kbd>Esc</kbd></div><div><span>Refresh counter</span><kbd>F9</kbd></div></section>
+            <section className="pos-shortcuts"><h3><Keyboard size={16} /> A little faster, every time</h3>{TOKEN_SALES && <div><span>Find token</span><kbd>Enter</kbd></div>}<div><span>Confirm cash</span><kbd>Space</kbd></div><div><span>New walk-in</span><kbd>F2</kbd></div><div><span>Clear sale</span><kbd>Esc</kbd></div><div><span>Refresh counter</span><kbd>F9</kbd></div></section>
           </aside>
         </div>
         <footer className="pos-footer"><span><Zap size={12} /> Powered by FlashPass</span><span>Less waiting. More experiencing.</span><span>All amounts in INR · Times in IST</span></footer>
