@@ -5,7 +5,7 @@ import { Event } from '../models/Event.js';
 import { ScanLog } from '../models/ScanLog.js';
 import { AdminSettings } from '../models/AdminSettings.js';
 import { verifyQRToken, generateQRToken } from '../services/qr.service.js';
-import { getCurrentEventDay, getISTNow } from '../utils/date.utils.js';
+import { getCurrentEventDay, getISTNow, getISTDateString } from '../utils/date.utils.js';
 import { emitGateStats } from '../services/socket.service.js';
 import { getCachedSettings, getCachedEvent } from '../services/configCache.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
@@ -86,7 +86,34 @@ export const scanPass = async (req, res) => {
 
     // Each event runs on its own dates, so "today is Day 2" is worked out from the pass's event.
     const event = await getCachedEvent(pass.eventId);
-    if (event?.eventDays?.length) eventDay = getCurrentEventDay(event.eventDays) || 1;
+    const activeEventDays = event?.eventDays?.length ? event.eventDays : settings.eventDays;
+    if (activeEventDays?.length) eventDay = getCurrentEventDay(activeEventDays) || 1;
+
+    // Protect real customer passes from being burned by accidental scans before Day 1 or after the event ends.
+    const sortedDates = (activeEventDays || []).map(d => d?.date).filter(Boolean).sort();
+    if (sortedDates.length > 0) {
+      const todayStr = getISTDateString();
+      if (todayStr < sortedDates[0]) {
+        return successResponse(res, {
+          result: SCAN_RESULTS.NOT_VALID_TODAY,
+          message: `EVENT NOT STARTED ✕ Gates open on ${sortedDates[0]}. Pre-event scanning is blocked so passes stay unused.`,
+          badge: pass.badge,
+          validDays: pass.validDays,
+          holderName: pass.holderName,
+          latencyMs: Date.now() - startTime
+        });
+      }
+      if (todayStr > sortedDates[sortedDates.length - 1]) {
+        return successResponse(res, {
+          result: SCAN_RESULTS.NOT_VALID_TODAY,
+          message: `EVENT ENDED ✕ This event ended on ${sortedDates[sortedDates.length - 1]}.`,
+          badge: pass.badge,
+          validDays: pass.validDays,
+          holderName: pass.holderName,
+          latencyMs: Date.now() - startTime
+        });
+      }
+    }
 
     // 2b. The QR must carry the pass's current nonce. A pass reissued at the help
     // desk gets a new nonce, so the old QR / screenshot stops working, and a QR
