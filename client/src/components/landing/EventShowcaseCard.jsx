@@ -132,7 +132,7 @@ function BrandedDescription({ text, band, guide, eventName }) {
         </button>
       )}
 
-      <div className="mt-2 pt-2 sm:mt-3 sm:pt-2.5 border-t border-white/15">
+      <div className={`mt-2 pt-2 sm:mt-3 sm:pt-2.5 border-t ${band ? 'border-purple-700/50' : 'border-white/15'}`}>
         <EventGuideSection guide={guide} band={band} eventName={eventName} inline />
       </div>
     </section>
@@ -228,7 +228,7 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
             type="button"
             onClick={() => setModalOpen(true)}
             className="font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-1"
-            style={{ color: highlight }}
+            style={{ color: band ? '#C084FC' : highlight }}
           >
             <span>Show more</span>
             <ArrowRight className="w-3 h-3" />
@@ -241,7 +241,7 @@ function EventGuideSection({ guide, accent, band = null, eventName = '' }) {
               key={key}
               type="button"
               onClick={() => setModalOpen(true)}
-              className="group/guide flex items-center gap-2 text-left rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 hover:border-white/25 px-2 py-1.5 transition-all cursor-pointer min-w-0"
+              className={`group/guide flex items-center gap-2 text-left rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border ${band ? 'border-purple-700/60 hover:border-purple-500' : 'border-white/10 hover:border-white/25'} px-2 py-1.5 transition-all cursor-pointer min-w-0`}
             >
               <span
                 className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm transition-transform group-hover/guide:scale-110"
@@ -723,7 +723,11 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
       {/* Gradient border */}
       <div
         className="relative rounded-[1.5rem] sm:rounded-[1.75rem] p-[2px] shadow-[4px_4px_0_#000] sm:shadow-[8px_8px_0_#000]"
-        style={{ background: `linear-gradient(135deg, ${theme.a}, ${theme.b} 55%, ${theme.a})` }}
+        style={{
+          background: skin
+            ? 'linear-gradient(135deg, #4C1D95, #6D28D9 55%, #3B0764)'
+            : `linear-gradient(135deg, ${theme.a}, ${theme.b} 55%, ${theme.a})`
+        }}
       >
         <div className="relative rounded-[calc(1.75rem-2px)] overflow-hidden" style={{ background: skin ? skin.colors.ink : '#0D0D1A' }}>
           {/* ===== Ticket body + stub ===== */}
@@ -839,7 +843,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                         return (
                           <div
                             key={`${label}-${idx}`}
-                            className={`min-w-0 rounded-xl bg-black/45 border border-white/15 px-2.5 sm:px-3 py-1 sm:py-1.5 backdrop-blur-sm ${spanClass}`}
+                            className={`min-w-0 rounded-xl bg-black/45 border ${skin ? 'border-purple-700/60' : 'border-white/15'} px-2.5 sm:px-3 py-1 sm:py-1.5 backdrop-blur-sm ${spanClass}`}
                           >
                             <div className="flex items-center gap-1 sm:gap-1.5 text-text-muted font-mono text-[9px] sm:text-[10px] uppercase truncate">
                               <Icon className="w-3 h-3 shrink-0" /> <span className="truncate">{label}</span>
@@ -868,7 +872,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                     <span className="block mb-1.5 sm:mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">Your pass includes</span>
                     <ul className="-mx-4 px-4 sm:mx-0 sm:px-0 flex flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar gap-1.5 sm:gap-2 [&>li]:shrink-0 [&>li]:whitespace-nowrap">
                       {soloTier.perks.map((perk, i) => (
-                        <li key={i} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/15 pl-1 pr-2.5 py-0.5 sm:pl-1.5 sm:pr-3 sm:py-1 font-mono text-[10.5px] sm:text-xs text-white">
+                        <li key={i} className={`inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] border ${skin ? 'border-purple-700/60' : 'border-white/15'} pl-1 pr-2.5 py-0.5 sm:pl-1.5 sm:pr-3 sm:py-1 font-mono text-[10.5px] sm:text-xs text-white`}>
                           <span className="grid place-items-center w-5 h-5 rounded-full" style={{ background: `${skin ? theme.a : '#22D3EE'}26` }}>
                             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: skin ? theme.a : '#22D3EE' }} />
                           </span>
@@ -884,7 +888,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
             {/* The place to book: price, total, stock and the button. Phones: Master Roshi scene when stubImage is set. Tablets: one row. Laptops: the ticket's torn-off stub. */}
             {skin?.stubImage && (
-              <div className="md:hidden border-t-2 border-dashed border-white/30 bg-[#111111]">
+              <div className="md:hidden border-t-2 border-dashed border-purple-700/70 bg-[#111111]">
                 <div className="relative w-full aspect-[16/10] overflow-hidden">
                   <img
                     src={skin.stubImage}
@@ -908,7 +912,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                       {[[Zap, 'Instant QR'], [Smartphone, 'Works offline'], [ShieldCheck, 'Secure UPI']].map(([Icon, label]) => (
                         <span
                           key={label}
-                          className="inline-flex items-center gap-1 rounded-md bg-black/65 border border-white/15 backdrop-blur-sm px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wide text-white/90 shadow-sm"
+                          className="inline-flex items-center gap-1 rounded-md bg-black/65 border border-purple-700/70 backdrop-blur-sm px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wide text-white/90 shadow-sm"
                         >
                           <Icon className="w-2.5 h-2.5 shrink-0" style={{ color: theme.a }} />
                           {label}
@@ -934,7 +938,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
               </div>
             )}
 
-            <div className={`event-booking relative min-w-0 ${skin?.stubImage ? 'hidden md:flex' : 'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-4 md:flex'} md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-3.5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-white/30' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
+            <div className={`event-booking relative min-w-0 ${skin?.stubImage ? 'hidden md:flex' : 'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 sm:gap-x-4 sm:gap-y-4 md:flex'} md:flex-row md:items-center md:gap-6 lg:flex-col lg:justify-between lg:gap-0 lg:text-center border-t-2 lg:border-t-0 lg:border-l-2 border-dashed p-3.5 sm:p-6 lg:p-7 overflow-hidden lg:overflow-visible ${skin ? 'border-purple-700/70' : 'border-white/15 bg-[#121224]'}`} style={skin ? { background: '#111111' } : undefined}>
               {skin && <StubBackdrop skin={skin} />}
               {skin && <span className="kck-foil absolute inset-x-0 top-0 h-1 pointer-events-none" style={{ background: 'linear-gradient(90deg, #FF2E88, #FFD60A, #22D3EE, #FF2E88)', backgroundSize: '200% 100%' }} aria-hidden="true" />}
 
@@ -1160,7 +1164,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
           </div>
 
           {/* ===== Sponsor / stall strip ===== */}
-          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-purple-400/35' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: 'linear-gradient(90deg, #151024, #23183A)' } : undefined}>
+          <div className={`border-t-2 px-4 sm:px-6 xl:px-8 py-4 flex flex-wrap items-center justify-between gap-3 ${skin ? 'border-purple-700/80' : 'border-white/10 bg-gradient-to-r from-primary/10 via-transparent to-accent/10'}`} style={skin ? { background: 'linear-gradient(90deg, #151024, #23183A)' } : undefined}>
             <div className="hidden md:flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center border-2 border-black shadow-[2px_2px_0_#000] shrink-0">
                 <HeartHandshake className="w-5 h-5" />

@@ -11,7 +11,7 @@ export const EVENT_SKINS = {
     tagline: ['Comics', 'Gaming', 'Collectibles', 'Cosplay'],
     colors: {
       ink: '#0A0A0A',      // banner black
-      orange: '#A855F7',   // crisp amethyst violet border & link accent
+      orange: '#6D28D9',   // rich dark purple border & badge accent
       burst: '#F2FF00',    // price starburst
       button: '#FFC21A',   // "Book tickets" button
       red: '#E10600'       // edition number
