@@ -513,7 +513,7 @@ export default function LandingPage() {
                 >
                   <Ticket className="w-3.5 h-3.5 text-primary group-hover:rotate-12 transition-transform" />
                   <span>{ev.name}</span>
-                  <span className="text-primary font-comic text-sm">₹{ev.basePriceRupees || '50'}</span>
+                  <span className="text-primary font-comic text-sm">₹{ev.totalPriceRupees || ev.basePriceRupees || '50'}</span>
                   <span className="text-[10px] text-accent">Book Pass →</span>
                 </button>
               ))}

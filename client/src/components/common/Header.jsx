@@ -144,7 +144,7 @@ export default function Header() {
 
             {/* Starting Price Pill */}
             <span className="flex-shrink-0 font-mono text-[11px] font-bold text-primary bg-black/60 px-2 py-0.5 rounded-md border border-primary/30">
-              ₹{parseFloat(activeEvent.basePriceRupees || 50).toFixed(0)}
+              ₹{parseFloat(activeEvent.totalPriceRupees || activeEvent.basePriceRupees || 50).toFixed(0)}
             </span>
 
             {/* Multi-Event Switcher Pill Indicator */}
@@ -200,7 +200,7 @@ export default function Header() {
 
                       <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
                         <span className="font-comic text-xs text-primary font-bold">
-                          ₹{ev.basePriceRupees || '50'}
+                          ₹{ev.totalPriceRupees || ev.basePriceRupees || '50'}
                         </span>
                         <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md border ${
                           isCurrent
@@ -371,7 +371,7 @@ export default function Header() {
             }}
             className="px-4 py-2 text-sm shadow-[3px_3px_0_#000] hover:scale-105"
           >
-            <span>GET PASS ₹{activeEvent.basePriceRupees || '50'}</span>
+            <span>GET PASS ₹{activeEvent.totalPriceRupees || activeEvent.basePriceRupees || '50'}</span>
             <ArrowRight className="w-4 h-4 ml-1.5" />
           </ComicButton>
         </div>
@@ -418,7 +418,7 @@ export default function Header() {
                   <span className="truncate">{ev.name}</span>
                 </div>
                 <span className="font-comic text-sm text-primary flex-shrink-0">
-                  ₹{ev.basePriceRupees || '50'} →
+                  ₹{ev.totalPriceRupees || ev.basePriceRupees || '50'} →
                 </span>
               </Link>
             ))}

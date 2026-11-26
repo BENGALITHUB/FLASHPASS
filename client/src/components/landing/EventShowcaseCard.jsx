@@ -669,8 +669,9 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
   // type the price, total and stock are that type's own.
   const priceRupees = soloTier ? soloTier.pricePaise / 100 : Number(ev.basePriceRupees) || 0;
   const feeRupees = soloTier ? (soloTier.platformFeePaise ?? Math.round(Number(ev.platformFeeRupees) * 100)) / 100 : Number(ev.platformFeeRupees) || 0;
-  const priceLabel = priceRupees % 1 ? priceRupees.toFixed(2) : String(priceRupees);
-  const totalRupees = (priceRupees + feeRupees).toFixed(2);
+  const totalAmountNum = priceRupees + feeRupees;
+  const priceLabel = totalAmountNum % 1 ? totalAmountNum.toFixed(2) : String(totalAmountNum);
+  const totalRupees = totalAmountNum.toFixed(2);
   const stock = soloTier ? stockInfo(soloTier.capacity, soloTier.soldCount) : null;
   const soldOut = Boolean(stock?.soldOut);
   const availability = soloTier?.capacity > 0 ? (
@@ -922,7 +923,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
                   </div>
                   {/* 50₹ starburst centered in the middle */}
                   <div className="absolute left-[48%] top-[46%] -translate-x-1/2 -translate-y-1/2 z-10">
-                    <PriceBurst color={skin.colors.burst} rupees={priceRupees} size="sm" />
+                    <PriceBurst color={skin.colors.burst} rupees={totalAmountNum} size="sm" />
                   </div>
                   {/* Bigger, attractive Book Pass button positioned lower */}
                   <button
@@ -955,7 +956,7 @@ export default function EventShowcaseCard({ ev, index = 0, affiliateCode, onInqu
 
               <div className={`event-price relative z-20 min-w-0 shrink-0 flex flex-col items-center ${skin?.stubImage ? 'ml-10 sm:ml-14 lg:ml-0 lg:absolute lg:left-0 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2' : ''}`}>
                 <span className={`block font-mono text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.15em] ${skin ? 'text-white/70' : 'text-text-muted'}`}>Passes from</span>
-                {skin ? <PriceBurst color={skin.colors.burst} rupees={priceRupees} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS INCLUSIVE` : null} /> : (
+                {skin ? <PriceBurst color={skin.colors.burst} rupees={totalAmountNum} ribbon={dayCount > 1 ? `ALL ${dayCount} DAYS INCLUSIVE` : null} /> : (
                   <div className="font-comic text-5xl lg:text-6xl leading-none mt-1 lg:my-2" style={{ color: theme.a, textShadow: '3px 3px 0 #000' }}>₹{priceLabel}</div>
                 )}
               </div>
