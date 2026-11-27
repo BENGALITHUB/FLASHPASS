@@ -190,7 +190,9 @@ export default function LandingPage() {
     api.getEventInfo(eventIdParam, refParam)
       .then(data => {
         setEventData(data);
-        document.title = 'FlashPass — High-Speed Ingress & Ticketing';
+        document.title = data?.name
+          ? `FlashPass — ${data.name} Tickets & Passes`
+          : 'FlashPass — Kolkata Comics Karnival 7.0 Tickets & Passes';
       })
       .catch(err => console.error(err));
 
