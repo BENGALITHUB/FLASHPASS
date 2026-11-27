@@ -5,6 +5,9 @@ import assert from 'assert/strict';
 // Runs against a throwaway in-memory MongoDB, never a real database
 const SERVER = new URL('../', import.meta.url);
 const imp = (p) => import(new URL(p, SERVER).href);
+// Gates only scan on event days, so the test event runs today
+const { getISTDateString } = await imp('src/utils/date.utils.js');
+const TODAY = getISTDateString();
 const mongod = await MongoMemoryServer.create();
 const { default: mongoose } = await imp('node_modules/mongoose/index.js');
 await mongoose.connect(mongod.getUri());
@@ -16,7 +19,7 @@ const { getDashboardMetrics } = await imp('src/controllers/admin.controller.js')
 const { generateQRToken } = await imp('src/services/qr.service.js');
 
 // Like the live DB: old global settings saved with IN_OUT, event doc without the field
-await AdminSettings.collection.insertOne({ reentryMode: 'IN_OUT', eventDays: [{ day: 1, date: '2099-01-01', label: 'Day 1' }], gateOpenTime: '00:00', gateCloseTime: '23:59' });
+await AdminSettings.collection.insertOne({ reentryMode: 'IN_OUT', eventDays: [{ day: 1, date: TODAY, label: 'Day 1' }], gateOpenTime: '00:00', gateCloseTime: '23:59' });
 await mongoose.connection.collection('events').insertOne({ eventId: 'comics-carnival', name: 'CC', venue: 'V', basePricePaise: 5000, platformFeePaise: 200 });
 
 // There is no default event: gate staff carry their event, the admin names one in ?eventId=.

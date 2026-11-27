@@ -89,32 +89,6 @@ export const scanPass = async (req, res) => {
     const activeEventDays = event?.eventDays?.length ? event.eventDays : settings.eventDays;
     if (activeEventDays?.length) eventDay = getCurrentEventDay(activeEventDays) || 1;
 
-    // Protect real customer passes from being burned by accidental scans before Day 1 or after the event ends.
-    const sortedDates = (activeEventDays || []).map(d => d?.date).filter(Boolean).sort();
-    if (sortedDates.length > 0) {
-      const todayStr = getISTDateString();
-      if (todayStr < sortedDates[0]) {
-        return successResponse(res, {
-          result: SCAN_RESULTS.NOT_VALID_TODAY,
-          message: `EVENT NOT STARTED ✕ Gates open on ${sortedDates[0]}. Pre-event scanning is blocked so passes stay unused.`,
-          badge: pass.badge,
-          validDays: pass.validDays,
-          holderName: pass.holderName,
-          latencyMs: Date.now() - startTime
-        });
-      }
-      if (todayStr > sortedDates[sortedDates.length - 1]) {
-        return successResponse(res, {
-          result: SCAN_RESULTS.NOT_VALID_TODAY,
-          message: `EVENT ENDED ✕ This event ended on ${sortedDates[sortedDates.length - 1]}.`,
-          badge: pass.badge,
-          validDays: pass.validDays,
-          holderName: pass.holderName,
-          latencyMs: Date.now() - startTime
-        });
-      }
-    }
-
     // 2b. The QR must carry the pass's current nonce. A pass reissued at the help
     // desk gets a new nonce, so the old QR / screenshot stops working, and a QR
     // can't be made from a pass ID alone.
@@ -152,6 +126,33 @@ export const scanPass = async (req, res) => {
         holderName: pass.holderName,
         latencyMs: Date.now() - startTime
       });
+    }
+
+    // 3b. Protect real customer passes from being burned by accidental scans before Day 1 or after the event ends.
+    // Runs after the QR and status checks so a fake or cancelled pass is never reported as "not started".
+    const sortedDates = (activeEventDays || []).map(d => d?.date).filter(Boolean).sort();
+    if (sortedDates.length > 0) {
+      const todayStr = getISTDateString();
+      if (todayStr < sortedDates[0]) {
+        return successResponse(res, {
+          result: SCAN_RESULTS.NOT_VALID_TODAY,
+          message: `EVENT NOT STARTED ✕ Gates open on ${sortedDates[0]}. Pre-event scanning is blocked so passes stay unused.`,
+          badge: pass.badge,
+          validDays: pass.validDays,
+          holderName: pass.holderName,
+          latencyMs: Date.now() - startTime
+        });
+      }
+      if (todayStr > sortedDates[sortedDates.length - 1]) {
+        return successResponse(res, {
+          result: SCAN_RESULTS.NOT_VALID_TODAY,
+          message: `EVENT ENDED ✕ This event ended on ${sortedDates[sortedDates.length - 1]}.`,
+          badge: pass.badge,
+          validDays: pass.validDays,
+          holderName: pass.holderName,
+          latencyMs: Date.now() - startTime
+        });
+      }
     }
 
     // 4. Validity Day Check

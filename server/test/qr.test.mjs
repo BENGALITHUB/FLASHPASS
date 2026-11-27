@@ -5,6 +5,9 @@ import crypto from 'crypto';
 
 const SERVER = new URL('../', import.meta.url);
 const imp = (p) => import(new URL(p, SERVER).href);
+// Gates only scan on event days, so the test event runs today
+const { getISTDateString } = await imp('src/utils/date.utils.js');
+const TODAY = getISTDateString();
 const mongod = await MongoMemoryServer.create();
 const { default: mongoose } = await imp('node_modules/mongoose/index.js');
 await mongoose.connect(mongod.getUri());
@@ -49,7 +52,7 @@ await t('without the previous key, old QRs fail; a wrong signature fails', async
 
 await t('gate: a reissued pass\'s old QR is refused, the new one gets in', async () => {
   const s = await AdminSettings.getSettings();
-  s.eventDays = [{ day: 1, date: '2099-01-01', label: 'Day 1' }]; await s.save();
+  s.eventDays = [{ day: 1, date: TODAY, label: 'Day 1' }]; await s.save();
   await Event.create({ eventId: 'comics-carnival', name: 'CC', venue: 'V', basePricePaise: 5000, platformFeePaise: 200, reentryMode: 'WRISTBAND' });
   const pass = await Pass.create({ orderId: 'CC-QR1', holderName: 'Fan', phone: '9800000000', badge: '3-DAY', validDays: [1, 2, 3] });
   const before = generateQRToken(pass._id.toString(), pass.qrNonce);
@@ -57,6 +60,15 @@ await t('gate: a reissued pass\'s old QR is refused, the new one gets in', async
   assert.ok(re.pass.newQrToken);
   assert.equal((await call(scanPass, { qrToken: before })).result, 'INVALID_QR');
   assert.equal((await call(scanPass, { qrToken: re.pass.newQrToken })).result, 'ENTRY_OK');
+
+  // Before the event starts, a fake/old QR is still reported as fake, without the holder's name
+  const s2 = await AdminSettings.getSettings();
+  s2.eventDays = [{ day: 1, date: '2099-01-01', label: 'Day 1' }]; await s2.save();
+  const { clearConfigCache } = await imp('src/services/configCache.js');
+  clearConfigCache();
+  const early = await call(scanPass, { qrToken: before });
+  assert.equal(early.result, 'INVALID_QR');
+  assert.equal((await call(scanPass, { qrToken: re.pass.newQrToken })).result, 'NOT_VALID_TODAY');
 });
 await t('gate: a correctly signed QR with a made-up nonce is refused', async () => {
   const pass = await Pass.create({ orderId: 'CC-QR2', holderName: 'Fan 2', phone: '9800000001', badge: '3-DAY', validDays: [1, 2, 3] });

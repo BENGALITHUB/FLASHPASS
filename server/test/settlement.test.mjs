@@ -45,6 +45,10 @@ await LedgerEntry.create([
   { orderId: 'C', eventId: 'comics-carnival', type: 'REVERSAL', channel: 'ONLINE', grossPaise: -5200, organizerPaise: -5000, platformPaise: -200 },
   sale('X', 'anime-fest')
 ]);
+// passesSold counts active passes; the refunded order C left a voided pass
+const { Pass } = await imp('src/models/Pass.js');
+const pass = (orderId, eventId = 'comics-carnival', status = 'ACTIVE') => ({ orderId, eventId, status, holderName: 'Fan', phone: '9000000000', badge: 'GENERAL' });
+await Pass.create([pass('A'), pass('B'), pass('C', 'comics-carnival', 'VOIDED'), pass('X', 'anime-fest')]);
 
 const cc = async () => (await call(S.getSettlement, ADMIN, { params: { eventId: 'comics-carnival' } })).data.summary;
 const pay = (body) => call(S.recordPayout, ADMIN, { params: { eventId: 'comics-carnival' }, body });
