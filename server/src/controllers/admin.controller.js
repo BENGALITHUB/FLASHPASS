@@ -18,6 +18,7 @@ import { emitEmergencyEvacuation, emitLiveAnnouncement } from '../services/socke
 import { clearConfigCache } from '../services/configCache.js';
 import { gatewaySettingsForAdmin, mergeGatewaySettings } from '../services/gateway.service.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
+import { feeBreakdown } from '../utils/feeBreakdown.js';
 import { PRESENCE, PASS_STATUS, ORDER_STATUS, ORDER_CHANNELS, SCAN_RESULTS, LEDGER_TYPES, ROLES, REENTRY_MODES } from '../constants/index.js';
 
 // An event admin sees only their own event. One with no event set matches nothing,
@@ -255,7 +256,9 @@ export const getDashboardMetrics = async (req, res) => {
       pricing: {
         basePricePaise: selectedEvent ? selectedEvent.basePricePaise : settings.basePricePaise,
         platformFeePaise: selectedEvent ? selectedEvent.platformFeePaise : settings.platformFeePaise,
-        totalPricePaise: (selectedEvent ? selectedEvent.basePricePaise + selectedEvent.platformFeePaise : settings.basePricePaise + settings.platformFeePaise)
+        totalPricePaise: (selectedEvent ? selectedEvent.basePricePaise + selectedEvent.platformFeePaise : settings.basePricePaise + settings.platformFeePaise),
+        // Fee actually charged on the passes sold so far (old sales keep their old rate)
+        feeBreakdown: selectedEvent?.eventId ? await feeBreakdown(selectedEvent.eventId) : []
       },
       settings: {
         eventName: cfgEvent ? cfgEvent.name : settings.eventName,

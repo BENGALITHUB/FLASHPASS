@@ -28,6 +28,7 @@ import FraudAlertCenter from '../components/analytics/FraudAlertCenter';
 import SaaSSettlementLedger, { PendingPayoutBanner } from '../components/analytics/SaaSSettlementLedger';
 import EventComparisonCards from '../components/analytics/EventComparisonCards';
 import OrganizerPayoutCard from '../components/analytics/OrganizerPayoutCard';
+import { feeEquation } from '../components/analytics/settlementUi';
 import TicketTiersManager from '../components/admin/TicketTiersManager';
 import ShiftsPanel from '../components/admin/ShiftsPanel';
 import { DemoPinBanner, StaffActions } from '../components/admin/StaffSecurity';
@@ -1510,7 +1511,9 @@ export default function AdminDashboardPage() {
                       icon={Zap}
                       label="Platform fee revenue"
                       value={`₹${metrics?.ledger?.platformRupees || '0.00'}`}
-                      sub={`Flat ₹${((metrics?.pricing?.platformFeePaise || 200) / 100).toFixed(2)} SaaS fee / pass`}
+                      sub={metrics?.pricing?.feeBreakdown?.length
+                        ? `${feeEquation(metrics.pricing.feeBreakdown)} • now ₹${((metrics?.pricing?.platformFeePaise ?? 200) / 100).toFixed(2)} / pass`
+                        : `Flat ₹${((metrics?.pricing?.platformFeePaise ?? 200) / 100).toFixed(2)} SaaS fee / pass`}
                     />
                   </div>
                 </section>

@@ -9,6 +9,19 @@ export const inr = (paise) =>
 export const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
+// Fee rupees without trailing ".00": 100 -> "1", 250 -> "2.50"
+const feeRs = (paise) => (paise % 100 === 0 ? String(paise / 100) : (paise / 100).toFixed(2));
+
+/**
+ * How the platform fee adds up, using the rate each pass was actually sold at.
+ * [{feePaise:100,passes:44},{feePaise:200,passes:4}] -> "44 × ₹1 + 4 × ₹2"
+ * Falls back to the current rate when no passes are sold yet.
+ */
+export const feeEquation = (breakdown, currentFeePaise) => {
+  if (!breakdown?.length) return `₹${feeRs(currentFeePaise ?? 200)} platform fee each`;
+  return breakdown.map(b => `${b.passes} × ₹${feeRs(b.feePaise)}`).join(' + ');
+};
+
 export const todayIST = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
 // "1,234.50" or "1234.5" -> 123450 paise; null when not a valid positive amount

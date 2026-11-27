@@ -7,6 +7,7 @@ import { AuditLog } from '../models/AuditLog.js';
 import { Payout, PAYOUT_METHODS } from '../models/Payout.js';
 import { SettlementRequest, REQUEST_STATUS } from '../models/SettlementRequest.js';
 import { successResponse, errorResponse } from '../utils/response.utils.js';
+import { feeBreakdown } from '../utils/feeBreakdown.js';
 import { ROLES, LEDGER_TYPES, PASS_STATUS } from '../constants/index.js';
 
 /*
@@ -138,10 +139,12 @@ export const getSettlement = async (req, res) => {
       return errorResponse(res, 'You can only view your own event', 'FORBIDDEN', 403);
     }
     const [summary] = await buildSummaries([eventId]);
-    const [payouts, requests] = await Promise.all([
+    const [payouts, requests, fees] = await Promise.all([
       Payout.find({ eventId }).sort({ paidAt: -1, createdAt: -1 }).lean(),
-      SettlementRequest.find({ eventId }).sort({ createdAt: -1 }).limit(50).lean()
+      SettlementRequest.find({ eventId }).sort({ createdAt: -1 }).limit(50).lean(),
+      feeBreakdown(eventId)
     ]);
+    summary.feeBreakdown = fees;
     return successResponse(res, { summary, payouts, requests, methods: PAYOUT_METHODS });
   } catch (error) {
     return errorResponse(res, error.message, 'SETTLEMENT_DETAIL_ERROR', 500);

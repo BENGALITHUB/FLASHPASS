@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Landmark, CheckCircle2, Download, ChevronRight, Ticket, CalendarClock, Wallet, Clock, FileText, Zap } from 'lucide-react';
 import { api } from '../../services/api';
-import { inr, fmtDate, rupeesToPaise, METHOD_LABELS, REQUEST_LABELS, Field, SettlementModal, FormError } from './settlementUi';
+import { inr, fmtDate, rupeesToPaise, feeEquation, METHOD_LABELS, REQUEST_LABELS, Field, SettlementModal, FormError } from './settlementUi';
 
 /**
  * Organizer view: what they've earned, what the platform has paid them,
@@ -38,7 +38,10 @@ export default function OrganizerPayoutCard({ metrics, eventName, onExportLedger
   const channelTotal = onlineGross + cashGross;
   const onlinePct = channelTotal ? Math.round((onlineGross / channelTotal) * 100) : 0;
   const cashPct = channelTotal ? 100 - onlinePct : 0;
-  const feePerPass = ((metrics?.pricing?.platformFeePaise ?? 200) / 100).toFixed(0);
+  const currentFeePaise = metrics?.pricing?.platformFeePaise ?? 200;
+  const soldFees = s?.feeBreakdown || [];
+  // Show the current rate too when it differs from what the sold passes paid
+  const rateChanged = soldFees.length > 0 && soldFees.some(b => b.feePaise !== currentFeePaise);
 
   const cancelRequest = async () => {
     if (!pending) return;
@@ -144,7 +147,7 @@ export default function OrganizerPayoutCard({ metrics, eventName, onExportLedger
             </div>
           </dl>
           <p className="mt-2 font-mono text-[10px] text-text-muted">
-            Your share = gross ₹{inr(s?.grossPaise)} − platform fee ₹{inr(s?.platformPaise)}, after any refunds.
+            Your share = gross ₹{inr(s?.grossPaise)} − platform fee ₹{inr(s?.platformPaise)}{soldFees.length ? ` (${feeEquation(soldFees)})` : ''}, after any refunds.
           </p>
 
           {/* Channel split */}
@@ -174,7 +177,12 @@ export default function OrganizerPayoutCard({ metrics, eventName, onExportLedger
             <div className="adm-fact rounded-2xl p-4">
               <dt className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted"><Ticket className="h-3.5 w-3.5 text-info" /> Passes sold</dt>
               <dd className="mt-2 font-comic text-3xl text-white leading-none">{s?.passesSold ?? 0}</dd>
-              <dd className="mt-1.5 font-mono text-[10px] text-text-muted">₹{feePerPass} platform fee each</dd>
+              <dd className="mt-1.5 font-mono text-[10px] text-text-muted">
+                {soldFees.length ? `Fee: ${feeEquation(soldFees)}` : feeEquation(soldFees, currentFeePaise)}
+              </dd>
+              {rateChanged && (
+                <dd className="mt-0.5 font-mono text-[10px] text-text-muted">New sales: ₹{inr(currentFeePaise)} fee each</dd>
+              )}
             </div>
             <div className="adm-fact rounded-2xl p-4">
               <dt className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-text-muted"><CalendarClock className="h-3.5 w-3.5 text-success" /> Last payout</dt>
